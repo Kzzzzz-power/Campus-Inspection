@@ -1,0 +1,28 @@
+{
+  "checked_at": "2026-10-27T21:43:16.9562562+08:00",
+  "status": "passed",
+  "stopped_processes": [
+    14244,
+    36536
+  ],
+  "new_process": {
+    "pid": 37044,
+    "worker_pid": 39460,
+    "url": "http://127.0.0.1:8000/",
+    "started_at": "2026-10-27T21:43:16.9476419+08:00",
+    "executable": "D:\\Codex\\InspectGo\\.venv\\Scripts\\python.exe"
+  },
+  "before": {
+    "records_count": 6,
+    "run_count": 2
+  },
+  "after": {
+    "records_count": 6,
+    "run_count": 2
+  },
+  "run_ids": [
+    "run-20261027-214037-bc55d2",
+    "run-20261027-214036-fd23f6"
+  ],
+  "runs_unchanged": true
+}

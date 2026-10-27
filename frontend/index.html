@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d1014">
+  <title>巡到位 InspectGo · 巡检工作台</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/motion.css">
+</head>
+<body>
+  <a class="skip-link" href="#app-main">跳到巡检工作区</a>
+  <header class="app-header">
+    <div class="brand-lockup">
+      <svg class="brand-mark" viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" aria-hidden="true"><path d="M12 4H4v8m20-8h8v8M4 24v8h8m20-8v8h-8"/><path d="m10 18 5 5 11-11"/></svg>
+      <h1 id="brand-title"><span class="sr-only">巡到位</span><span class="title-letters" aria-hidden="true"><span class="flip-letter"><span class="letter-front">巡</span><span class="letter-back">巡</span></span><span class="flip-letter"><span class="letter-front">到</span><span class="letter-back">到</span></span><span class="flip-letter"><span class="letter-front">位</span><span class="letter-back">位</span></span></span></h1>
+      <span class="brand-description">校园设施巡检与复核</span>
+    </div>
+    <div class="header-tools">
+      <label class="motion-control" for="motion-toggle"><input id="motion-toggle" type="checkbox" checked><span>界面动效</span></label>
+      <div class="connection-block"><span id="connection-status" role="status">正在连接</span><span id="updated-at">尚未更新</span></div>
+      <button id="refresh-btn" class="btn btn-secondary" type="button"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6.1 7a7 7 0 0 1 11.5-1.7L20 8M4 16l2.4 2.7A7 7 0 0 0 17.9 17"/></svg><span>刷新</span></button>
+      <button id="run-btn" class="btn btn-primary" type="button"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H5v18h14V8zM14 3v5h5M8 12h8M8 16h5"/></svg><span>生成运行判断</span></button>
+    </div>
+  </header>
+
+  <div class="app-shell">
+    <aside class="scope-rail" aria-labelledby="scope-heading">
+      <h2 id="scope-heading" class="rail-title">楼栋与楼层</h2>
+      <nav id="scope-nav" class="scope-nav" aria-label="点位范围"><p class="scope-loading">正在读取区域…</p></nav>
+      <div class="rail-note"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 8 3v5c0 5-4 8-8 10-4-2-8-5-8-10V6z"/><path d="m8 12 3 3 5-6"/></svg><p>现场留存<br><strong>才有覆盖依据</strong></p></div>
+      <p class="teaching-note">教学演练数据，结果不替代正式安全检查。</p>
+    </aside>
+
+    <main id="app-main" class="main-workspace" tabindex="-1">
+      <section class="overview-section" aria-labelledby="overview-heading">
+        <div class="workspace-heading"><div><h2 id="overview-heading">巡检概览</h2><p class="workspace-purpose">校园教学楼与实验实训空间的分布式设施巡检与复核</p><p id="window-label" class="workspace-description">正在读取覆盖窗口…</p><p class="coverage-rule">远程状态不单独算覆盖；有效现场记录不代表设施正常。</p></div><span class="context-label">教学演练</span></div>
+        <div class="summary-strip" aria-label="现场覆盖概览">
+          <div class="summary-cell summary-lead"><span class="summary-label">已覆盖必检点</span><strong id="covered-count">—</strong></div>
+          <button id="missing-shortcut" class="summary-cell summary-action" type="button" aria-label="查看待补检点位"><span class="summary-label">待补检<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></span><strong id="missing-count">—</strong></button>
+          <div class="summary-cell"><span class="summary-label">必检点总数</span><strong id="required-count">—</strong></div>
+        </div>
+        <div class="coverage-map">
+          <div class="coverage-map-heading"><span>点位覆盖示意</span><span>非真实平面图</span></div>
+          <div id="coverage-strip" class="coverage-strip" aria-label="八个巡检点的覆盖示意">
+            <span class="coverage-node is-loading" aria-hidden="true"></span><span class="coverage-node is-loading" aria-hidden="true"></span><span class="coverage-node is-loading" aria-hidden="true"></span><span class="coverage-node is-loading" aria-hidden="true"></span><span class="coverage-node is-loading" aria-hidden="true"></span><span class="coverage-node is-loading" aria-hidden="true"></span><span class="coverage-node is-loading" aria-hidden="true"></span><span class="coverage-node is-loading" aria-hidden="true"></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="points-section" aria-labelledby="points-heading">
+        <div class="points-heading"><h2 id="points-heading">巡检点位</h2><span id="result-count" class="result-count" role="status" aria-live="polite">正在读取点位…</span></div>
+        <div class="filter-toolbar">
+          <div class="search-field"><label class="visually-hidden" for="search">搜索点位、设施或位置</label><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><input id="search" type="search" placeholder="搜索点位、设施或位置" autocomplete="off"></div>
+          <div class="mobile-scope-field"><label class="visually-hidden" for="mobile-scope">选择楼栋与楼层</label><select id="mobile-scope"><option value="all">全部区域</option></select></div>
+          <div class="filter-field"><label class="visually-hidden" for="required-filter">点位类型</label><select id="required-filter"><option value="all">全部点位</option><option value="required">必检点</option><option value="optional">普通点</option></select></div>
+          <div class="filter-field"><label class="visually-hidden" for="status-filter">点位状态</label><select id="status-filter"><option value="all">全部状态</option><option value="missing">待补检</option><option value="covered">已覆盖</option><option value="alarm">告警</option><option value="unknown">状态未知</option><option value="pending">待复核</option><option value="completed">复核已处理</option></select></div>
+          <button id="reset-filters" class="btn btn-ghost btn-small reset-filters" type="button">重置</button>
+          <div class="view-switch" role="group" aria-label="点位显示方式">
+            <button id="view-grid" class="btn btn-ghost btn-small" type="button" aria-pressed="true" aria-label="网格视图" title="网格视图"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></button>
+            <button id="view-list" class="btn btn-ghost btn-small" type="button" aria-pressed="false" aria-label="列表视图" title="列表视图"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5h13M8 12h13M8 19h13M3 5h.01M3 12h.01M3 19h.01"/></svg></button>
+          </div>
+        </div>
+        <div id="facility-groups">
+          <div class="zone-group skeleton-group" aria-hidden="true"><div class="zone-heading"><span class="skeleton-line skeleton-zone"></span></div><div class="point-grid">
+            <div class="point-card skeleton-card"><span class="skeleton-line skeleton-short"></span><span class="skeleton-line"></span><span class="skeleton-line skeleton-medium"></span></div>
+            <div class="point-card skeleton-card"><span class="skeleton-line skeleton-short"></span><span class="skeleton-line"></span><span class="skeleton-line skeleton-medium"></span></div>
+            <div class="point-card skeleton-card"><span class="skeleton-line skeleton-short"></span><span class="skeleton-line"></span><span class="skeleton-line skeleton-medium"></span></div>
+          </div></div>
+          <div class="zone-group skeleton-group" aria-hidden="true"><div class="zone-heading"><span class="skeleton-line skeleton-zone"></span></div><div class="point-grid">
+            <div class="point-card skeleton-card"><span class="skeleton-line skeleton-short"></span><span class="skeleton-line"></span><span class="skeleton-line skeleton-medium"></span></div>
+            <div class="point-card skeleton-card"><span class="skeleton-line skeleton-short"></span><span class="skeleton-line"></span><span class="skeleton-line skeleton-medium"></span></div>
+            <div class="point-card skeleton-card"><span class="skeleton-line skeleton-short"></span><span class="skeleton-line"></span><span class="skeleton-line skeleton-medium"></span></div>
+          </div></div>
+          <div class="zone-group skeleton-group" aria-hidden="true"><div class="zone-heading"><span class="skeleton-line skeleton-zone"></span></div><div class="point-grid">
+            <div class="point-card skeleton-card"><span class="skeleton-line skeleton-short"></span><span class="skeleton-line"></span><span class="skeleton-line skeleton-medium"></span></div>
+            <div class="point-card skeleton-card"><span class="skeleton-line skeleton-short"></span><span class="skeleton-line"></span><span class="skeleton-line skeleton-medium"></span></div>
+          </div></div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="activity-rail" aria-label="复核与运行记录">
+      <section class="rail-section" aria-labelledby="pending-heading"><div class="section-heading"><h2 id="pending-heading" class="section-title">待处理</h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5H5v16h14V5h-4M9 3h6v4H9zM8 12h8M8 16h5"/></svg></div><div id="pending-list"><p class="empty-state">正在读取复核请求…</p></div></section>
+      <section class="rail-section" aria-labelledby="runs-heading"><div class="section-heading"><h2 id="runs-heading" class="section-title">最近运行记录</h2><button id="all-runs-btn" class="btn btn-ghost btn-small" type="button">查看全部</button></div><div id="recent-runs"><p class="empty-state">正在读取保存记录…</p></div></section>
+    </aside>
+  </div>
+
+  <dialog id="detail-dialog" class="drawer" aria-labelledby="detail-title" aria-describedby="detail-subtitle">
+    <header class="drawer-header"><div><h2 id="detail-title">点位详情</h2><p id="detail-subtitle"></p></div><button id="detail-close" class="btn btn-ghost icon-button" type="button" aria-label="关闭点位详情"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+    <div id="detail-body" class="drawer-body"></div>
+  </dialog>
+
+  <dialog id="photo-dialog" class="photo-dialog" aria-label="现场照片预览">
+    <header class="photo-header"><span id="photo-position" class="photo-position"></span><button id="photo-close" class="btn btn-ghost icon-button" type="button" aria-label="关闭照片预览"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+    <figure class="photo-figure"><img id="photo-image" alt=""><figcaption id="photo-caption"></figcaption></figure>
+    <div class="photo-controls"><button id="photo-prev" class="btn btn-secondary" type="button"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg>上一张</button><button id="photo-next" class="btn btn-secondary" type="button">下一张<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 5 7 7-7 7"/></svg></button></div>
+  </dialog>
+
+  <dialog id="run-dialog" class="run-dialog" aria-labelledby="run-title">
+    <header class="drawer-header"><h2 id="run-title">运行判断</h2><button id="run-close" class="btn btn-ghost icon-button" type="button" aria-label="关闭运行记录"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header><div id="run-body" class="drawer-body"></div>
+  </dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="/static/app.js"></script>
+</body>
+</html>

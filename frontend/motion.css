@@ -1,0 +1,90 @@
+/* Original motion for InspectGo; no third-party component source. */
+#brand-title .title-letters {
+  display: inline-flex;
+  gap: 0.025em;
+  perspective: 700px;
+  vertical-align: baseline;
+}
+
+#brand-title .flip-letter {
+  display: inline-grid;
+  position: relative;
+  line-height: 1.12;
+  transform-style: preserve-3d;
+  transform: translateZ(-0.55em) rotateX(0deg);
+  transform-origin: center center;
+}
+
+#brand-title .letter-front,
+#brand-title .letter-back {
+  grid-area: 1 / 1;
+  display: block;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+#brand-title .letter-front {
+  transform: rotateX(0deg) translateZ(0.55em);
+}
+
+#brand-title .letter-back {
+  transform: rotateX(-90deg) translateZ(0.55em);
+}
+
+#brand-title.is-flipping .flip-letter {
+  animation: inspectgo-letter-turn 800ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform;
+}
+
+#brand-title.is-flipping .flip-letter:nth-child(2) {
+  animation-delay: 80ms;
+}
+
+#brand-title.is-flipping .flip-letter:nth-child(3) {
+  animation-delay: 160ms;
+}
+
+@keyframes inspectgo-letter-turn {
+  from { transform: translateZ(-0.55em) rotateX(0deg); }
+  to { transform: translateZ(-0.55em) rotateX(90deg); }
+}
+
+.inspectgo-ribbon {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+  contain: strict;
+}
+
+.inspectgo-ribbon[hidden] {
+  display: none;
+}
+
+html[data-motion='off'] #brand-title .flip-letter {
+  animation: none;
+  transform: translateZ(-0.55em) rotateX(0deg);
+  will-change: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #brand-title.is-flipping .flip-letter {
+    animation: none;
+    transform: translateZ(-0.55em) rotateX(0deg);
+    will-change: auto;
+  }
+
+  .inspectgo-ribbon {
+    display: none;
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .inspectgo-ribbon {
+    display: none;
+  }
+}

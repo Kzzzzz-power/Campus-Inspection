@@ -1,0 +1,14 @@
+{
+  "checked_at": "2026-10-27T13:48:26.532Z",
+  "home_status": 200,
+  "zones": 3,
+  "points": 8,
+  "runs": 3,
+  "run_ids": [
+    "run-20261027-214540-102522",
+    "run-20261027-214037-bc55d2",
+    "run-20261027-214036-fd23f6"
+  ],
+  "url": "http://127.0.0.1:8000/",
+  "first_commit": "deferred_by_user_to_next_step"
+}

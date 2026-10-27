@@ -1,0 +1,52 @@
+{
+  "checked_at": "2026-10-27T13:40:36.711Z",
+  "kind": "real_chrome_local_fastapi_sqlite",
+  "url": "http://127.0.0.1:8000/",
+  "checks": [
+    {
+      "name": "initial_dashboard",
+      "title": "巡到位 InspectGo · 巡检看板",
+      "heading": "巡到位 · 巡检看板",
+      "zoneCount": 3,
+      "cardCount": 8,
+      "covered": "4",
+      "missing": "2",
+      "total": "6",
+      "labels": [
+        "已覆盖",
+        "已覆盖",
+        "状态未知",
+        "已覆盖",
+        "已覆盖",
+        "告警未确认",
+        "普通点",
+        "普通点"
+      ]
+    },
+    {
+      "name": "two_real_button_clicks_distinct_runs",
+      "run_ids": [
+        "run-20261027-214036-fd23f6",
+        "run-20261027-214037-bc55d2"
+      ]
+    },
+    {
+      "name": "page_reload_preserves_runs",
+      "passed": true
+    },
+    {
+      "name": "narrow_layout_no_horizontal_overflow",
+      "width": 390,
+      "scrollWidth": 375,
+      "cards": 8
+    }
+  ],
+  "status": "passed",
+  "created_run_ids": [
+    "run-20261027-214036-fd23f6",
+    "run-20261027-214037-bc55d2"
+  ],
+  "desktop_screenshot": "D:\\Codex\\InspectGo\\docs\\evidence\\B0\\desktop.png",
+  "mobile_screenshot": "D:\\Codex\\InspectGo\\docs\\evidence\\B0\\mobile.png",
+  "browser_errors": []
+}
