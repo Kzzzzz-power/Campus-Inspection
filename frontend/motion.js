@@ -14,6 +14,7 @@ export function initMotion({ replayIntro = true } = {}) {
   const desktopPointer = window.matchMedia('(hover: hover) and (pointer: fine)');
   const events = new AbortController();
   const oldMotion = root.getAttribute('data-motion');
+  const oldFeedback = root.getAttribute('data-feedback');
   const oldToggleTitle = toggle?.getAttribute('title');
   let preference = true;
   try {
@@ -116,9 +117,9 @@ export function initMotion({ replayIntro = true } = {}) {
       const tail = points[0];
       const head = points[points.length - 1];
       const tint = context.createLinearGradient(tail.x, tail.y, head.x, head.y);
-      tint.addColorStop(0, 'rgba(139, 213, 246, 0)');
-      tint.addColorStop(0.7, 'rgba(139, 213, 246, 0.17)');
-      tint.addColorStop(1, 'rgba(189, 234, 255, 0.23)');
+      tint.addColorStop(0, 'rgba(15, 118, 110, 0)');
+      tint.addColorStop(0.7, 'rgba(15, 118, 110, 0.12)');
+      tint.addColorStop(1, 'rgba(2, 132, 199, 0.16)');
       context.globalAlpha = Math.max(0, 1 - idle / IDLE_MS);
       context.fillStyle = tint;
       context.beginPath();
@@ -162,11 +163,17 @@ export function initMotion({ replayIntro = true } = {}) {
 
   function updatePolicy() {
     root.dataset.motion = allowed() ? 'on' : 'off';
+    const feedback = preference && !reducedMotion.matches && !document.hidden ? 'on' : 'off';
+    const feedbackChanged = root.dataset.feedback !== feedback;
+    root.dataset.feedback = feedback;
+    if (feedbackChanged) {
+      document.dispatchEvent(new CustomEvent('inspectgo:feedback', { detail: { enabled: feedback === 'on' } }));
+    }
     if (toggle) {
       toggle.checked = preference;
       toggle.title = reducedMotion.matches
-        ? '系统已开启减少动态效果，装饰动效已暂停；此开关仍会保存你的动效偏好。'
-        : '控制标题翻转与鼠标短拖尾；不影响巡检操作。';
+        ? '系统已开启减少动态效果，背景、标题、鼠标拖尾和控件点击反馈已暂停；此开关仍会保存你的动效偏好。'
+        : '控制背景动效、标题翻转、鼠标短拖尾和控件点击反馈；不影响巡检操作。';
     }
     if (!allowed()) finishTitle();
     stopRibbon();
@@ -182,6 +189,9 @@ export function initMotion({ replayIntro = true } = {}) {
     canvas.remove();
     if (oldMotion === null) root.removeAttribute('data-motion');
     else root.setAttribute('data-motion', oldMotion);
+    if (oldFeedback === null) root.removeAttribute('data-feedback');
+    else root.setAttribute('data-feedback', oldFeedback);
+    document.dispatchEvent(new CustomEvent('inspectgo:feedback', { detail: { enabled: false } }));
     if (toggle) {
       if (oldToggleTitle === null) toggle.removeAttribute('title');
       else toggle.setAttribute('title', oldToggleTitle);

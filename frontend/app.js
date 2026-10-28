@@ -3,6 +3,38 @@ import {initMotion} from './motion.js';
 
 const $ = id => document.getElementById(id);
 const state = {queueButtons:new Map(),runButtons:new Map(),mapButtons:new Map(),runToken:0,refreshPromise:null,detailTrigger:null,data:null, runs:[], filters:{query:'',scope:'all',required:'all',status:'all'}, cards:new Map(), groups:new Map(), refreshing:false, detail:null, detailToken:0, dirty:false, saving:false, gallery:[], photoIndex:0, runRequest:null};
+const motionEffects = new WeakMap(), activeEffects = new Set();
+let activeViewTransition = null, photoDirection = 0;
+function presentationMotionAllowed(){return !document.hidden&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&document.documentElement.dataset.feedback==='on';}
+function animateFeedback(target,frames,duration=180){
+  if(!target)return;
+  motionEffects.get(target)?.cancel();
+  if(!presentationMotionAllowed()||!target.animate)return;
+  const animation=target.animate(frames,{duration,easing:'cubic-bezier(.16,1,.3,1)'});
+  motionEffects.set(target,animation);activeEffects.add(animation);
+  const clean=()=>{activeEffects.delete(animation);if(motionEffects.get(target)===animation)motionEffects.delete(target);};
+  animation.finished.then(clean,clean);
+}
+function revealFeedback(target,distance=6,duration=200){animateFeedback(target,[{opacity:.55,transform:`translateY(${distance}px)`},{opacity:1,transform:'translateY(0)'}],duration);}
+// Read card geometry in two batches; only discrete filters use FLIP.
+function captureCardPositions(){
+  return new Map([...$('facility-groups').querySelectorAll('.point-card')].map(card=>[card,card.getBoundingClientRect()]));
+}
+function filterFeedback(before){
+  const after=captureCardPositions();
+  for(const [card,rect] of after){
+    const previous=before.get(card);
+    if(!previous){revealFeedback(card,6,180);continue;}
+    const dx=previous.left-rect.left,dy=previous.top-rect.top;
+    if(Math.abs(dx)>.5||Math.abs(dy)>.5)animateFeedback(card,[{transform:`translate(${dx}px,${dy}px)`},{transform:'translate(0,0)'}],280);
+  }
+  animateFeedback($('result-count'),[{opacity:.4},{opacity:1}],180);
+}
+function dialogFeedback(dialog){
+  const transform=dialog.classList.contains('drawer')&&innerWidth>580?'translateX(18px)':'translateY(12px)';
+  animateFeedback(dialog,[{opacity:.65},{opacity:1}],180);
+  animateFeedback(dialog.querySelector('.drawer-body,.photo-figure'),[{opacity:.65,transform},{opacity:1,transform:'translate(0,0)'}],220);
+}
 const paths = {
   arrow:'M5 12h14m-6-6 6 6-6 6', check:'m5 12 4 4L19 6', clock:'M12 8v4l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',
   alert:'m12 3 10 18H2L12 3Zm0 6v5m0 3h.01', camera:'M3 7h4l2-3h6l2 3h4v13H3V7Zm13 6a4 4 0 1 1-8 0 4 4 0 0 1 8 0',
@@ -41,9 +73,24 @@ async function api(url, options={}) {
 }
 const postJSON=(url,value)=>api(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(value)});
 let toastTimer;
-function toast(message,isError=false) {$('toast').textContent=message;$('toast').classList.add('visible');$('toast').classList.toggle('is-error',isError);clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),6500);}
+function positionToast(){
+  // A body's z-index cannot rise above a modal's top layer.
+  const parent=[...document.querySelectorAll('dialog[open]')].at(-1)||document.body;
+  if($('toast').parentElement!==parent)parent.append($('toast'));
+}
+function toast(message,isError=false) {positionToast();$('toast').textContent=message;$('toast').classList.add('visible');$('toast').classList.toggle('is-error',isError);revealFeedback($('toast'),6,180);clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),6500);}
 function syncChildren(parent,children) {children.forEach((child,i)=>{if(parent.children[i]!==child)parent.insertBefore(child,parent.children[i]||null);});for(const child of [...parent.children])if(!children.includes(child))child.remove();}
-function setFilters(values) {Object.assign(state.filters,values);$('search').value=state.filters.query;$('required-filter').value=state.filters.required;$('status-filter').value=state.filters.status;$('mobile-scope').value=state.filters.scope;renderFacilities();renderNavSelection();}
+function setFilters(values,{animate=true}={}) {
+  if(Object.entries(values).every(([key,value])=>state.filters[key]===value))return;
+  activeViewTransition?.skipTransition();
+  const before=animate&&state.data?.points.length<=12&&presentationMotionAllowed()?captureCardPositions():null;
+  for(const card of state.cards.values())motionEffects.get(card)?.cancel();
+  motionEffects.get($('result-count'))?.cancel();
+  Object.assign(state.filters,values);
+  $('search').value=state.filters.query;$('required-filter').value=state.filters.required;$('status-filter').value=state.filters.status;$('mobile-scope').value=state.filters.scope;
+  renderFacilities();renderNavSelection();
+  if(before)filterFeedback(before);
+}
 function resetFilters(){setFilters({query:'',scope:'all',required:'all',status:'all'});}
 function missingFilter(){setFilters({query:'',scope:'all',required:'required',status:'missing'});$('search').focus({preventScroll:true});}
 function renderNavSelection(){for(const b of $('scope-nav').querySelectorAll('[data-scope]')){const active=b.dataset.scope===state.filters.scope;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));}}
@@ -102,8 +149,8 @@ async function performRefresh(manual=false){
   state.refreshing=false;$('refresh-btn').disabled=false;$('refresh-btn').removeAttribute('aria-busy');
   if(manual)toast(dashboard.status==='fulfilled'?'已更新当前统计窗口与点位记录。':errorText(dashboard.reason),dashboard.status==='rejected');
 }
-function overlayChanged(){document.dispatchEvent(new CustomEvent('inspectgo:overlay',{detail:{open:!!document.querySelector('dialog[open]')}}));}
-function showDialog(dialog){if(!dialog.open)dialog.showModal();overlayChanged();}
+function overlayChanged(){positionToast();document.dispatchEvent(new CustomEvent('inspectgo:overlay',{detail:{open:!!document.querySelector('dialog[open]')}}));}
+function showDialog(dialog){const opening=!dialog.open;if(opening)dialog.showModal();overlayChanged();if(opening)dialogFeedback(dialog);}
 function closeDetail(){if(state.saving){toast('正在保存，请等待服务端确认。');return;}if(state.dirty&&!confirm('还有未提交的内容。关闭将放弃这次填写，是否继续？'))return;$('detail-dialog').close();}
 async function openDetail(id,mode=null){
   if(state.saving){toast('正在保存，请等待确认后再切换。');return;}
@@ -130,7 +177,7 @@ function renderDetail(mode=null){
   ));
   content.push(detailSection('现场证据与记录时间', el('div', {class:'record-list'}, ...(recordItems.length?recordItems:[el('p',{class:'empty-state'},'暂无记录。')]))));
   if(detail.reviews.length)content.push(detailSection('复核处理记录',...detail.reviews.map(r=>el('article',{class:'review-item'},statusBadge(...reviewState(r)),el('p',{},r.reason),el('small',{},`${date(r.updated_at||r.created_at,true)} · 版本 ${r.version}`),el('code',{},r.review_id)))));
-  $('detail-body').replaceChildren(...content);$('detail-body').scrollTop=0;if(!$('detail-dialog').contains(document.activeElement))$('detail-close').focus({preventScroll:true});
+  $('detail-body').replaceChildren(...content);$('detail-body').scrollTop=0;revealFeedback($('detail-body').querySelector('form')||$('detail-body'),mode?6:0,mode?200:140);if(!$('detail-dialog').contains(document.activeElement))$('detail-close').focus({preventScroll:true});
 }
 let fieldSequence=0;
 function field(label,control,hint,wide=false){const id=`field-${++fieldSequence}`;control.id=id;return el('div',{class:`field${wide?' field-wide':''}`},el('label',{htmlFor:id},label),control,hint?el('p',{class:'field-hint'},hint):null);}
@@ -154,38 +201,106 @@ function inspectionForm(point,review=null){
     event.preventDefault();if(state.saving||!form.reportValidity())return;state.saving=true;
     const body=new FormData(form);body.set('point_id',point.point_id);body.set('request_id',requestId);body.set('inspected_at',new Date(time.value).toISOString());if(!files.files.length)body.delete('photos');
     if(review){body.set('version',String(review.version));body.set('result',({normal:'ok',fault:'alarm',unknown:'unknown'})[result.value]);}
-    const controls=[...form.querySelectorAll('input,select,textarea,button')];controls.forEach(c=>c.disabled=true);submit.textContent='正在保存…';formMessage(message,'正在等待服务端保存确认。');
+    const controls=[...form.querySelectorAll('input,select,textarea,button')];controls.forEach(c=>c.disabled=true);submit.setAttribute('aria-busy','true');submit.textContent='正在保存…';formMessage(message,'正在等待服务端保存确认。');
     try{await api(review?`/api/reviews/${encodeURIComponent(review.review_id)}/evidence`:'/api/inspections',{method:'POST',body});state.dirty=false;state.saving=false;toast(review&&result.value==='unknown'?'复核证据已保存，仍需继续确认。':'已保存到本地数据库。');await refresh(false,true);await openDetail(point.point_id);}
     catch(error){formMessage(message,errorText(error),true);}
-    finally{state.saving=false;controls.forEach(c=>c.disabled=false);submit.textContent=review?'提交复核结果':'保存现场记录';}
+    finally{state.saving=false;controls.forEach(c=>c.disabled=false);submit.removeAttribute('aria-busy');submit.textContent=review?'提交复核结果':'保存现场记录';}
   });return form;
 }
 function reviewForm(point){
   const form=el('form',{'data-form':'review-request'}),reason=el('textarea',{name:'reason',rows:3,required:true,maxLength:1000,placeholder:'说明需要现场确认的问题，例如告警与现场情况不一致'}),message=el('p',{class:'form-message','aria-live':'polite'}),submit=el('button',{type:'submit',class:'btn btn-primary'},'创建复核请求');let requestId=crypto.randomUUID();
   form.append(field('复核原因',reason,'发起请求只会加入待复核队列，不会修改设施状态。',true),message,el('div',{class:'form-actions'},submit));form.addEventListener('input',()=>{state.dirty=true;requestId=crypto.randomUUID();});
-  form.addEventListener('submit',async e=>{e.preventDefault();if(state.saving||!form.reportValidity())return;state.saving=true;submit.disabled=true;reason.disabled=true;submit.textContent='正在创建…';
-    try{await postJSON('/api/reviews',{point_id:point.point_id,reason:reason.value,request_id:requestId});state.dirty=false;state.saving=false;toast('复核请求已创建，等待现场证据。');await refresh(false,true);await openDetail(point.point_id,'review');}catch(error){formMessage(message,errorText(error),true);}finally{state.saving=false;submit.disabled=false;reason.disabled=false;submit.textContent='创建复核请求';}
+  form.addEventListener('submit',async e=>{e.preventDefault();if(state.saving||!form.reportValidity())return;state.saving=true;submit.disabled=true;reason.disabled=true;submit.setAttribute('aria-busy','true');submit.textContent='正在创建…';
+    try{await postJSON('/api/reviews',{point_id:point.point_id,reason:reason.value,request_id:requestId});state.dirty=false;state.saving=false;toast('复核请求已创建，等待现场证据。');await refresh(false,true);await openDetail(point.point_id,'review');}catch(error){formMessage(message,errorText(error),true);}finally{state.saving=false;submit.disabled=false;reason.disabled=false;submit.removeAttribute('aria-busy');submit.textContent='创建复核请求';}
   });return form;
 }
 function openPhotos(photos,index){state.gallery=photos;state.photoIndex=index;renderPhoto();showDialog($('photo-dialog'));}
-function renderPhoto(){const photo=state.gallery[state.photoIndex];if(!photo)return;$('photo-image').src=photo.url;$('photo-image').alt=`${photo.point_id} 现场证据照片`;$('photo-caption').textContent=`${photo.point_id} · 现场时间 ${date(photo.inspected_at,true)} · 上传时间 ${date(photo.created_at,true)}`;$('photo-position').textContent=`${state.photoIndex+1} / ${state.gallery.length}`;$('photo-prev').disabled=state.photoIndex===0;$('photo-next').disabled=state.photoIndex===state.gallery.length-1;}
-function stepPhoto(delta){const next=state.photoIndex+delta;if(next>=0&&next<state.gallery.length){state.photoIndex=next;renderPhoto();}}
+function renderPhoto(direction=0){const photo=state.gallery[state.photoIndex];if(!photo)return;photoDirection=direction;$('photo-image').setAttribute('aria-busy','true');motionEffects.get($('photo-image'))?.cancel();$('photo-image').src=photo.url;$('photo-image').alt=`${photo.point_id} 现场证据照片`;$('photo-caption').textContent=`${photo.point_id} · 现场时间 ${date(photo.inspected_at,true)} · 上传时间 ${date(photo.created_at,true)}`;$('photo-position').textContent=`${state.photoIndex+1} / ${state.gallery.length}`;$('photo-prev').disabled=state.photoIndex===0;$('photo-next').disabled=state.photoIndex===state.gallery.length-1;}
+function stepPhoto(delta){const next=state.photoIndex+delta;if(next>=0&&next<state.gallery.length){state.photoIndex=next;renderPhoto(delta);}}
 function renderRun(run){
   $('run-title').textContent='运行判断';const content=[el('code',{class:'run-id'},run.run_id),el('p',{},date(run.created_at,true)),el('h3',{},run.summary||'覆盖快照')];
   if(!run.snapshot)content.push(el('p',{class:'empty-state'},'这是一条历史摘要。旧版本未保存完整快照，无法补造当时的点位详情。'));
   else {const s=run.snapshot;content.push(el('p',{class:'field-hint'},`保存时的窗口：${date(s.window_start,true)}—${date(s.window_end,true)}。此结果不会随当前看板刷新而变化。`),el('div',{class:'run-stat'},el('strong',{},`${s.covered} / ${s.required_total}`),' 个必检点已覆盖'),el('div',{class:'run-points'},...s.points.filter(p=>p.required).map(p=>el('div',{class:'status-row'},el('span',{},`${p.point_id} · ${p.device}`),statusBadge(...coverageState(p))))));}
-  content.push(el('p',{class:'field-hint'},'本次为覆盖判断快照，不修改设施状态，也不代表完成全部任务或安全验收。'));$('run-body').replaceChildren(...content);
+  content.push(el('p',{class:'field-hint'},'本次为覆盖判断快照，不修改设施状态，也不代表完成全部任务或安全验收。'));$('run-body').replaceChildren(...content);animateFeedback($('run-body'),[{opacity:.6},{opacity:1}],160);
 }
 async function openRun(id){const token=++state.runToken;$('run-title').textContent='运行判断';$('run-body').replaceChildren(el('p',{class:'empty-state'},'正在读取保存结果…'));showDialog($('run-dialog'));try{const run=await api(`/api/runs/${encodeURIComponent(id)}`);if(token===state.runToken&&$('run-dialog').open)renderRun(run);}catch(error){$('run-body').replaceChildren(el('p',{class:'error-state'},errorText(error)),button('重试',()=>openRun(id)));}}
 async function newRun(){const b=$('run-btn');if(b.disabled)return;b.disabled=true;b.setAttribute('aria-busy','true');state.runRequest??=crypto.randomUUID();
   try{const run=await postJSON('/api/runs',{request_id:state.runRequest});state.runRequest=null;state.runToken++;renderRun(run);showDialog($('run-dialog'));toast('运行判断已保存。');await refresh(false,true);}catch(error){toast(errorText(error),true);}finally{b.disabled=false;b.removeAttribute('aria-busy');}
 }
 $('refresh-btn').addEventListener('click',()=>refresh(true));$('run-btn').addEventListener('click',newRun);$('missing-shortcut').addEventListener('click',missingFilter);$('reset-filters').addEventListener('click',resetFilters);
-$('search').addEventListener('input',e=>setFilters({query:e.target.value}));$('mobile-scope').addEventListener('change',e=>setFilters({scope:e.target.value}));$('required-filter').addEventListener('change',e=>setFilters({required:e.target.value}));$('status-filter').addEventListener('change',e=>setFilters({status:e.target.value}));
-for(const mode of ['grid','list'])$('view-'+mode).addEventListener('click',()=>{$('facility-groups').classList.toggle('list-view',mode==='list');$('view-grid').setAttribute('aria-pressed',String(mode==='grid'));$('view-list').setAttribute('aria-pressed',String(mode==='list'));});
+$('search').addEventListener('input',e=>setFilters({query:e.target.value},{animate:false}));$('mobile-scope').addEventListener('change',e=>setFilters({scope:e.target.value}));$('required-filter').addEventListener('change',e=>setFilters({required:e.target.value}));$('status-filter').addEventListener('change',e=>setFilters({status:e.target.value}));
+const viewSwitch=document.querySelector('.view-switch');
+viewSwitch.dataset.view='grid';
+function applyView(mode){$('facility-groups').classList.toggle('list-view',mode==='list');$('view-grid').setAttribute('aria-pressed',String(mode==='grid'));$('view-list').setAttribute('aria-pressed',String(mode==='list'));}
+for(const mode of ['grid','list'])$('view-'+mode).addEventListener('click',()=>{
+  if(viewSwitch.dataset.view===mode)return;
+  activeViewTransition?.skipTransition();
+  viewSwitch.dataset.view=mode;
+  document.querySelectorAll('.point-card[data-point]').forEach(card=>{card.style.viewTransitionName=`card-${card.dataset.point}`;});
+  if(document.startViewTransition&&presentationMotionAllowed()){
+    const transition=document.startViewTransition(()=>{if(viewSwitch.dataset.view===mode)applyView(mode);});
+    activeViewTransition=transition;
+    const finish=()=>{if(activeViewTransition===transition)activeViewTransition=null;};
+    transition.finished.then(finish,finish);
+    transition.ready.then(()=>{
+      const rules=[],animations=document.getAnimations().filter(animation=>animation.effect?.pseudoElement?.startsWith('::view-transition-group(card-'));
+      for(const animation of animations){
+        const frames=animation.effect.getKeyframes(),from=frames[0],to=frames.at(-1);
+        const fromMatrix=new DOMMatrixReadOnly(from.transform),toMatrix=new DOMMatrixReadOnly(to.transform);
+        const fromWidth=parseFloat(from.width),fromHeight=parseFloat(from.height),toWidth=parseFloat(to.width),toHeight=parseFloat(to.height);
+        if(![fromWidth,fromHeight,toWidth,toHeight].every(Number.isFinite)||toWidth<=0||toHeight<=0)continue;
+        rules.push(`${animation.effect.pseudoElement}{width:${toWidth}px;height:${toHeight}px;transform-origin:0 0;}`);
+        animation.effect.setKeyframes([
+          {transform:`translate(${fromMatrix.e}px,${fromMatrix.f}px) scale(${fromWidth/toWidth},${fromHeight/toHeight})`},
+          {transform:`translate(${toMatrix.e}px,${toMatrix.f}px) scale(1,1)`}
+        ]);
+      }
+      const style=document.createElement('style');style.textContent=rules.join('\n');document.head.append(style);
+      transition.finished.then(()=>style.remove(),()=>style.remove());
+    },()=>{}).catch(()=>transition.skipTransition());
+  }else applyView(mode);
+});
+const finePointer=matchMedia('(hover: hover) and (pointer: fine)');
+document.addEventListener('pointermove',event=>{
+  if(event.pointerType!=='mouse'||!finePointer.matches||!presentationMotionAllowed()||!(event.target instanceof Element))return;
+  const card=event.target.closest('.point-card');if(!card)return;
+  const rect=card.getBoundingClientRect();card.style.setProperty('--mx',`${event.clientX-rect.left}px`);card.style.setProperty('--my',`${event.clientY-rect.top}px`);
+},{passive:true});
+const feedbackControls='.btn, .queue-item, .scope-link, .run-item, .photo-thumb, .map-point, #missing-shortcut';
+function feedbackControl(target){return target instanceof Element?target.closest(feedbackControls):null;}
+function clickRing(control,x,y){
+  if(!presentationMotionAllowed()||control.matches(':disabled'))return;
+  const host=control.closest('dialog[open]')||document.body,ring=el('span',{class:'click-ring','aria-hidden':'true'});
+  ring.style.left=`${x}px`;ring.style.top=`${y}px`;
+  ring.addEventListener('animationend',()=>ring.remove(),{once:true});host.append(ring);setTimeout(()=>ring.remove(),700);
+}
+function clearPressed(){document.querySelectorAll('.ui-pressed').forEach(control=>control.classList.remove('ui-pressed'));}
+document.addEventListener('pointerdown',event=>{
+  const control=feedbackControl(event.target);
+  if(event.button!==0||!control||control.matches(':disabled')||!presentationMotionAllowed())return;
+  control.classList.add('ui-pressed');clickRing(control,event.clientX,event.clientY);
+},{passive:true});
+for(const event of ['pointerup','pointercancel'])document.addEventListener(event,clearPressed,{passive:true});
+window.addEventListener('blur',clearPressed);
+document.documentElement.addEventListener('pointerleave',clearPressed);
+document.addEventListener('keydown',event=>{
+  const control=feedbackControl(event.target);
+  if(!event.repeat&&['Enter',' '].includes(event.key)&&control&&!control.matches(':disabled')&&presentationMotionAllowed())control.classList.add('ui-pressed');
+});
+document.addEventListener('keyup',clearPressed);
+document.addEventListener('click',event=>{
+  const control=feedbackControl(event.target);
+  if(event.detail===0&&control){const rect=control.getBoundingClientRect();clickRing(control,rect.left+rect.width/2,rect.top+rect.height/2);}
+},{capture:true});
+document.addEventListener('inspectgo:feedback',event=>{
+  if(event.detail.enabled)return;
+  clearPressed();for(const animation of activeEffects)animation.cancel();activeEffects.clear();activeViewTransition?.skipTransition();
+  document.querySelectorAll('.click-ring').forEach(ring=>ring.remove());
+});
+for(const dialog of document.querySelectorAll('dialog'))dialog.addEventListener('close',()=>{motionEffects.get(dialog)?.cancel();dialog.querySelectorAll('.click-ring').forEach(ring=>ring.remove());clearPressed();});
 $('detail-close').addEventListener('click',closeDetail);$('detail-dialog').addEventListener('cancel',e=>{e.preventDefault();closeDetail();});$('detail-dialog').addEventListener('close',()=>{state.detailToken++;state.dirty=false;state.detail=null;overlayChanged();if(!state.detailTrigger?.isConnected)$('search').focus({preventScroll:true});});
 for(const name of ['photo','run']){$(name+'-close').addEventListener('click',()=>$(name+'-dialog').close());$(name+'-dialog').addEventListener('close',overlayChanged);}
-$('photo-prev').addEventListener('click',()=>stepPhoto(-1));$('photo-next').addEventListener('click',()=>stepPhoto(1));$('photo-dialog').addEventListener('keydown',e=>{if(e.key==='ArrowLeft')stepPhoto(-1);if(e.key==='ArrowRight')stepPhoto(1);});$('photo-image').addEventListener('error',()=>{$('photo-caption').textContent='图片暂时无法读取，请关闭后重试。';});
+$('photo-prev').addEventListener('click',()=>stepPhoto(-1));$('photo-next').addEventListener('click',()=>stepPhoto(1));$('photo-dialog').addEventListener('keydown',e=>{if(e.key==='ArrowLeft')stepPhoto(-1);if(e.key==='ArrowRight')stepPhoto(1);});$('photo-image').addEventListener('load',()=>{$('photo-image').removeAttribute('aria-busy');if($('photo-dialog').open)animateFeedback($('photo-image'),[{opacity:.55,transform:`translateX(${photoDirection*10}px)`},{opacity:1,transform:'translateX(0)'}],180);});$('photo-image').addEventListener('error',()=>{$('photo-image').removeAttribute('aria-busy');$('photo-caption').textContent='图片暂时无法读取，请关闭后重试。';});
 $('all-runs-btn').addEventListener('click',()=>{state.runToken++;$('run-title').textContent='最近运行记录';$('run-body').replaceChildren(el('p',{class:'field-hint'},'最多显示最近 20 次运行；点击查看当时保存的结果。'),...state.runs.map(r=>button(`${date(r.created_at)} · ${r.summary||r.run_id}`,()=>openRun(r.run_id),'run-item')));showDialog($('run-dialog'));});
 window.addEventListener('beforeunload',e=>{if(state.dirty||state.saving){e.preventDefault();e.returnValue='';}});
 let disposeMotion=initMotion();let poll=setInterval(()=>{if(!document.hidden)refresh();},30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});window.addEventListener('pagehide',()=>{clearInterval(poll);disposeMotion();});window.addEventListener('pageshow',event=>{if(event.persisted){disposeMotion=initMotion({replayIntro:false});clearInterval(poll);poll=setInterval(()=>{if(!document.hidden)refresh();},30000);refresh();}});

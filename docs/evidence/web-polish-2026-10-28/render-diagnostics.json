@@ -1,0 +1,290 @@
+{
+  "at": "2026-10-28T14:45:25.086Z",
+  "status": "passed",
+  "errors": [],
+  "idle": {
+    "sample_ms": 2200,
+    "layout_count": 0,
+    "recalc_style_count": 0
+  },
+  "background": [
+    {
+      "playState": "running",
+      "frames": [
+        {
+          "offset": 0,
+          "easing": "ease-in-out",
+          "composite": "auto",
+          "transform": "translate3d(0px, 0px, 0px) scale(0.94)",
+          "computedOffset": 0
+        },
+        {
+          "offset": 0.5,
+          "easing": "ease-in-out",
+          "composite": "auto",
+          "transform": "translate3d(144px, 70px, 0px) scale(1.08)",
+          "computedOffset": 0.5
+        },
+        {
+          "offset": 1,
+          "easing": "ease-in-out",
+          "composite": "auto",
+          "transform": "translate3d(0px, 0px, 0px) scale(0.94)",
+          "computedOffset": 1
+        }
+      ]
+    },
+    {
+      "playState": "running",
+      "frames": [
+        {
+          "offset": 0,
+          "easing": "ease-in-out",
+          "composite": "auto",
+          "transform": "translate3d(0px, 0px, 0px) scale(1)",
+          "computedOffset": 0
+        },
+        {
+          "offset": 0.5,
+          "easing": "ease-in-out",
+          "composite": "auto",
+          "transform": "translate3d(-129.6px, 120px, 0px) scale(0.9)",
+          "computedOffset": 0.5
+        },
+        {
+          "offset": 1,
+          "easing": "ease-in-out",
+          "composite": "auto",
+          "transform": "translate3d(0px, 0px, 0px) scale(1)",
+          "computedOffset": 1
+        }
+      ]
+    },
+    {
+      "playState": "running",
+      "frames": [
+        {
+          "offset": 0,
+          "easing": "ease-in-out",
+          "composite": "auto",
+          "transform": "translate3d(0px, 0px, 0px) scale(0.92)",
+          "computedOffset": 0
+        },
+        {
+          "offset": 0.5,
+          "easing": "ease-in-out",
+          "composite": "auto",
+          "transform": "translate3d(172.8px, -90px, 0px) scale(1.07)",
+          "computedOffset": 0.5
+        },
+        {
+          "offset": 1,
+          "easing": "ease-in-out",
+          "composite": "auto",
+          "transform": "translate3d(0px, 0px, 0px) scale(0.92)",
+          "computedOffset": 1
+        }
+      ]
+    }
+  ],
+  "view_transition": [
+    {
+      "pseudo": "::view-transition-group(card-C05)",
+      "properties": [
+        "transform"
+      ]
+    },
+    {
+      "pseudo": "::view-transition-group(card-C03)",
+      "properties": [
+        "transform"
+      ]
+    },
+    {
+      "pseudo": "::view-transition-group(card-C04)",
+      "properties": [
+        "transform"
+      ]
+    },
+    {
+      "pseudo": "::view-transition-group(card-C06)",
+      "properties": [
+        "transform"
+      ]
+    },
+    {
+      "pseudo": "::view-transition-group(card-C01)",
+      "properties": [
+        "transform"
+      ]
+    },
+    {
+      "pseudo": "::view-transition-group(card-C08)",
+      "properties": [
+        "transform"
+      ]
+    },
+    {
+      "pseudo": "::view-transition-group(card-C02)",
+      "properties": [
+        "transform"
+      ]
+    },
+    {
+      "pseudo": "::view-transition-group(card-C07)",
+      "properties": [
+        "transform"
+      ]
+    },
+    {
+      "pseudo": "::view-transition-new(card-C01)",
+      "properties": [
+        "opacity"
+      ]
+    },
+    {
+      "pseudo": "::view-transition-old(card-C01)",
+      "properties": [
+        "opacity"
+      ]
+    },
+    {
+      "pseudo": "::view-transition-new(card-C02)",
+      "properties": [
+        "opacity"
+      ]
+    },
+    {
+      "pseudo": "::view-transition-old(card-C02)",
+      "properties": [
+        "opacity"
+      ]
+    },
+    {
+      "pseudo": "::view-transition-new(card-C03)",
+      "properties": [
+        "opacity"
+      ]
+    },
+    {
+      "pseudo": "::view-transition-old(card-C03)",
+      "properties": [
+        "opacity"
+      ]
+    },
+    {
+      "pseudo": "::view-transition-new(card-C04)",
+      "properties": [
+        "opacity"
+      ]
+    },
+    {
+      "pseudo": "::view-transition-old(card-C04)",
+      "properties": [
+        "opacity"
+      ]
+    },
+    {
+      "pseudo": "::view-transition-new(card-C05)",
+      "properties": [
+        "opacity"
+      ]
+    },
+    {
+      "pseudo": "::view-transition-old(card-C05)",
+      "properties": [
+        "opacity"
+      ]
+    },
+    {
+      "pseudo": "::view-transition-new(card-C06)",
+      "properties": [
+        "opacity"
+      ]
+    },
+    {
+      "pseudo": "::view-transition-old(card-C06)",
+      "properties": [
+        "opacity"
+      ]
+    },
+    {
+      "pseudo": "::view-transition-new(card-C07)",
+      "properties": [
+        "opacity"
+      ]
+    },
+    {
+      "pseudo": "::view-transition-old(card-C07)",
+      "properties": [
+        "opacity"
+      ]
+    },
+    {
+      "pseudo": "::view-transition-new(card-C08)",
+      "properties": [
+        "opacity"
+      ]
+    },
+    {
+      "pseudo": "::view-transition-old(card-C08)",
+      "properties": [
+        "opacity"
+      ]
+    }
+  ],
+  "view_transition_layout_count": 15,
+  "native_close_timing": {
+    "immediate": {
+      "open": false,
+      "closeEvent": false,
+      "rings": 1
+    },
+    "after": {
+      "open": false,
+      "closeEvent": true,
+      "rings": 0
+    }
+  },
+  "toggle_cancels_active_view_transition": true,
+  "colors": {
+    "--ink": "#0f202b",
+    "--muted": "#405462",
+    "--faint": "#405462",
+    "--paper": "#f3f6f5"
+  },
+  "contrast_background_bound": "#a8cad5",
+  "contrast": [
+    {
+      "token": "--ink",
+      "surface": "#f3f6f5",
+      "ratio": 15.3
+    },
+    {
+      "token": "--ink",
+      "surface": "#a8cad5",
+      "ratio": 9.57
+    },
+    {
+      "token": "--muted",
+      "surface": "#f3f6f5",
+      "ratio": 7.25
+    },
+    {
+      "token": "--muted",
+      "surface": "#a8cad5",
+      "ratio": 4.53
+    },
+    {
+      "token": "--faint",
+      "surface": "#f3f6f5",
+      "ratio": 7.25
+    },
+    {
+      "token": "--faint",
+      "surface": "#a8cad5",
+      "ratio": 4.53
+    }
+  ],
+  "original_plan_faint_on_paper": 3.46
+}

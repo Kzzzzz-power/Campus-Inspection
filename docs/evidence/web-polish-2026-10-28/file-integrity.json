@@ -1,0 +1,67 @@
+[
+  {
+    "path": "frontend/app.js",
+    "unchanged": false,
+    "sha256": "676C7E2D304C5E90AB0DED9F477FE38AAB1A9598CD71C8A05641A56928D07B32"
+  },
+  {
+    "path": "frontend/index.html",
+    "unchanged": true,
+    "sha256": "627E9827B29327643ABB4352934F86583D5DE96A22E5315140C861AF445843AE"
+  },
+  {
+    "path": "frontend/model.js",
+    "unchanged": false,
+    "sha256": "140B922FA261F88DF9DBC46C6A60FB0C237919971D89559285AFC5031500488E"
+  },
+  {
+    "path": "frontend/motion.js",
+    "unchanged": true,
+    "sha256": "E7E6576E18E21E585D6001A7E73872C675C10546E9577DB4426330BE3C93AA88"
+  },
+  {
+    "path": "frontend/motion.css",
+    "unchanged": true,
+    "sha256": "87D05D461CF5BD96CB0548E92E255FF49E77F4437D56BB649D072625AEBF72B6"
+  },
+  {
+    "path": "frontend/styles.css",
+    "unchanged": false,
+    "sha256": "5A926A315FF4B73ED4912B2ACE6867174FF994CDE3A2092B93CD2090E52363C3"
+  },
+  {
+    "path": "tests/browser.cjs",
+    "unchanged": true,
+    "sha256": "657226E863BA87F04140A01325809B9E796B19B961A13B80144105145C2419A7"
+  },
+  {
+    "path": "tests/browser-advanced.cjs",
+    "unchanged": true,
+    "sha256": "114A0EA23363CBF73B09324D40B8354E4CA99A16C74B55DECF624FD08DFBE1BE"
+  },
+  {
+    "path": "tests/frontend.test.mjs",
+    "unchanged": false,
+    "sha256": "716BE928B11A7B32DC643D3BC04A46FF93AA6826AAEAC240CBEF4F074470813F"
+  },
+  {
+    "path": "backend/main.py",
+    "unchanged": true,
+    "sha256": "99A0DB67981CFF921488B50407ACB83106AB98133BC3002594A746B380F881AB"
+  },
+  {
+    "path": "backend/storage.py",
+    "unchanged": true,
+    "sha256": "706A3A49A2A874D2D263FD1CEB4FA5FBB2A57D09EC3386B956EDDC8E878FA9B2"
+  },
+  {
+    "path": "backend/service.py",
+    "unchanged": true,
+    "sha256": "B41FAB265E580C09C5358AAA687FDF723E69A5DEF591197C5285D988707F5AC5"
+  },
+  {
+    "path": "backend/inspectgo.db",
+    "unchanged": true,
+    "sha256": "1C88C5E48CD3E884447D77CBAB42AB4D3E6E19EBEE53FE83EFA00F4CA34EECE3"
+  }
+]

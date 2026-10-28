@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>巡到位 · 动效提案预览</title>
+<link rel="stylesheet" href="../frontend/styles.css">
+<link rel="stylesheet" href="../frontend/motion.css">
+<style>
+  /* ─── 仅用于预览的临时层：演示方案里的目标动效，不进入产品代码 ─── */
+  :root {
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+    --ease-panel: cubic-bezier(0.32, 0.72, 0, 1);
+    --dur-press: 120ms;
+    --dur-ui: 180ms;
+    --dur-panel: 260ms;
+  }
+  html, body { height: 100%; }
+  body { overflow: hidden; padding-top: 36px; }
+  .btn { transition: background-color 150ms var(--ease-out), border-color 150ms var(--ease-out), color 150ms var(--ease-out), transform var(--dur-press) var(--ease-out); }
+  .btn:active { transform: scale(0.97); }
+  .btn.is-pressed { transform: scale(0.97); }
+
+  /* 抽屉：260ms 滑入/滑出，背景 200ms 淡入淡出（CSS 离散过渡，关闭状态立即生效） */
+  #detail-dialog.drawer { translate: 100% 0; transition: translate var(--dur-panel) var(--ease-panel), display var(--dur-panel) allow-discrete, overlay var(--dur-panel) allow-discrete; }
+  #detail-dialog.drawer[open] { translate: 0 0; }
+  @starting-style { #detail-dialog.drawer[open] { translate: 100% 0; } }
+  #detail-dialog.drawer::backdrop { background: rgba(3, 6, 10, 0.74); opacity: 0; transition: opacity 200ms var(--ease-out), display 200ms allow-discrete, overlay 200ms allow-discrete; }
+  #detail-dialog.drawer[open]::backdrop { opacity: 1; }
+  @starting-style { #detail-dialog.drawer[open]::backdrop { opacity: 0; } }
+  #detail-dialog[open] .drawer-body > * { animation: drawer-content-in 220ms var(--ease-out) both; }
+  #detail-dialog[open] .drawer-body > *:nth-child(2) { animation-delay: 60ms; }
+  @keyframes drawer-content-in { from { opacity: 0; translate: 0 8px; } to { opacity: 1; translate: 0 0; } }
+
+  /* Toast：180ms 从下方 12px 进入；popover 让它在抽屉之上 */
+  .toast { transition: opacity var(--dur-ui) var(--ease-out), translate var(--dur-ui) var(--ease-out), visibility 0s linear var(--dur-ui); translate: 0 12px; }
+  .toast.visible { translate: 0 0; transition-delay: 0s; }
+  .toast[popover] { position: fixed; inset: auto 24px 24px auto; margin: 0; border: 1px solid var(--control); background: var(--raised); color: var(--text); }
+  .toast[popover]:not(:popover-open) { display: none; }
+
+  /* 状态色过渡 */
+  .map-point, .status-badge { transition: background-color 200ms var(--ease-out), border-color 200ms var(--ease-out), color 200ms var(--ease-out); }
+  .map-point.just-changed { animation: node-pulse 600ms var(--ease-out); }
+  @keyframes node-pulse { 0% { box-shadow: 0 0 0 0 rgba(168, 223, 243, 0.45); } 100% { box-shadow: 0 0 0 8px rgba(168, 223, 243, 0); } }
+
+  /* 卡片重排时的临时状态 */
+  .point-card.is-entering { animation: card-enter 220ms var(--ease-out) both; }
+  @keyframes card-enter { from { opacity: 0; scale: 0.97; } to { opacity: 1; scale: 1; } }
+
+  /* 预览字幕条（不属于产品界面） */
+  .reel-bar { position: fixed; z-index: 200; inset: 0 0 auto 0; display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 18px; border: 0; border-bottom: 1px solid #1d252e; background: #0a0d10; color: #b7c2cc; font: 12px/1 var(--mono); letter-spacing: 0.02em; margin: 0; }
+  .reel-bar[popover] { inset: 0 0 auto 0; width: 100%; max-width: 100%; }
+  #detail-dialog.drawer { top: 36px; height: calc(100dvh - 36px); }
+  .reel-bar b { color: #a8dff3; font-weight: 500; }
+  .reel-bar .dot { width: 6px; height: 6px; border-radius: 50%; background: #a8dff3; box-shadow: 0 0 0 3px rgba(168, 223, 243, 0.12); }
+  .reel-bar em { margin-left: auto; color: #657482; font-style: normal; }
+  .reel-bar .bar-title { color: #eff5f9; }
+</style>
+</head>
+<body>
+<header class="app-header">
+  <div class="brand-lockup">
+    <svg class="brand-mark" viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" aria-hidden="true"><path d="M12 4H4v8m20-8h8v8M4 24v8h8m20-8v8h-8"/><path d="m10 18 5 5 11-11"/></svg>
+    <h1 id="brand-title"><span class="title-letters" aria-hidden="true"><span class="flip-letter"><span class="letter-front">巡</span><span class="letter-back">巡</span></span><span class="flip-letter"><span class="letter-front">到</span><span class="letter-back">到</span></span><span class="flip-letter"><span class="letter-front">位</span><span class="letter-back">位</span></span></span></h1>
+    <span class="brand-description">校园设施巡检与复核</span>
+  </div>
+  <div class="header-tools">
+    <label class="motion-control"><input type="checkbox" checked><span>界面动效</span></label>
+    <div class="connection-block"><span id="connection-status" class="is-good">本地服务已连接 · 每 30 秒刷新</span><span id="updated-at">10/28 09:41:20</span></div>
+    <button id="refresh-btn" class="btn btn-secondary" type="button">刷新</button>
+    <button id="run-btn" class="btn btn-primary" type="button">生成运行判断</button>
+  </div>
+</header>
+
+<div class="app-shell">
+  <aside class="scope-rail">
+    <h2 class="rail-title">楼栋与楼层</h2>
+    <nav class="scope-nav">
+      <button class="scope-link" data-scope="all"><span>全部空间</span><span class="scope-count">8</span></button>
+      <div class="nav-section"><button class="scope-link" data-scope="b1"><span>教学楼</span><span class="scope-count">3</span></button></div>
+      <button class="scope-link" data-scope="z1"><span>二层 · Z1</span><span class="scope-count">3</span></button>
+      <div class="nav-section"><button class="scope-link" data-scope="b2"><span>实训楼</span><span class="scope-count">5</span></button></div>
+      <button class="scope-link" data-scope="z2"><span>一层 · Z2</span><span class="scope-count">3</span></button>
+      <button class="scope-link" data-scope="z3"><span>二层 · Z3</span><span class="scope-count">2</span></button>
+    </nav>
+    <div class="rail-note"><p>现场留存<br><strong>才有覆盖依据</strong></p></div>
+    <p class="teaching-note">教学演练数据，结果不替代正式安全检查。</p>
+  </aside>
+
+  <main class="main-workspace">
+    <section class="overview-section">
+      <div class="workspace-heading">
+        <div>
+          <h2>巡检概览</h2>
+          <p class="workspace-purpose">校园教学楼与实验实训空间的分布式设施巡检与复核</p>
+          <p class="workspace-description">过去 45 分钟 · 08:56—09:41</p>
+          <p class="coverage-rule">远程状态不单独算覆盖；有效现场记录不代表设施正常。</p>
+        </div>
+        <span class="context-label">教学演练</span>
+      </div>
+      <div class="summary-strip">
+        <div class="summary-cell summary-lead"><span class="summary-label">已覆盖必检点</span><strong id="covered-count">4</strong></div>
+        <button id="missing-shortcut" class="summary-cell summary-action" type="button"><span class="summary-label">待补检<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></span><strong id="missing-count">2</strong></button>
+        <div class="summary-cell"><span class="summary-label">必检点总数</span><strong id="required-count">6</strong></div>
+      </div>
+      <div class="coverage-map">
+        <div class="coverage-map-heading"><span>点位覆盖示意</span><span>非真实平面图</span></div>
+        <div id="coverage-strip" class="coverage-strip"></div>
+      </div>
+    </section>
+
+    <section class="points-section">
+      <div class="points-heading"><h2>巡检点位</h2><span id="result-count" class="result-count">当前筛选 8 / 8 个点位</span></div>
+      <div class="filter-toolbar">
+        <div class="search-field"><input id="search" type="search" placeholder="搜索点位、设施或位置" autocomplete="off"></div>
+        <div class="filter-field"><select><option>全部点位</option></select></div>
+        <div class="filter-field"><select><option>全部状态</option></select></div>
+        <button class="btn btn-ghost btn-small reset-filters" type="button">重置</button>
+        <div class="view-switch"><button id="view-grid" class="btn btn-ghost btn-small is-active" type="button">网格</button><button id="view-list" class="btn btn-ghost btn-small" type="button">列表</button></div>
+      </div>
+      <div id="facility-groups"></div>
+    </section>
+  </main>
+
+  <aside class="activity-rail">
+    <section class="rail-section">
+      <div class="section-heading"><h2 class="section-title">待处理</h2></div>
+      <div id="pending-list"></div>
+    </section>
+    <section class="rail-section">
+      <div class="section-heading"><h2 class="section-title">最近运行记录</h2><button class="btn btn-ghost btn-small" type="button">查看全部</button></div>
+      <div id="recent-runs"></div>
+    </section>
+  </aside>
+</div>
+
+<dialog id="detail-dialog" class="drawer">
+  <header class="drawer-header">
+    <div><h2 id="detail-title">C01 · 照明控制</h2><p id="detail-subtitle">教学楼 · 二层 / 必检点</p></div>
+    <button class="btn btn-ghost icon-button" type="button">×</button>
+  </header>
+  <div class="drawer-body">
+    <section class="detail-section">
+      <h3 class="section-title">当前情况</h3>
+      <div class="detail-status">
+        <div class="status-row"><span class="status-label">现场覆盖</span><span class="status-badge is-good">✓ 现场记录有效</span></div>
+        <div class="status-row"><span class="status-label">设施状态</span><span class="status-badge is-good">✓ 最近记录正常</span></div>
+        <div class="status-row"><span class="status-label">复核处理</span><span class="status-badge is-muted">◷ 尚未发起</span></div>
+      </div>
+      <p class="field-hint">现场记录有效不代表设施正常；复核确认异常也属于已完成确认。</p>
+    </section>
+    <section class="detail-section">
+      <h3 class="section-title">现场证据与记录时间</h3>
+      <div class="record-list"><article class="record-item"><div class="record-meta"><strong>现场记录</strong><time>10/28 09:12:40</time></div><p>照明回路与应急照明切换正常，灯罩无破损。</p><small>记录人：巡检员 A · 人工提交 · 记录正常</small></article></div>
+    </section>
+  </div>
+</dialog>
+
+<div id="toast" class="toast" popover="manual" role="status" aria-live="polite"></div>
+<div id="reel-caption" class="reel-bar" popover="manual"><span class="dot"></span><b id="reel-index">01</b><span class="bar-title" id="reel-text">抽屉：260ms 滑入 · 背景 200ms 淡入</span><em>动效提案预览 · 非产品界面</em></div>
+
+<script>
+const points = [
+  {id:'C01',device:'照明控制',building:'教学楼',floor:'二层',zone:'Z1',required:true,covered:true,state:'ok',review:'none',time:'10/28 09:12'},
+  {id:'C02',device:'空调',building:'教学楼',floor:'二层',zone:'Z1',required:true,covered:true,state:'ok',review:'none',time:'10/28 09:15'},
+  {id:'C03',device:'网络点',building:'教学楼',floor:'二层',zone:'Z1',required:false,covered:false,state:'unknown',review:'none',time:'10/28 09:08'},
+  {id:'C04',device:'实验室主电源',building:'实训楼',floor:'一层',zone:'Z2',required:true,covered:true,state:'ok',review:'none',time:'10/28 09:20'},
+  {id:'C05',device:'门禁',building:'实训楼',floor:'一层',zone:'Z2',required:true,covered:true,state:'ok',review:'none',time:'10/28 09:22'},
+  {id:'C06',device:'排风',building:'实训楼',floor:'一层',zone:'Z2',required:false,covered:false,state:'alarm',review:'none',time:'10/28 09:17'},
+  {id:'C07',device:'网络交换节点',building:'实训楼',floor:'二层',zone:'Z3',required:true,covered:false,state:'none',review:'none',time:null},
+  {id:'C08',device:'空调/机柜环境',building:'实训楼',floor:'二层',zone:'Z3',required:true,covered:false,state:'none',review:'none',time:null},
+];
+const stateText = {ok:['最近记录正常','good'],alarm:['告警待关注','danger'],unknown:['状态待确认','warn'],none:['暂无状态记录','muted']};
+const coverageOf = p => !p.required ? ['不计入必检统计','muted'] : p.covered ? ['现场记录有效','good'] : ['缺少有效现场记录','warn'];
+const strip = document.getElementById('coverage-strip');
+const groups = document.getElementById('facility-groups');
+const cardIndex = new Map();
+
+function badge(text, tone) {
+  const span = document.createElement('span');
+  span.className = 'status-badge is-' + tone;
+  span.textContent = text;
+  return span;
+}
+function row(label, pair) {
+  const div = document.createElement('div');
+  div.className = 'status-row';
+  const l = document.createElement('span');
+  l.className = 'status-label';
+  l.textContent = label;
+  div.append(l, badge(pair[0], pair[1]));
+  return div;
+}
+function makeCard(p) {
+  const card = document.createElement('article');
+  card.className = 'point-card';
+  card.dataset.point = p.id;
+  card.innerHTML = `<div class="point-head"><span class="point-id">${p.id}</span><span class="point-kind${p.required ? ' is-required' : ''}">${p.required ? '必检点' : '普通点'}</span></div>
+    <h3 class="point-device">${p.device}</h3>
+    <p class="point-location">${p.building} · ${p.floor} / ${p.zone}</p>
+    <div class="status-lines"></div>
+    <p class="point-meta">${p.time ? '记录 ' + p.time : '暂无记录时间'} · 照片 0 张</p>
+    <div class="point-actions"><button class="btn btn-ghost btn-small" type="button">查看详情</button><button class="btn btn-secondary btn-small" type="button">现场记录</button></div>`;
+  const lines = card.querySelector('.status-lines');
+  lines.append(row('现场覆盖', coverageOf(p)), row('设施状态', stateText[p.state]), row('复核处理', ['尚未发起', 'muted']));
+  card.querySelector('.point-actions .btn-secondary').addEventListener('click', () => openDrawer(p.id, card));
+  cardIndex.set(p.id, card);
+  return card;
+}
+function render(visible = points) {
+  groups.replaceChildren();
+  for (const zone of [...new Set(visible.map(p => p.zone))]) {
+    const subset = visible.filter(p => p.zone === zone);
+    const section = document.createElement('section');
+    section.className = 'zone-group';
+    section.innerHTML = `<div class="zone-heading"><h2>${subset[0].building} · ${subset[0].floor}</h2><span>${zone} / ${subset.length} 个点位</span></div><div class="point-grid"></div>`;
+    const grid = section.querySelector('.point-grid');
+    subset.forEach(p => grid.append(makeCard(p)));
+    groups.append(section);
+  }
+  document.getElementById('result-count').textContent = `当前筛选 ${visible.length} / ${points.length} 个点位`;
+}
+function renderStrip() {
+  strip.replaceChildren();
+  points.forEach(p => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'map-point ' + (p.covered ? 'is-covered' : p.required ? 'is-missing' : 'is-optional');
+    b.textContent = p.id;
+    strip.append(b);
+  });
+}
+function renderRails() {
+  const pending = points.filter(p => !p.covered && p.required);
+  document.getElementById('pending-list').innerHTML = pending.map(p => `<button class="queue-item" type="button"><span class="queue-point">${p.id}</span><span><strong>${p.device}</strong><small>待补现场记录</small></span></button>`).join('');
+  document.getElementById('recent-runs').innerHTML = '<p class="empty-state">还没有运行记录。生成一次判断，保留当前覆盖结果。</p>';
+}
+render();
+renderStrip();
+renderRails();
+
+const dialog = document.getElementById('detail-dialog');
+const toast = document.getElementById('toast');
+const caption = document.getElementById('reel-caption');
+const indexEl = document.getElementById('reel-index');
+const textEl = document.getElementById('reel-text');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function say(n, text) {
+  indexEl.textContent = n;
+  textEl.textContent = text;
+  caption.classList.add('is-on');
+}
+function raiseBar() {
+  try {
+    if (caption.matches(':popover-open')) caption.hidePopover();
+    caption.showPopover();
+  } catch {}
+}
+function openDrawer(id, trigger) {
+  const p = points.find(x => x.id === id);
+  document.getElementById('detail-title').textContent = `${p.id} · ${p.device}`;
+  document.getElementById('detail-subtitle').textContent = `${p.building} · ${p.floor} / ${p.required ? '必检点' : '普通点'}`;
+  trigger.classList.add('is-pressed');
+  dialog.showModal();
+  raiseBar();
+  setTimeout(() => trigger.classList.remove('is-pressed'), 140);
+}
+function closeDrawer() {
+  dialog.close();
+}
+function showToast(text, ms = 1900) {
+  toast.textContent = text;
+  if (toast.matches(':popover-open')) toast.hidePopover();
+  toast.showPopover();
+  requestAnimationFrame(() => toast.classList.add('visible'));
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(() => {
+    toast.classList.remove('visible');
+    setTimeout(() => { if (toast.matches(':popover-open')) toast.hidePopover(); }, 220);
+  }, ms);
+}
+
+/* 筛选：DOM 同步更新，再用 FLIP 让留下的卡片滑到新位置，新卡片淡入 */
+function filterMissing() {
+  const visible = points.filter(p => p.required && !p.covered);
+  const before = new Map([...document.querySelectorAll('.point-card')].map(c => [c.dataset.point, c.getBoundingClientRect()]));
+  render(visible);
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.point-card').forEach(card => {
+      const old = before.get(card.dataset.point);
+      if (!old) { card.classList.add('is-entering'); return; }
+      const now = card.getBoundingClientRect();
+      const dx = old.left - now.left;
+      const dy = old.top - now.top;
+      if (!dx && !dy) return;
+      card.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 260, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' });
+    });
+  });
+}
+function resetCards() {
+  render(points);
+  document.querySelectorAll('.point-card').forEach(card => {
+    card.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 180, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' });
+  });
+}
+
+async function play() {
+  await sleep(400);
+  /* 场景 1：抽屉 + toast */
+  say('01', '详情抽屉：260ms 滑入（ease-drawer）· 背景 200ms 淡入');
+  const trigger = document.querySelector('[data-point="C01"] .btn-secondary');
+  await sleep(700);
+  openDrawer('C01', trigger);
+  await sleep(900);
+  say('02', '保存反馈：Toast 180ms 从下方 12px 进入，6.5s 后同路径退出');
+  showToast('已保存到本地数据库。');
+  await sleep(2100);
+  closeDrawer();
+  await sleep(700);
+
+  /* 场景 3：筛选重排 */
+  say('03', '筛选“待补检”：DOM 立即更新，留下的卡片 260ms FLIP 归位，新卡片 180ms 淡入');
+  await sleep(500);
+  const missingBtn = document.getElementById('missing-shortcut');
+  missingBtn.classList.add('is-pressed');
+  await sleep(120);
+  missingBtn.classList.remove('is-pressed');
+  filterMissing();
+  await sleep(1400);
+
+  /* 场景 4：覆盖节点变化 */
+  say('04', '覆盖节点：200ms 颜色过渡 + 一次性 600ms 光晕，不循环');
+  await sleep(400);
+  const node = document.querySelector('#coverage-strip .map-point:nth-child(7)');
+  node.classList.remove('is-missing');
+  node.classList.add('is-covered', 'just-changed');
+  const badgeEl = document.querySelector('[data-point="C07"] .status-badge');
+  if (badgeEl) { badgeEl.className = 'status-badge is-good'; badgeEl.textContent = '✓ 现场记录有效'; }
+  await sleep(1200);
+
+  /* 复位 */
+  say('05', '复位预览，循环播放');
+  await sleep(600);
+  resetCards();
+  node.classList.remove('is-covered', 'just-changed');
+  node.classList.add('is-missing');
+  await sleep(900);
+  caption.classList.remove('is-on');
+  await sleep(300);
+  play();
+}
+
+window.__ready = true;
+window.play = play;
+raiseBar();
+document.getElementById('refresh-btn').addEventListener('click', () => showToast('已更新当前统计窗口与点位记录。'));
+</script>
+</body>
+</html>

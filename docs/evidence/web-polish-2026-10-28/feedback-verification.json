@@ -1,0 +1,86 @@
+{
+  "status": "passed",
+  "checks": [
+    {
+      "name": "touch_press_and_ring",
+      "transform": "matrix(0.971967, 0, 0, 0.971967, 0, 0)"
+    },
+    {
+      "name": "filter_updates_synchronously_with_card_flip"
+    },
+    {
+      "name": "mobile_view_switch"
+    },
+    {
+      "name": "request_driven_busy_indicator",
+      "animation": "daylight-busy"
+    },
+    {
+      "name": "dialog_background_pauses_but_controls_animate"
+    },
+    {
+      "name": "dialog_close_synchronous_and_ring_cleanup"
+    },
+    {
+      "name": "keyboard_activation_feedback"
+    },
+    {
+      "name": "rapid_view_switch_last_intent_and_style_cleanup"
+    },
+    {
+      "name": "manual_off_no_spatial_motion_business_intact"
+    },
+    {
+      "name": "system_reduce_no_spatial_motion_business_intact"
+    },
+    {
+      "name": "off_desktop_hover_no_translation"
+    },
+    {
+      "name": "scope_control_feedback"
+    },
+    {
+      "name": "real_photo_loaded_then_feedback_and_escape_parent"
+    }
+  ],
+  "errors": [],
+  "source": "final filesystem code; isolated API; GET-only interaction validation",
+  "breakpoints": [
+    {
+      "width": 1440,
+      "scroll": 1430
+    },
+    {
+      "width": 1250,
+      "scroll": 1240
+    },
+    {
+      "width": 1101,
+      "scroll": 1091
+    },
+    {
+      "width": 1100,
+      "scroll": 1090
+    },
+    {
+      "width": 1024,
+      "scroll": 1014
+    },
+    {
+      "width": 768,
+      "scroll": 758
+    },
+    {
+      "width": 580,
+      "scroll": 570
+    },
+    {
+      "width": 390,
+      "scroll": 380
+    },
+    {
+      "width": 320,
+      "scroll": 320
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "checked_at": "2026-10-28T14:37:51.301Z",
+  "database": "isolated test API at http://127.0.0.1:8012/",
+  "status": "passed",
+  "checks": [
+    {
+      "name": "shared_dashboard_counts",
+      "covered": 4,
+      "missing": 2,
+      "total": 6
+    },
+    {
+      "name": "accessible_title_once"
+    },
+    {
+      "name": "responsive_no_overflow",
+      "width": 1440,
+      "scroll": 1430,
+      "cards": 8
+    },
+    {
+      "name": "responsive_no_overflow",
+      "width": 768,
+      "scroll": 758,
+      "cards": 8
+    },
+    {
+      "name": "responsive_no_overflow",
+      "width": 390,
+      "scroll": 380,
+      "cards": 8
+    },
+    {
+      "name": "search_scope_and_required_filters"
+    },
+    {
+      "name": "missing_shortcut_and_list_view"
+    },
+    {
+      "name": "escape_returns_focus"
+    },
+    {
+      "name": "refresh_preserves_keyboard_focus"
+    },
+    {
+      "name": "real_run_creation",
+      "run_id": "run-ca09f0214ab9468b946cb15426203c87"
+    },
+    {
+      "name": "failed_submission_keeps_draft_and_does_not_write"
+    },
+    {
+      "name": "real_photo_and_record_saved_without_xss",
+      "record_id": 7
+    },
+    {
+      "name": "photo_preview_escape_keeps_parent_drawer"
+    },
+    {
+      "name": "permission_feedback_and_review_creation"
+    },
+    {
+      "name": "inconclusive_review_stays_pending"
+    },
+    {
+      "name": "completed_review_does_not_clear_fault"
+    },
+    {
+      "name": "frozen_run_and_completed_filter"
+    },
+    {
+      "name": "reduced_motion_keeps_business_controls"
+    },
+    {
+      "name": "decoration_preference_survives_reload"
+    }
+  ],
+  "errors": []
+}

@@ -3,12 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0d1014">
+  <meta name="theme-color" content="#f3f6f5">
   <title>巡到位 InspectGo · 巡检工作台</title>
   <link rel="stylesheet" href="/static/styles.css">
   <link rel="stylesheet" href="/static/motion.css">
 </head>
 <body>
+  <div class="ambient" aria-hidden="true"><span></span><span></span><span></span></div>
   <a class="skip-link" href="#app-main">跳到巡检工作区</a>
   <header class="app-header">
     <div class="brand-lockup">
@@ -57,6 +58,7 @@
           <div class="filter-field"><label class="visually-hidden" for="status-filter">点位状态</label><select id="status-filter"><option value="all">全部状态</option><option value="missing">待补检</option><option value="covered">已覆盖</option><option value="alarm">告警</option><option value="unknown">状态未知</option><option value="pending">待复核</option><option value="completed">复核已处理</option></select></div>
           <button id="reset-filters" class="btn btn-ghost btn-small reset-filters" type="button">重置</button>
           <div class="view-switch" role="group" aria-label="点位显示方式">
+            <span class="thumb" aria-hidden="true"></span>
             <button id="view-grid" class="btn btn-ghost btn-small" type="button" aria-pressed="true" aria-label="网格视图" title="网格视图"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></button>
             <button id="view-list" class="btn btn-ghost btn-small" type="button" aria-pressed="false" aria-label="列表视图" title="列表视图"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5h13M8 12h13M8 19h13M3 5h.01M3 12h.01M3 19h.01"/></svg></button>
           </div>

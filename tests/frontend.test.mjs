@@ -27,3 +27,10 @@ test('search trims and ignores identifier case; status and required filters comp
  assert.equal(model.matchesPoint(ordinary,{...base,status:'completed',required:'optional'}),true);
  assert.equal(model.matchesPoint(missing,{...base,status:'unknown'}),true);
 });
+test('location search matches building floor and zone while preserving other filters',()=>{
+ const point={...missing,floor:'二层',zone_name:'实训楼二层'};
+ for(const query of ['实训楼','二层','z3','实训楼二层'])assert.equal(model.matchesPoint(point,{...base,query}),true,query);
+ assert.equal(model.matchesPoint(point,{...base,query:'教学楼'}),false);
+ assert.equal(model.matchesPoint(point,{...base,query:'实训楼',scope:'zone:Z1'}),false);
+ assert.equal(model.matchesPoint(point,{...base,query:'实训楼',status:'covered'}),false);
+});
