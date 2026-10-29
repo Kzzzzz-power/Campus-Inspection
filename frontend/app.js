@@ -1,4 +1,5 @@
 import {matchesPoint} from './model.js';
+import {createRealtimeClient,projectPoint} from './realtime.js';
 import {initMotion} from './motion.js';
 import {createFilterPickers} from './filter-pickers.js';
 
@@ -60,7 +61,40 @@ function button(label, action, className='btn btn-secondary', symbol) { return e
 function date(value, full=false) { if(!value) return '未记录'; const d=new Date(value);return Number.isNaN(d.valueOf())?'时间格式未知':d.toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',...(full?{second:'2-digit'}:{})}); }
 function clock(value) { const d=new Date(value);return Number.isNaN(d.valueOf())?'—':d.toLocaleTimeString('zh-CN',{hour12:false}); }
 function statusBadge(text,tone='muted') { return el('span',{class:`status-badge is-${tone}`},icon(tone==='good'?'check':tone==='danger'?'alert':'clock'),text); }
-function facilityState(p) { return ({ok:['最近记录正常','good'],alarm:['告警待关注','danger'],unknown:['状态待确认','warn'],'no-record':['暂无状态记录','muted']})[p.latest_status]||['状态待确认','muted']; }
+function facilityState(p) {
+  if(p.realtime && p.realtime.reason!=='disabled'){
+    if(!p.realtime.current)return ['状态未知','warn'];
+    const observation=p.realtime.facility.observation;
+    const availability={AVAILABLE:'可用',UNAVAILABLE:'不可用',UNKNOWN:'可用性未知'};
+    const condition={NORMAL:'正常',WARNING:'警告',FAULT:'故障'};
+    return [`${availability[observation.availability]} · ${condition[observation.condition]}`,p.latest_status==='alarm'?'danger':p.latest_status==='ok'?'good':'warn'];
+  }
+  return ({ok:['最近记录正常','good'],alarm:['告警待关注','danger'],unknown:['状态待确认','warn'],'no-record':['暂无状态记录','muted']})[p.latest_status]||['状态待确认','muted']; }
+function remoteMetadata(p){
+  const remote=p.realtime,observation=remote?.facility?.observation;
+  if(remote?.reason==='disabled')return '实时接入未启用 · 当前显示既有记录状态';
+  const reasons={connecting:'等待实时数据',disconnected:'实时连接断开',broker:'消息代理未连接',missing:'尚无远程观测',stale:'数据已过期'};
+  const context=remote?.reason?reasons[remote.reason]+' · ':'';
+  if(!observation)return context+'远程观测：尚未收到';
+  const source=observation.source_type==='SIMULATED'?'模拟源':'设备源';
+  const latency=Object.hasOwn(observation.metrics,'latency_ms')?`${observation.metrics.latency_ms} ms`:'未提供';
+  return `${context}${remote.current?'业务值':'最后业务值'} ${observation.availability} / ${observation.condition} · 观测 ${date(observation.observed_at,true)} · ${source} ${observation.source_type} · latency_ms ${latency}`;
+}
+function displayedPoint(point){return projectPoint(point,realtime.state);}
+function updateRealtime(){
+  const status=realtime.state,broker=status.snapshot?.broker;
+  const labels={connecting:'实时 WebSocket 正在连接',connected:status.ready?'实时 WebSocket 已连接':'实时 WebSocket 已连接 · 等待快照',disconnected:'实时 WebSocket 已断开 · 自动重连中',stopped:'实时 WebSocket 已暂停'};
+  const brokerLabels={disabled:'消息代理未启用',connecting:'消息代理正在连接',connected:'消息代理已连接',disconnected:'消息代理已断开'};
+  if($('realtime-status').textContent!==labels[status.connection])$('realtime-status').textContent=labels[status.connection];
+  $('realtime-status').classList.toggle('is-error',status.connection==='disconnected');
+  $('broker-status').textContent=broker?((status.ready?'':'上次状态：')+brokerLabels[broker.state]+(broker.reason?` · ${broker.reason}`:'')):'等待消息代理状态';
+  if(state.data){renderFacilities();renderQueue();}
+  if(state.detail && $('detail-dialog').open){
+    const point=displayedPoint(state.detail.point),row=$('detail-facility-status');
+    if(row)row.replaceChildren(el('span',{class:'status-label'},'设施状态'),statusBadge(...facilityState(point)));
+    if($('detail-realtime-meta'))$('detail-realtime-meta').textContent=remoteMetadata(point);
+  }
+}
 function reviewState(review) { if(!review) return ['尚未发起','muted'];if(review.status==='pending') return ['待复核','warn'];return review.conclusion==='fault'?['已复核 · 确认异常','danger']:['已复核 · 确认正常','good']; }
 function coverageState(p) { return !p.required?['不计入必检统计','muted']:p.covered?['现场记录有效','good']:['缺少有效现场记录','warn']; }
 function statusRow(label, status) { return el('div',{class:'status-row'},el('span',{class:'status-label'},label),statusBadge(...status)); }
@@ -114,10 +148,10 @@ function makeCard(id){
   const card=el('article',{class:'point-card','data-point':id},el('div',{class:'point-head'},pid,required),device,location,statuses,meta,el('div',{class:'point-actions'},button('查看详情',()=>openDetail(id),'btn btn-ghost btn-small','arrow'),button('现场记录',()=>openDetail(id,'inspect'),'btn btn-secondary btn-small','plus')));
   const corners=document.createElementNS('http://www.w3.org/2000/svg','svg');corners.setAttribute('class','glass-corners');corners.setAttribute('viewBox','0 0 100 100');corners.setAttribute('preserveAspectRatio','none');corners.setAttribute('aria-hidden','true');
   const edge=document.createElementNS(corners.namespaceURI,'path');for(const [key,value]of Object.entries({d:'M82 1 H94 L99 6 V14 M1 86 V94 L6 99 H18',fill:'none',stroke:'currentColor','stroke-width':'1','vector-effect':'non-scaling-stroke'}))edge.setAttribute(key,value);corners.append(edge);card.append(corners);
-  card.update=p=>{required.textContent=p.required?'必检点':'普通点';required.classList.toggle('is-required',p.required);device.textContent=p.device;location.textContent=`${p.building} · ${p.floor} / ${p.zone_id}`;statuses.replaceChildren(statusRow('现场覆盖',coverageState(p)),statusRow('设施状态',facilityState(p)),statusRow('复核处理',reviewState(p.review)));meta.textContent=`${p.at?`记录 ${date(p.at)}`:'暂无记录时间'} · 照片 ${p.photo_count||0} 张`;};return card;
+  card.update=p=>{required.textContent=p.required?'必检点':'普通点';required.classList.toggle('is-required',p.required);device.textContent=p.device;location.textContent=`${p.building} · ${p.floor} / ${p.zone_id} · ${p.facility_id||'设施编号待接收'}`;statuses.replaceChildren(statusRow('现场覆盖',coverageState(p)),statusRow('设施状态',facilityState(p)),statusRow('复核处理',reviewState(p.review)),el('p',{class:'field-hint realtime-meta'},remoteMetadata(p)));meta.textContent=`${p.at?`记录 ${date(p.at)}`:'暂无记录时间'} · 照片 ${p.photo_count||0} 张`;};return card;
 }
 function renderFacilities(){
-  if(!state.data)return;const visible=state.data.points.filter(p=>matchesPoint(p,state.filters));$('result-count').textContent=`当前筛选 ${visible.length} / ${state.data.points.length} 个点位`;
+  if(!state.data)return;const visible=state.data.points.map(displayedPoint).filter(p=>matchesPoint(p,state.filters));const countLabel=`当前筛选 ${visible.length} / ${state.data.points.length} 个点位`;if($('result-count').textContent!==countLabel)$('result-count').textContent=countLabel;
   const groups=[];
   for(const zone of [...new Set(visible.map(p=>p.zone_id))]){
     const subset=visible.filter(p=>p.zone_id===zone);let group=state.groups.get(zone);
@@ -129,7 +163,7 @@ function renderFacilities(){
   syncChildren($('facility-groups'),groups);
 }
 function renderQueue(){
-  const points=state.data.points;const pending=points.filter(p=>p.review?.status==='pending');const gaps=points.filter(p=>p.required&&!p.covered);const seen=new Set([...pending,...gaps].map(p=>p.point_id));const alarms=points.filter(p=>p.latest_status==='alarm'&&!seen.has(p.point_id));
+  const points=state.data.points.map(displayedPoint);const pending=points.filter(p=>p.review?.status==='pending');const gaps=points.filter(p=>p.required&&!p.covered);const seen=new Set([...pending,...gaps].map(p=>p.point_id));const alarms=points.filter(p=>p.latest_status==='alarm'&&!seen.has(p.point_id));
   const items=[...pending.map(p=>({p,kind:'待处理复核',tone:'warn'})),...gaps.filter(p=>!pending.includes(p)).map(p=>({p,kind:'待补现场记录',tone:'warn'})),...alarms.map(p=>({p,kind:'告警待关注',tone:'danger'}))];
   syncChildren($('pending-list'),items.length?items.map(({p,kind,tone})=>{let b=state.queueButtons.get(p.point_id);if(!b){b=button('',()=>openDetail(p.point_id),'queue-item');state.queueButtons.set(p.point_id,b);}b.replaceChildren(el('span',{class:'queue-point'},p.point_id),el('span',{},el('strong',{},p.device),el('small',{},kind)),icon('arrow'));b.dataset.tone=tone;return b;}):[el('p',{class:'empty-state'},'当前没有待补检点或待处理复核。')]);
 }
@@ -172,7 +206,8 @@ function renderDetail(mode=null){
   const detail=state.detail,p=detail.point;$('detail-title').textContent=`${p.point_id} · ${p.device}`;$('detail-subtitle').textContent=`${p.building} · ${p.floor} / ${p.required?'必检点':'普通点'}`;
   const activeReview=detail.reviews.find(r=>r.status==='pending');
   const actions=el('div',{class:'point-actions'},button('填写现场记录',()=>chooseDetailMode('inspect'),'btn btn-primary','plus'),button(activeReview?'处理复核':'发起复核',()=>chooseDetailMode('review'),'btn btn-secondary','file'));
-  const content=[detailSection('当前情况',el('div',{class:'detail-status'},statusRow('现场覆盖',coverageState(p)),statusRow('设施状态',facilityState(p)),statusRow('复核处理',reviewState(p.review))),el('p',{class:'field-hint'},'现场记录有效不代表设施正常；复核确认异常也属于已完成确认。'),actions)];
+  const remotePoint=displayedPoint(p),remoteRow=statusRow('设施状态',facilityState(remotePoint));remoteRow.id='detail-facility-status';
+  const content=[detailSection('当前情况',el('div',{class:'detail-status'},statusRow('现场覆盖',coverageState(p)),remoteRow,statusRow('复核处理',reviewState(p.review))),el('p',{id:'detail-realtime-meta',class:'field-hint'},remoteMetadata(remotePoint)),el('p',{class:'field-hint'},'现场记录有效不代表设施正常；复核确认异常也属于已完成确认。'),actions)];
   if(mode==='inspect')content.push(detailSection('提交现场记录',inspectionForm(p)));
   if(mode==='review')content.push(detailSection(activeReview?'提交复核结果':'发起现场复核',activeReview?inspectionForm(p,activeReview):reviewForm(p)));
   const photos=detail.photos||[];
@@ -310,7 +345,9 @@ for(const name of ['photo','run']){$(name+'-close').addEventListener('click',()=
 $('photo-prev').addEventListener('click',()=>stepPhoto(-1));$('photo-next').addEventListener('click',()=>stepPhoto(1));$('photo-dialog').addEventListener('keydown',e=>{if(e.key==='ArrowLeft')stepPhoto(-1);if(e.key==='ArrowRight')stepPhoto(1);});$('photo-image').addEventListener('load',()=>{$('photo-image').removeAttribute('aria-busy');if($('photo-dialog').open)animateFeedback($('photo-image'),[{opacity:.55,transform:`translateX(${photoDirection*10}px)`},{opacity:1,transform:'translateX(0)'}],180);});$('photo-image').addEventListener('error',()=>{$('photo-image').removeAttribute('aria-busy');$('photo-caption').textContent='图片暂时无法读取，请关闭后重试。';});
 $('all-runs-btn').addEventListener('click',()=>{state.runToken++;$('run-title').textContent='最近运行记录';$('run-body').replaceChildren(el('p',{class:'field-hint'},'最多显示最近 20 次运行；点击查看当时保存的结果。'),...state.runs.map(r=>button(`${date(r.created_at)} · ${r.summary||r.run_id}`,()=>openRun(r.run_id),'run-item')));showDialog($('run-dialog'));});
 window.addEventListener('beforeunload',e=>{if(state.dirty||state.saving){e.preventDefault();e.returnValue='';}});
-let disposeMotion=initMotion();let poll=setInterval(()=>{if(!document.hidden)refresh();},30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});window.addEventListener('pagehide',()=>{clearInterval(poll);disposeMotion();});window.addEventListener('pageshow',event=>{if(event.persisted){disposeMotion=initMotion({replayIntro:false});clearInterval(poll);poll=setInterval(()=>{if(!document.hidden)refresh();},30000);refresh();}});
+let disposeMotion=initMotion();let poll=setInterval(()=>{if(!document.hidden)refresh();},30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});window.addEventListener('pagehide',()=>{clearInterval(poll);disposeMotion();realtime.stop();});window.addEventListener('pageshow',event=>{realtime.start();if(event.persisted){disposeMotion=initMotion({replayIntro:false});clearInterval(poll);poll=setInterval(()=>{if(!document.hidden)refresh();},30000);refresh();}});
+const realtime=createRealtimeClient({url:`${location.protocol==='https:'?'wss:':'ws:'}//${location.host}/ws/facilities`,onChange:updateRealtime});
+realtime.start();
 refresh();
 
 for (const dialog of document.querySelectorAll('dialog')) {

@@ -1,0 +1,14 @@
+{
+  "checks": [
+    "all eight normal observations arrived through broker and API",
+    "late MQTT subscriber received eight retained observations",
+    "override changed condition and latency without simulator restart",
+    "invalid overrides produced no batch; --once exited 1",
+    "corrected override recovered on the next batch",
+    "SIGINT cleaned broker, API, simulator and both listening ports",
+    "occupied Web port refused without starting or taking over a broker",
+    "unexpected simulator exit caused supervisor failure and cleaned remaining processes",
+    "additional override validation checks passed"
+  ],
+  "ports_released": true
+}

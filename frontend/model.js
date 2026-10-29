@@ -1,6 +1,6 @@
 export function matchesPoint(point, filters) {
   const query = filters.query.trim().toLocaleLowerCase();
-  const searchable = [point.point_id, point.device, point.building, point.floor, point.zone_id, point.zone_name].filter(Boolean).join(" ");
+  const searchable = [point.point_id, point.facility_id, point.device, point.building, point.floor, point.zone_id, point.zone_name].filter(Boolean).join(" ");
   if (query && !searchable.toLocaleLowerCase().includes(query)) return false;
   if (filters.scope.startsWith('building:') && point.building !== filters.scope.slice(9)) return false;
   if (filters.scope.startsWith('zone:') && point.zone_id !== filters.scope.slice(5)) return false;

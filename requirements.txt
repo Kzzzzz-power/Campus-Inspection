@@ -2,3 +2,5 @@ fastapi>=0.110
 uvicorn[standard]>=0.29
 python-multipart>=0.0.32
 Pillow>=13.0.0
+
+paho-mqtt==2.1.0

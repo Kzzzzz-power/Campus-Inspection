@@ -1,0 +1,25 @@
+✔ missing coverage excludes ordinary points and combines location filters (0.4736ms)
+✔ covered equipment can still have an alarm and pending review (0.0857ms)
+✔ search trims and ignores identifier case; status and required filters compose (0.1956ms)
+✔ location search matches building floor and zone while preserving other filters (0.6104ms)
+✔ fresh simulated observations drive facility status without changing coverage, review or record metadata (2.289ms)
+✔ missing, unavailable and unknown availability have distinct state projections (0.2223ms)
+✔ observations expire locally while retaining original business values and observation time (0.2392ms)
+✔ same-revision server freshness updates are accepted and full snapshots replace missing entries (0.2848ms)
+✔ broker disconnect and WebSocket disconnect preserve the last observation without declaring FAULT (0.2606ms)
+✔ disabled broker preserves legacy state, while initial connection has an unknown remote state (0.1023ms)
+✔ reconnect accepts a reset revision and ignores events from the old connection (0.1461ms)
+✔ reconnect delay backs off to at most ten seconds, stop cleans up and start resumes once (0.1773ms)
+✔ malformed snapshots are ignored and do not overwrite the last complete snapshot (0.1812ms)
+✔ alarm and unknown filters match projected state; facility_id is searchable (0.731ms)
+✔ DEVICE source and optional latency metrics follow the backend observation contract (0.1395ms)
+✔ simulated observations accept finite custom metrics and no latency value without inventing one (0.5723ms)
+✔ invalid source, metrics types, keys, size and negative latency never replace the last valid snapshot (0.2331ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 69.1716

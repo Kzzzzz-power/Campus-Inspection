@@ -1,0 +1,227 @@
+{
+  "started_at": "2026-10-29T14:13:30.821Z",
+  "out": "D:\\校园设施巡检与复核\\.runtime\\stage01\\e2e-1793283210820",
+  "status": "passed",
+  "checks": [
+    {
+      "name": "initial_unknown_eight_configured_facilities",
+      "status": "passed",
+      "details": {
+        "ids": [
+          "lighting-201",
+          "hvac-2f",
+          "ap-2f",
+          "lab-power-101",
+          "access-101",
+          "exhaust-101",
+          "switch-301",
+          "hvac-301"
+        ]
+      }
+    },
+    {
+      "name": "eight_simulated_facilities_reach_broker_api_ws_dom",
+      "status": "passed",
+      "details": {
+        "facility_count": 8,
+        "probe_topic_count": 8,
+        "websocket_frames": 2
+      }
+    },
+    {
+      "name": "modify_warning_and_latency_crosses_all_four_boundaries_without_reload",
+      "status": "passed",
+      "details": {
+        "topic": "nova/bb02/facility/switch-301/status",
+        "condition": "WARNING",
+        "latency_ms": 87,
+        "observed_at": "2026-10-29T14:13:34.738323+00:00"
+      }
+    },
+    {
+      "name": "remote_data_does_not_change_site_records_review_or_archived_run",
+      "status": "passed"
+    },
+    {
+      "name": "active_inspection_draft_and_focus_survive_live_update",
+      "status": "passed"
+    },
+    {
+      "name": "alarm_filter_and_location_search_follow_remote_state",
+      "status": "passed"
+    },
+    {
+      "name": "bad_mqtt_payload_is_rejected_without_marking_fault",
+      "status": "passed"
+    },
+    {
+      "name": "publisher_stop_expires_data_without_changing_last_business_condition",
+      "status": "passed"
+    },
+    {
+      "name": "broker_disconnect_and_reconnect_are_visible_and_resubscribe",
+      "status": "passed"
+    },
+    {
+      "name": "backend_restart_resyncs_websocket_and_preserves_archived_run",
+      "status": "passed"
+    },
+    {
+      "name": "responsive_layout_and_actual_screenshots",
+      "status": "passed",
+      "details": [
+        {
+          "width": 390,
+          "scroll": 380,
+          "cards": 8
+        },
+        {
+          "width": 768,
+          "scroll": 758,
+          "cards": 8
+        },
+        {
+          "width": 1440,
+          "scroll": 1430,
+          "cards": 8
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "ports": {
+    "mqttPort": 6937,
+    "webPort": 6938,
+    "debugPort": 6939
+  },
+  "finished_at": "2026-10-29T14:14:00.565Z",
+  "probe_examples": [
+    {
+      "topic": "nova/bb02/facility/switch-301/status",
+      "payload": {
+        "facility_id": "switch-301",
+        "zone_id": "Z3",
+        "observed_at": "2026-10-29T14:13:32.733305+00:00",
+        "source_type": "SIMULATED",
+        "availability": "AVAILABLE",
+        "condition": "NORMAL",
+        "metrics": {
+          "latency_ms": 18
+        }
+      }
+    },
+    {
+      "topic": "nova/bb02/facility/switch-301/status",
+      "payload": {
+        "facility_id": "switch-301",
+        "zone_id": "Z3",
+        "observed_at": "2026-10-29T14:13:34.738323+00:00",
+        "source_type": "SIMULATED",
+        "availability": "AVAILABLE",
+        "condition": "WARNING",
+        "metrics": {
+          "latency_ms": 87
+        }
+      }
+    },
+    {
+      "topic": "nova/bb02/facility/switch-301/status",
+      "payload": {
+        "facility_id": "switch-301",
+        "zone_id": "Z3",
+        "observed_at": "2026-10-29T14:13:36.744189+00:00",
+        "source_type": "SIMULATED",
+        "availability": "AVAILABLE",
+        "condition": "NORMAL",
+        "metrics": {
+          "latency_ms": 31
+        }
+      }
+    },
+    {
+      "topic": "nova/bb02/facility/switch-301/status",
+      "payload": {
+        "facility_id": "switch-301",
+        "zone_id": "Z3",
+        "observed_at": "2026-10-29T14:13:38.747752+00:00",
+        "source_type": "SIMULATED",
+        "availability": "AVAILABLE",
+        "condition": "WARNING",
+        "metrics": {
+          "latency_ms": 88
+        }
+      }
+    },
+    {
+      "topic": "nova/bb02/facility/switch-301/status",
+      "payload": {
+        "facility_id": "switch-301",
+        "zone_id": "Z3",
+        "observed_at": "2026-10-29T14:13:40.750682+00:00",
+        "source_type": "SIMULATED",
+        "availability": "AVAILABLE",
+        "condition": "WARNING",
+        "metrics": {
+          "latency_ms": 88
+        }
+      }
+    },
+    {
+      "topic": "nova/bb02/facility/switch-301/status",
+      "payload": {
+        "facility_id": "switch-301",
+        "zone_id": "Z3",
+        "observed_at": "2026-10-29T14:13:42.753671+00:00",
+        "source_type": "SIMULATED",
+        "availability": "AVAILABLE",
+        "condition": "WARNING",
+        "metrics": {
+          "latency_ms": 88
+        }
+      }
+    },
+    {
+      "topic": "nova/bb02/facility/switch-301/status",
+      "payload": {
+        "facility_id": "switch-301",
+        "zone_id": "Z3",
+        "observed_at": "2026-10-29T14:13:53.973707+00:00",
+        "source_type": "SIMULATED",
+        "availability": "AVAILABLE",
+        "condition": "WARNING",
+        "metrics": {
+          "latency_ms": 88
+        }
+      }
+    },
+    {
+      "topic": "nova/bb02/facility/switch-301/status",
+      "payload": {
+        "facility_id": "switch-301",
+        "zone_id": "Z3",
+        "observed_at": "2026-10-29T14:13:55.976931+00:00",
+        "source_type": "SIMULATED",
+        "availability": "AVAILABLE",
+        "condition": "WARNING",
+        "metrics": {
+          "latency_ms": 88
+        }
+      }
+    },
+    {
+      "topic": "nova/bb02/facility/switch-301/status",
+      "payload": {
+        "facility_id": "switch-301",
+        "zone_id": "Z3",
+        "observed_at": "2026-10-29T14:13:57.980417+00:00",
+        "source_type": "SIMULATED",
+        "availability": "AVAILABLE",
+        "condition": "WARNING",
+        "metrics": {
+          "latency_ms": 88
+        }
+      }
+    }
+  ],
+  "websocket_frame_count": 26
+}

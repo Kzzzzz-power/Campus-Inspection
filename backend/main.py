@@ -3,12 +3,13 @@
 This is not the full B-B02 task engine. Coverage and device condition stay separate.
 """
 from contextlib import asynccontextmanager
+import asyncio
 import os
 from pathlib import Path
 import re
 import sqlite3
 
-from fastapi import Body, FastAPI, HTTPException, Request
+from fastapi import Body, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
@@ -20,11 +21,13 @@ if __package__:
     from .storage import Store
     from .configuration import FACILITIES
     from .baseline import load_s1
+    from .realtime import FacilityFeed, MqttReceiver
 else:
     import service
     from storage import Store
     from configuration import FACILITIES
     from baseline import load_s1
+    from realtime import FacilityFeed, MqttReceiver
 
 FRONTEND = Path(__file__).resolve().parent.parent / 'frontend'
 
@@ -78,21 +81,35 @@ async def inspection_form(request, review=False):
         raise
 
 
-def create_app(db_path=None, uploads_dir=None, seed_demo=None):
+def create_app(db_path=None, uploads_dir=None, seed_demo=None, realtime_enabled=None):
     database = Path(db_path or os.environ.get('INSPECTGO_DB',str(Path(__file__).parent/'inspectgo.db')))
     uploads = Path(uploads_dir or os.environ.get('INSPECTGO_UPLOADS',str(Path(__file__).parent/'uploads')))
     if seed_demo is None:
         seed_demo = os.environ.get('INSPECTGO_SEED_DEMO','true').lower() != 'false'
     s1_input = load_s1()
     store = Store(database,uploads)
+    if realtime_enabled is None:
+        realtime_enabled = os.environ.get('INSPECTGO_MQTT_ENABLED', 'true').lower() == 'true'
+    feed = FacilityFeed(enabled=realtime_enabled,
+                        stale_after_seconds=float(os.environ.get('INSPECTGO_STALE_SECONDS', '10')))
+    receiver = MqttReceiver(feed, os.environ.get('INSPECTGO_MQTT_HOST', '127.0.0.1'),
+                            int(os.environ.get('INSPECTGO_MQTT_PORT', '1883'))) if realtime_enabled else None
+
 
     @asynccontextmanager
     async def lifespan(application):
         await run_in_threadpool(store.initialize,seed_demo)
-        yield
+        if receiver:
+            receiver.start()
+        try:
+            yield
+        finally:
+            if receiver:
+                await run_in_threadpool(receiver.stop)
 
     application = FastAPI(title='巡到位 InspectGo',version='0.2.0',lifespan=lifespan)
     application.state.store = store
+    application.state.facilities = feed
     application.add_middleware(BodySizeLimit)
 
     @application.middleware('http')
@@ -120,7 +137,35 @@ def create_app(db_path=None, uploads_dir=None, seed_demo=None):
     def health():
         with store.transaction() as conn:
             conn.execute('SELECT 1 FROM records LIMIT 1').fetchone()
-        return {'status':'ok','version':'0.2.0'}
+        return {'status':'ok','version':'0.2.0','mqtt':feed.snapshot()['broker']}
+
+    @application.get('/api/current')
+    def current_facilities():
+        return feed.snapshot()
+
+    @application.websocket('/ws/facilities')
+    async def facility_stream(websocket: WebSocket):
+        origin = websocket.headers.get('origin')
+        scheme = 'https' if websocket.url.scheme == 'wss' else 'http'
+        if origin and origin.rstrip('/') != f'{scheme}://{websocket.url.netloc}':
+            await websocket.close(code=1008)
+            return
+        await websocket.accept()
+        try:
+            while True:
+                # Per-client send deadline bounds slow consumers; MQTT writes never await sockets.
+                await asyncio.wait_for(websocket.send_json(feed.snapshot()), timeout=3)
+                try:
+                    await asyncio.wait_for(websocket.receive_text(), timeout=1)
+                except asyncio.TimeoutError:
+                    pass
+        except (WebSocketDisconnect, asyncio.TimeoutError):
+            pass
+        finally:
+            try:
+                await websocket.close()
+            except (RuntimeError, OSError):
+                pass
 
     @application.get('/api/facilities')
     def facilities():
