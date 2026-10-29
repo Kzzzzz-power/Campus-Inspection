@@ -1,0 +1,58 @@
+[
+  {
+    "checkpoint_id": "C01",
+    "facility_id": "lighting-201",
+    "zone_id": "Z1",
+    "critical": true,
+    "name": "照明控制"
+  },
+  {
+    "checkpoint_id": "C02",
+    "facility_id": "hvac-2f",
+    "zone_id": "Z1",
+    "critical": true,
+    "name": "空调"
+  },
+  {
+    "checkpoint_id": "C03",
+    "facility_id": "ap-2f",
+    "zone_id": "Z1",
+    "critical": false,
+    "name": "网络点"
+  },
+  {
+    "checkpoint_id": "C04",
+    "facility_id": "lab-power-101",
+    "zone_id": "Z2",
+    "critical": true,
+    "name": "实验室主电源"
+  },
+  {
+    "checkpoint_id": "C05",
+    "facility_id": "access-101",
+    "zone_id": "Z2",
+    "critical": true,
+    "name": "门禁"
+  },
+  {
+    "checkpoint_id": "C06",
+    "facility_id": "exhaust-101",
+    "zone_id": "Z2",
+    "critical": false,
+    "name": "排风"
+  },
+  {
+    "checkpoint_id": "C07",
+    "facility_id": "switch-301",
+    "zone_id": "Z3",
+    "critical": true,
+    "name": "网络交换节点"
+  },
+  {
+    "checkpoint_id": "C08",
+    "facility_id": "hvac-301",
+    "zone_id": "Z3",
+    "critical": true,
+    "name": "空调 / 机柜环境"
+  }
+]

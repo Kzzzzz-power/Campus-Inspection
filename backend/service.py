@@ -12,21 +12,11 @@ from fastapi import HTTPException
 from PIL import Image, UnidentifiedImageError
 
 WINDOW_MINUTES = 45
-ZONES = {
-    'Z1': {'name':'教学楼二层','building':'教学楼','floor':'二层','points':['C01','C02','C03']},
-    'Z2': {'name':'实训楼一层','building':'实训楼','floor':'一层','points':['C04','C05','C06']},
-    'Z3': {'name':'实训楼二层','building':'实训楼','floor':'二层','points':['C07','C08']},
-}
-POINTS = {
-    'C01':{'device':'照明控制','required':True},
-    'C02':{'device':'空调','required':True},
-    'C03':{'device':'网络点','required':False},
-    'C04':{'device':'实验室主电源','required':True},
-    'C05':{'device':'门禁','required':True},
-    'C06':{'device':'排风','required':False},
-    'C07':{'device':'网络交换节点','required':True},
-    'C08':{'device':'空调/机柜环境','required':True},
-}
+if __package__:
+    from .configuration import ZONES, POINTS
+else:
+    from configuration import ZONES, POINTS
+
 PHOTO_LIMIT = 10 * 1024 * 1024
 PHOTO_TYPES = {'JPEG':('image/jpeg','.jpg'), 'PNG':('image/png','.png'), 'WEBP':('image/webp','.webp')}
 

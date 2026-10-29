@@ -1,0 +1,20 @@
+[
+  {
+    "zone_id": "Z1",
+    "name": "教学楼二层",
+    "building": "教学楼",
+    "floor": "二层"
+  },
+  {
+    "zone_id": "Z2",
+    "name": "实训楼一层",
+    "building": "实训楼",
+    "floor": "一层"
+  },
+  {
+    "zone_id": "Z3",
+    "name": "实训楼二层",
+    "building": "实训楼",
+    "floor": "二层"
+  }
+]

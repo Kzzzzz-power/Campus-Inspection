@@ -18,9 +18,13 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 if __package__:
     from . import service
     from .storage import Store
+    from .configuration import FACILITIES
+    from .baseline import load_s1
 else:
     import service
     from storage import Store
+    from configuration import FACILITIES
+    from baseline import load_s1
 
 FRONTEND = Path(__file__).resolve().parent.parent / 'frontend'
 
@@ -79,6 +83,7 @@ def create_app(db_path=None, uploads_dir=None, seed_demo=None):
     uploads = Path(uploads_dir or os.environ.get('INSPECTGO_UPLOADS',str(Path(__file__).parent/'uploads')))
     if seed_demo is None:
         seed_demo = os.environ.get('INSPECTGO_SEED_DEMO','true').lower() != 'false'
+    s1_input = load_s1()
     store = Store(database,uploads)
 
     @asynccontextmanager
@@ -116,6 +121,16 @@ def create_app(db_path=None, uploads_dir=None, seed_demo=None):
         with store.transaction() as conn:
             conn.execute('SELECT 1 FROM records LIMIT 1').fetchone()
         return {'status':'ok','version':'0.2.0'}
+
+    @application.get('/api/facilities')
+    def facilities():
+        return FACILITIES
+
+    @application.get('/api/scenarios/{scenario_id}')
+    def scenario(scenario_id: str):
+        if scenario_id != 'S1':
+            raise HTTPException(404, '此场景输入尚未建立。')
+        return s1_input
 
     @application.get('/api/zones')
     def zones():

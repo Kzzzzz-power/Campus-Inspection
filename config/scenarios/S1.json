@@ -1,0 +1,347 @@
+{
+  "schema_version": 1,
+  "scenario_id": "S1",
+  "name": "稳定巡检基线：设施与已确认告警输入",
+  "scope": "facility_baseline_input",
+  "source_type": "SIMULATED",
+  "as_of": "2026-10-29T09:10:00+08:00",
+  "description": "本文件为固定教学输入，不是实时监测、已完成 run 或 T1–T5 判定结果。",
+  "assumptions": [
+    "固定日期仅供复现；当前指 as_of 时刻。",
+    "C03 后续 NORMAL 与排除当前异常为本夹具选择，案例书也允许确认异常后确认任务成立。",
+    "P1 为模拟人员；不附伪造照片；所有现场事实均为教学输入。"
+  ],
+  "inspection_round": {
+    "inspection_round_id": "BB02-S1-FACILITY-BASELINE-20261029",
+    "timezone": "Asia/Shanghai",
+    "window_start": "2026-10-29T09:00:00+08:00",
+    "window_end": "2026-10-29T09:45:00+08:00"
+  },
+  "context": {
+    "personnel": [
+      {
+        "person_id": "P1",
+        "availability": "AVAILABLE"
+      }
+    ],
+    "zone_access": [
+      {
+        "zone_id": "Z1",
+        "access": "ALLOWED"
+      },
+      {
+        "zone_id": "Z2",
+        "access": "ALLOWED"
+      },
+      {
+        "zone_id": "Z3",
+        "access": "ALLOWED"
+      }
+    ]
+  },
+  "historical_observations": [
+    {
+      "observation_id": "S1-HISTORY-C03-NETWORK",
+      "facility_id": "ap-2f",
+      "zone_id": "Z1",
+      "observed_at": "2026-10-29T08:55:00+08:00",
+      "source_type": "SIMULATED",
+      "payload_json": {
+        "availability": "AVAILABLE",
+        "condition": "WARNING",
+        "alert_code": "SHORT_NETWORK_ALERT",
+        "description": "教学输入：曾出现短时网络告警；后续确认不删除此历史记录。"
+      }
+    }
+  ],
+  "facility_observations": [
+    {
+      "observation_id": "S1-CURRENT-C01",
+      "facility_id": "lighting-201",
+      "zone_id": "Z1",
+      "observed_at": "2026-10-29T09:08:00+08:00",
+      "source_type": "SIMULATED",
+      "payload_json": {
+        "availability": "AVAILABLE",
+        "condition": "NORMAL"
+      }
+    },
+    {
+      "observation_id": "S1-CURRENT-C02",
+      "facility_id": "hvac-2f",
+      "zone_id": "Z1",
+      "observed_at": "2026-10-29T09:08:00+08:00",
+      "source_type": "SIMULATED",
+      "payload_json": {
+        "availability": "AVAILABLE",
+        "condition": "NORMAL"
+      }
+    },
+    {
+      "observation_id": "S1-CURRENT-C03",
+      "facility_id": "ap-2f",
+      "zone_id": "Z1",
+      "observed_at": "2026-10-29T09:08:00+08:00",
+      "source_type": "SIMULATED",
+      "payload_json": {
+        "availability": "AVAILABLE",
+        "condition": "NORMAL"
+      }
+    },
+    {
+      "observation_id": "S1-CURRENT-C04",
+      "facility_id": "lab-power-101",
+      "zone_id": "Z2",
+      "observed_at": "2026-10-29T09:08:00+08:00",
+      "source_type": "SIMULATED",
+      "payload_json": {
+        "availability": "AVAILABLE",
+        "condition": "NORMAL"
+      }
+    },
+    {
+      "observation_id": "S1-CURRENT-C05",
+      "facility_id": "access-101",
+      "zone_id": "Z2",
+      "observed_at": "2026-10-29T09:08:00+08:00",
+      "source_type": "SIMULATED",
+      "payload_json": {
+        "availability": "AVAILABLE",
+        "condition": "NORMAL"
+      }
+    },
+    {
+      "observation_id": "S1-CURRENT-C06",
+      "facility_id": "exhaust-101",
+      "zone_id": "Z2",
+      "observed_at": "2026-10-29T09:08:00+08:00",
+      "source_type": "SIMULATED",
+      "payload_json": {
+        "availability": "AVAILABLE",
+        "condition": "NORMAL"
+      }
+    },
+    {
+      "observation_id": "S1-CURRENT-C07",
+      "facility_id": "switch-301",
+      "zone_id": "Z3",
+      "observed_at": "2026-10-29T09:08:00+08:00",
+      "source_type": "SIMULATED",
+      "payload_json": {
+        "availability": "AVAILABLE",
+        "condition": "NORMAL"
+      }
+    },
+    {
+      "observation_id": "S1-CURRENT-C08",
+      "facility_id": "hvac-301",
+      "zone_id": "Z3",
+      "observed_at": "2026-10-29T09:08:00+08:00",
+      "source_type": "SIMULATED",
+      "payload_json": {
+        "availability": "AVAILABLE",
+        "condition": "NORMAL"
+      }
+    }
+  ],
+  "inspection_records": [
+    {
+      "inspection_id": "S1-INSPECTION-C01",
+      "inspection_round_id": "BB02-S1-FACILITY-BASELINE-20261029",
+      "checkpoint_id": "C01",
+      "facility_id": "lighting-201",
+      "zone_id": "Z1",
+      "inspector_id": "P1",
+      "inspected_at": "2026-10-29T09:01:00+08:00",
+      "method": "ON_SITE",
+      "result": "NORMAL",
+      "onsite_confirmed": true,
+      "source_type": "SIMULATED",
+      "notes": "教学模拟现场记录；不代表真实校园检查。"
+    },
+    {
+      "inspection_id": "S1-INSPECTION-C02",
+      "inspection_round_id": "BB02-S1-FACILITY-BASELINE-20261029",
+      "checkpoint_id": "C02",
+      "facility_id": "hvac-2f",
+      "zone_id": "Z1",
+      "inspector_id": "P1",
+      "inspected_at": "2026-10-29T09:02:00+08:00",
+      "method": "ON_SITE",
+      "result": "NORMAL",
+      "onsite_confirmed": true,
+      "source_type": "SIMULATED",
+      "notes": "教学模拟现场记录；不代表真实校园检查。"
+    },
+    {
+      "inspection_id": "S1-INSPECTION-C03",
+      "inspection_round_id": "BB02-S1-FACILITY-BASELINE-20261029",
+      "checkpoint_id": "C03",
+      "facility_id": "ap-2f",
+      "zone_id": "Z1",
+      "inspector_id": "P1",
+      "inspected_at": "2026-10-29T09:03:00+08:00",
+      "method": "ON_SITE",
+      "result": "NORMAL",
+      "onsite_confirmed": true,
+      "source_type": "SIMULATED",
+      "notes": "教学模拟现场记录；不代表真实校园检查。"
+    },
+    {
+      "inspection_id": "S1-INSPECTION-C04",
+      "inspection_round_id": "BB02-S1-FACILITY-BASELINE-20261029",
+      "checkpoint_id": "C04",
+      "facility_id": "lab-power-101",
+      "zone_id": "Z2",
+      "inspector_id": "P1",
+      "inspected_at": "2026-10-29T09:04:00+08:00",
+      "method": "ON_SITE",
+      "result": "NORMAL",
+      "onsite_confirmed": true,
+      "source_type": "SIMULATED",
+      "notes": "教学模拟现场记录；不代表真实校园检查。"
+    },
+    {
+      "inspection_id": "S1-INSPECTION-C05",
+      "inspection_round_id": "BB02-S1-FACILITY-BASELINE-20261029",
+      "checkpoint_id": "C05",
+      "facility_id": "access-101",
+      "zone_id": "Z2",
+      "inspector_id": "P1",
+      "inspected_at": "2026-10-29T09:05:00+08:00",
+      "method": "ON_SITE",
+      "result": "NORMAL",
+      "onsite_confirmed": true,
+      "source_type": "SIMULATED",
+      "notes": "教学模拟现场记录；不代表真实校园检查。"
+    },
+    {
+      "inspection_id": "S1-INSPECTION-C06",
+      "inspection_round_id": "BB02-S1-FACILITY-BASELINE-20261029",
+      "checkpoint_id": "C06",
+      "facility_id": "exhaust-101",
+      "zone_id": "Z2",
+      "inspector_id": "P1",
+      "inspected_at": "2026-10-29T09:06:00+08:00",
+      "method": "ON_SITE",
+      "result": "NORMAL",
+      "onsite_confirmed": true,
+      "source_type": "SIMULATED",
+      "notes": "教学模拟现场记录；不代表真实校园检查。"
+    },
+    {
+      "inspection_id": "S1-INSPECTION-C07",
+      "inspection_round_id": "BB02-S1-FACILITY-BASELINE-20261029",
+      "checkpoint_id": "C07",
+      "facility_id": "switch-301",
+      "zone_id": "Z3",
+      "inspector_id": "P1",
+      "inspected_at": "2026-10-29T09:07:00+08:00",
+      "method": "ON_SITE",
+      "result": "NORMAL",
+      "onsite_confirmed": true,
+      "source_type": "SIMULATED",
+      "notes": "教学模拟现场记录；不代表真实校园检查。"
+    },
+    {
+      "inspection_id": "S1-INSPECTION-C08",
+      "inspection_round_id": "BB02-S1-FACILITY-BASELINE-20261029",
+      "checkpoint_id": "C08",
+      "facility_id": "hvac-301",
+      "zone_id": "Z3",
+      "inspector_id": "P1",
+      "inspected_at": "2026-10-29T09:08:00+08:00",
+      "method": "ON_SITE",
+      "result": "NORMAL",
+      "onsite_confirmed": true,
+      "source_type": "SIMULATED",
+      "notes": "教学模拟现场记录；不代表真实校园检查。"
+    }
+  ],
+  "review_requests": [
+    {
+      "review_id": "S1-REVIEW-C03",
+      "trigger_run_id": null,
+      "task_id": "T2",
+      "facility_id": "ap-2f",
+      "zone_id": "Z1",
+      "reason": "确认 C03 短时网络告警及当前状态（教学模拟）。",
+      "status": "completed",
+      "created_at": "2026-10-29T09:02:00+08:00",
+      "completed_at": "2026-10-29T09:09:01+08:00",
+      "completion_evidence_id": "S1-EVIDENCE-CONFIRMATION"
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "S1-EVIDENCE-ALARM",
+      "evidence_type": "historical_observation",
+      "source_type": "SIMULATED",
+      "status": "ok",
+      "facility_id": "ap-2f",
+      "observed_at": "2026-10-29T08:55:00+08:00",
+      "retrieved_at": "2026-10-29T08:55:01+08:00",
+      "created_at": "2026-10-29T08:55:01+08:00",
+      "review_id": null,
+      "value_json": {
+        "observation_id": "S1-HISTORY-C03-NETWORK",
+        "condition": "WARNING"
+      }
+    },
+    {
+      "evidence_id": "S1-EVIDENCE-CURRENT",
+      "evidence_type": "remote_status",
+      "source_type": "SIMULATED",
+      "status": "ok",
+      "facility_id": "ap-2f",
+      "observed_at": "2026-10-29T09:08:00+08:00",
+      "retrieved_at": "2026-10-29T09:08:01+08:00",
+      "created_at": "2026-10-29T09:08:01+08:00",
+      "review_id": "S1-REVIEW-C03",
+      "value_json": {
+        "observation_id": "S1-CURRENT-C03",
+        "condition": "NORMAL",
+        "availability": "AVAILABLE"
+      }
+    },
+    {
+      "evidence_id": "S1-EVIDENCE-ONSITE",
+      "evidence_type": "inspection_record",
+      "source_type": "SIMULATED",
+      "status": "ok",
+      "facility_id": "ap-2f",
+      "observed_at": "2026-10-29T09:03:00+08:00",
+      "retrieved_at": "2026-10-29T09:03:01+08:00",
+      "created_at": "2026-10-29T09:03:01+08:00",
+      "review_id": "S1-REVIEW-C03",
+      "value_json": {
+        "inspection_id": "S1-INSPECTION-C03",
+        "result": "NORMAL"
+      }
+    },
+    {
+      "evidence_id": "S1-EVIDENCE-CONFIRMATION",
+      "evidence_type": "review_confirmation",
+      "source_type": "SIMULATED",
+      "status": "ok",
+      "facility_id": "ap-2f",
+      "observed_at": "2026-10-29T09:09:00+08:00",
+      "retrieved_at": "2026-10-29T09:09:01+08:00",
+      "created_at": "2026-10-29T09:09:01+08:00",
+      "review_id": "S1-REVIEW-C03",
+      "value_json": {
+        "conclusion": "ruled_out",
+        "historical_alarm_confirmed": true,
+        "historical_observation_id": "S1-HISTORY-C03-NETWORK",
+        "inspection_id": "S1-INSPECTION-C03",
+        "current_observation_id": "S1-CURRENT-C03",
+        "basis_evidence_ids": [
+          "S1-EVIDENCE-ALARM",
+          "S1-EVIDENCE-CURRENT",
+          "S1-EVIDENCE-ONSITE"
+        ],
+        "notes": "教学输入选择：确认历史告警曾发生，后续远程与现场证据排除当前异常；不是仅凭查询成功判正常。"
+      }
+    }
+  ]
+}
