@@ -1,0 +1,14 @@
+{
+  "checked_at": "2026-10-29T10:29:54.979Z",
+  "status": "passed",
+  "checks": [
+    "actual_css_3d_flip_returns_to_stable_title",
+    "fine_pointer_ribbon_draws_then_stops",
+    "modal_traps_focus_and_pauses_motion",
+    "refresh_failure_keeps_stale_data_and_recovers",
+    "required_validation_and_unsaved_close_guard",
+    "touch_disables_ribbon",
+    "page_lifecycle_reinitializes_without_intro_replay"
+  ],
+  "errors": []
+}

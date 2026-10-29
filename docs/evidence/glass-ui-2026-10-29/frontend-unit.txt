@@ -1,0 +1,12 @@
+✔ missing coverage excludes ordinary points and combines location filters (0.4715ms)
+✔ covered equipment can still have an alarm and pending review (0.082ms)
+✔ search trims and ignores identifier case; status and required filters compose (0.0836ms)
+✔ location search matches building floor and zone while preserving other filters (0.4948ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 58.8378

@@ -1,10 +1,12 @@
 import {matchesPoint} from './model.js';
 import {initMotion} from './motion.js';
+import {createFilterPickers} from './filter-pickers.js';
 
 const $ = id => document.getElementById(id);
 const state = {queueButtons:new Map(),runButtons:new Map(),mapButtons:new Map(),runToken:0,refreshPromise:null,detailTrigger:null,data:null, runs:[], filters:{query:'',scope:'all',required:'all',status:'all'}, cards:new Map(), groups:new Map(), refreshing:false, detail:null, detailToken:0, dirty:false, saving:false, gallery:[], photoIndex:0, runRequest:null};
 const motionEffects = new WeakMap(), activeEffects = new Set();
 let activeViewTransition = null, photoDirection = 0;
+let filterPickers = null;
 function presentationMotionAllowed(){return !document.hidden&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&document.documentElement.dataset.feedback==='on';}
 function animateFeedback(target,frames,duration=180){
   if(!target)return;
@@ -88,6 +90,7 @@ function setFilters(values,{animate=true}={}) {
   motionEffects.get($('result-count'))?.cancel();
   Object.assign(state.filters,values);
   $('search').value=state.filters.query;$('required-filter').value=state.filters.required;$('status-filter').value=state.filters.status;$('mobile-scope').value=state.filters.scope;
+  filterPickers?.sync();
   renderFacilities();renderNavSelection();
   if(before)filterFeedback(before);
 }
@@ -102,11 +105,15 @@ function renderNavigation(points){
   for(const building of [...new Set(points.map(p=>p.building))]){const subset=points.filter(p=>p.building===building);nav.append(el('div',{class:'nav-section'},navButton(building,`building:${building}`,subset.length)));select.append(el('option',{value:`building:${building}`},building));
     for(const zone of [...new Set(subset.map(p=>p.zone_id))]){const items=subset.filter(p=>p.zone_id===zone);nav.append(navButton(`${items[0].floor} · ${zone}`,`zone:${zone}`,items.length));select.append(el('option',{value:`zone:${zone}`},`${building} · ${items[0].floor}`));}
   }
+  filterPickers ??= createFilterPickers({getPoints:()=>state.data?.points||[]});
+  filterPickers.sync();
   renderNavSelection();
 }
 function makeCard(id){
   const pid=el('span',{class:'point-id'},id),required=el('span',{class:'point-kind'}),device=el('h3',{class:'point-device'}),location=el('p',{class:'point-location'}),statuses=el('div',{class:'status-lines'}),meta=el('p',{class:'point-meta'});
   const card=el('article',{class:'point-card','data-point':id},el('div',{class:'point-head'},pid,required),device,location,statuses,meta,el('div',{class:'point-actions'},button('查看详情',()=>openDetail(id),'btn btn-ghost btn-small','arrow'),button('现场记录',()=>openDetail(id,'inspect'),'btn btn-secondary btn-small','plus')));
+  const corners=document.createElementNS('http://www.w3.org/2000/svg','svg');corners.setAttribute('class','glass-corners');corners.setAttribute('viewBox','0 0 100 100');corners.setAttribute('preserveAspectRatio','none');corners.setAttribute('aria-hidden','true');
+  const edge=document.createElementNS(corners.namespaceURI,'path');for(const [key,value]of Object.entries({d:'M82 1 H94 L99 6 V14 M1 86 V94 L6 99 H18',fill:'none',stroke:'currentColor','stroke-width':'1','vector-effect':'non-scaling-stroke'}))edge.setAttribute(key,value);corners.append(edge);card.append(corners);
   card.update=p=>{required.textContent=p.required?'必检点':'普通点';required.classList.toggle('is-required',p.required);device.textContent=p.device;location.textContent=`${p.building} · ${p.floor} / ${p.zone_id}`;statuses.replaceChildren(statusRow('现场覆盖',coverageState(p)),statusRow('设施状态',facilityState(p)),statusRow('复核处理',reviewState(p.review)));meta.textContent=`${p.at?`记录 ${date(p.at)}`:'暂无记录时间'} · 照片 ${p.photo_count||0} 张`;};return card;
 }
 function renderFacilities(){
@@ -150,7 +157,7 @@ async function performRefresh(manual=false){
   if(manual)toast(dashboard.status==='fulfilled'?'已更新当前统计窗口与点位记录。':errorText(dashboard.reason),dashboard.status==='rejected');
 }
 function overlayChanged(){positionToast();document.dispatchEvent(new CustomEvent('inspectgo:overlay',{detail:{open:!!document.querySelector('dialog[open]')}}));}
-function showDialog(dialog){const opening=!dialog.open;if(opening)dialog.showModal();overlayChanged();if(opening)dialogFeedback(dialog);}
+function showDialog(dialog){filterPickers?.close();const opening=!dialog.open;if(opening)dialog.showModal();overlayChanged();if(opening)dialogFeedback(dialog);}
 function closeDetail(){if(state.saving){toast('正在保存，请等待服务端确认。');return;}if(state.dirty&&!confirm('还有未提交的内容。关闭将放弃这次填写，是否继续？'))return;$('detail-dialog').close();}
 async function openDetail(id,mode=null){
   if(state.saving){toast('正在保存，请等待确认后再切换。');return;}
@@ -266,7 +273,7 @@ document.addEventListener('pointermove',event=>{
   const card=event.target.closest('.point-card');if(!card)return;
   const rect=card.getBoundingClientRect();card.style.setProperty('--mx',`${event.clientX-rect.left}px`);card.style.setProperty('--my',`${event.clientY-rect.top}px`);
 },{passive:true});
-const feedbackControls='.btn, .queue-item, .scope-link, .run-item, .photo-thumb, .map-point, #missing-shortcut';
+const feedbackControls='.btn, .queue-item, .scope-link, .run-item, .photo-thumb, .map-point, #missing-shortcut, .filter-picker-trigger, .picker-row, .picker-section, .picker-dismiss';
 function feedbackControl(target){return target instanceof Element?target.closest(feedbackControls):null;}
 function clickRing(control,x,y){
   if(!presentationMotionAllowed()||control.matches(':disabled'))return;

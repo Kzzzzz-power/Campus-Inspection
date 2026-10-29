@@ -1,0 +1,123 @@
+{
+  "at": "2026-10-29T10:44:59.265Z",
+  "status": "passed",
+  "checks": [
+    {
+      "name": "full_title_and_live_page",
+      "status": "passed"
+    },
+    {
+      "name": "scope_selection_uses_real_data",
+      "status": "passed"
+    },
+    {
+      "name": "building_navigation_and_missing_sync",
+      "status": "passed"
+    },
+    {
+      "name": "search_empty_state_and_escape",
+      "status": "passed"
+    },
+    {
+      "name": "keyboard_navigation_commits_only_on_enter",
+      "status": "passed"
+    },
+    {
+      "name": "tab_exits_popup_with_predictable_focus",
+      "status": "passed"
+    },
+    {
+      "name": "outside_click_and_single_popup",
+      "status": "passed"
+    },
+    {
+      "name": "required_and_state_filters_compose",
+      "status": "passed"
+    },
+    {
+      "name": "refresh_preserves_popup_query_and_focus",
+      "status": "passed"
+    },
+    {
+      "name": "modal_closes_picker_and_returns_independent_policy",
+      "status": "passed"
+    },
+    {
+      "name": "manual_off_and_reduced_motion",
+      "status": "passed"
+    },
+    {
+      "name": "bfcache_picker_events_survive_once",
+      "status": "passed"
+    },
+    {
+      "name": "responsive_title_popup_and_primary_actions",
+      "status": "passed",
+      "dimensions": [
+        {
+          "width": 1440,
+          "scroll": 1430,
+          "overlap": false,
+          "firstActionBottom": 901.3125
+        },
+        {
+          "width": 1250,
+          "scroll": 1240,
+          "overlap": false,
+          "firstActionBottom": 901.3125
+        },
+        {
+          "width": 1101,
+          "scroll": 1091,
+          "overlap": false,
+          "firstActionBottom": 951.3125
+        },
+        {
+          "width": 1100,
+          "scroll": 1090,
+          "overlap": false,
+          "firstActionBottom": 947.3125
+        },
+        {
+          "width": 1024,
+          "scroll": 1014,
+          "overlap": false,
+          "firstActionBottom": 947.3125
+        },
+        {
+          "width": 768,
+          "scroll": 758,
+          "overlap": false,
+          "firstActionBottom": 988.3125
+        },
+        {
+          "width": 580,
+          "scroll": 570,
+          "overlap": false,
+          "firstActionBottom": 838.359375
+        },
+        {
+          "width": 390,
+          "scroll": 380,
+          "overlap": false,
+          "firstActionBottom": 838.359375
+        },
+        {
+          "width": 320,
+          "scroll": 320,
+          "overlap": false,
+          "firstActionBottom": 873.953125
+        }
+      ]
+    },
+    {
+      "name": "short_viewport_keeps_options_scrollable",
+      "status": "passed"
+    },
+    {
+      "name": "touch_selects_real_scope",
+      "status": "passed"
+    }
+  ],
+  "errors": []
+}

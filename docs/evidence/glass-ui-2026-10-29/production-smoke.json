@@ -1,0 +1,16 @@
+{
+  "at": "2026-10-29T18:49:54.815196+08:00",
+  "title": "校园设施巡检与复核",
+  "url": "http://127.0.0.1:8000/",
+  "assets_match_source": true,
+  "database_before": "1c88c5e48cd3e884447d77cbab42ab4d3e6e19ebee53fe83efa00f4ca34eece3",
+  "database_after": "1c88c5e48cd3e884447d77cbab42ab4d3e6e19ebee53fe83efa00f4ca34eece3",
+  "database_unchanged": true,
+  "backend_files_unchanged": [
+    "backend/main.py",
+    "backend/service.py",
+    "backend/storage.py",
+    "backend/inspectgo.db"
+  ],
+  "launcher": "existing PowerShell 7; Windows PowerShell 5 fails to parse the existing UTF-8 script"
+}

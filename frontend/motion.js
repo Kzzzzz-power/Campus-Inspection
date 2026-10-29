@@ -36,6 +36,7 @@ export function initMotion({ replayIntro = true } = {}) {
   let flipTimer = 0;
   let disposed = false;
   let overlayOpen = Boolean(document.querySelector('dialog[open]'));
+  let pickerOpen = false;
   let pressed = false;
   let flipping = false;
   let lastMove = 0;
@@ -44,7 +45,7 @@ export function initMotion({ replayIntro = true } = {}) {
   const on = (target, type, listener, options = {}) => {
     target?.addEventListener(type, listener, { ...options, signal: events.signal });
   };
-  const allowed = () => preference && !reducedMotion.matches && !document.hidden && !overlayOpen;
+  const allowed = () => preference && !reducedMotion.matches && !document.hidden && !overlayOpen && !pickerOpen;
   const hasSelection = () => window.getSelection()?.isCollapsed === false;
   const excluded = target => target instanceof Element && Boolean(
     target.closest('button, input, textarea, select, a, img, [contenteditable="true"], [role="button"]')
@@ -61,7 +62,7 @@ export function initMotion({ replayIntro = true } = {}) {
     if (disposed || !allowed() || flipping || !titleLetters) return;
     flipping = true;
     title.classList.add('is-flipping');
-    flipTimer = window.setTimeout(finishTitle, 1000);
+    flipTimer = window.setTimeout(finishTitle, 1100);
   }
 
   function stopRibbon() {
@@ -220,6 +221,10 @@ export function initMotion({ replayIntro = true } = {}) {
   });
   on(document, 'inspectgo:overlay', event => {
     overlayOpen = Boolean(event.detail?.open);
+    updatePolicy();
+  });
+  on(document, 'inspectgo:picker', event => {
+    pickerOpen = Boolean(event.detail?.open);
     updatePolicy();
   });
   on(document, 'selectionchange', () => {

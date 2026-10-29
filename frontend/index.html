@@ -4,9 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f3f6f5">
-  <title>巡到位 InspectGo · 巡检工作台</title>
+  <title>校园设施巡检与复核 · 巡检工作台</title>
   <link rel="stylesheet" href="/static/styles.css">
   <link rel="stylesheet" href="/static/motion.css">
+  <link rel="stylesheet" href="/static/glass.css">
 </head>
 <body>
   <div class="ambient" aria-hidden="true"><span></span><span></span><span></span></div>
@@ -14,8 +15,7 @@
   <header class="app-header">
     <div class="brand-lockup">
       <svg class="brand-mark" viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" aria-hidden="true"><path d="M12 4H4v8m20-8h8v8M4 24v8h8m20-8v8h-8"/><path d="m10 18 5 5 11-11"/></svg>
-      <h1 id="brand-title"><span class="sr-only">巡到位</span><span class="title-letters" aria-hidden="true"><span class="flip-letter"><span class="letter-front">巡</span><span class="letter-back">巡</span></span><span class="flip-letter"><span class="letter-front">到</span><span class="letter-back">到</span></span><span class="flip-letter"><span class="letter-front">位</span><span class="letter-back">位</span></span></span></h1>
-      <span class="brand-description">校园设施巡检与复核</span>
+      <h1 id="brand-title"><span class="sr-only">校园设施巡检与复核</span><span class="title-letters" aria-hidden="true"><span class="flip-letter" style="--letter-index:0"><span class="letter-front">校</span><span class="letter-back">校</span></span><span class="flip-letter" style="--letter-index:1"><span class="letter-front">园</span><span class="letter-back">园</span></span><span class="flip-letter" style="--letter-index:2"><span class="letter-front">设</span><span class="letter-back">设</span></span><span class="flip-letter" style="--letter-index:3"><span class="letter-front">施</span><span class="letter-back">施</span></span><span class="flip-letter" style="--letter-index:4"><span class="letter-front">巡</span><span class="letter-back">巡</span></span><span class="flip-letter" style="--letter-index:5"><span class="letter-front">检</span><span class="letter-back">检</span></span><span class="flip-letter" style="--letter-index:6"><span class="letter-front">与</span><span class="letter-back">与</span></span><span class="flip-letter" style="--letter-index:7"><span class="letter-front">复</span><span class="letter-back">复</span></span><span class="flip-letter" style="--letter-index:8"><span class="letter-front">核</span><span class="letter-back">核</span></span></span></h1>
     </div>
     <div class="header-tools">
       <label class="motion-control" for="motion-toggle"><input id="motion-toggle" type="checkbox" checked><span>界面动效</span></label>
@@ -37,6 +37,7 @@
       <section class="overview-section" aria-labelledby="overview-heading">
         <div class="workspace-heading"><div><h2 id="overview-heading">巡检概览</h2><p class="workspace-purpose">校园教学楼与实验实训空间的分布式设施巡检与复核</p><p id="window-label" class="workspace-description">正在读取覆盖窗口…</p><p class="coverage-rule">远程状态不单独算覆盖；有效现场记录不代表设施正常。</p></div><span class="context-label">教学演练</span></div>
         <div class="summary-strip" aria-label="现场覆盖概览">
+          <span class="glass-trace" aria-hidden="true"></span>
           <div class="summary-cell summary-lead"><span class="summary-label">已覆盖必检点</span><strong id="covered-count">—</strong></div>
           <button id="missing-shortcut" class="summary-cell summary-action" type="button" aria-label="查看待补检点位"><span class="summary-label">待补检<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></span><strong id="missing-count">—</strong></button>
           <div class="summary-cell"><span class="summary-label">必检点总数</span><strong id="required-count">—</strong></div>
