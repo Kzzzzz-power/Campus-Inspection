@@ -354,7 +354,7 @@ initEvidenceBrowser({showDialog,overlayChanged});
 for (const dialog of document.querySelectorAll('dialog')) {
   dialog.addEventListener('keydown', event => {
     if (event.key !== 'Tab') return;
-    const targets = [...dialog.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]')].filter(item => item.getClientRects().length);
+    const targets = [...dialog.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), summary, a[href], [tabindex="0"]')].filter(item => item.getClientRects().length);
     if (!targets.length) { event.preventDefault(); return; }
     const index = targets.indexOf(document.activeElement);
     if (event.shiftKey && index <= 0) { event.preventDefault(); targets.at(-1).focus(); }

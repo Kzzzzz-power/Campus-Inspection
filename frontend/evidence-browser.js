@@ -28,7 +28,10 @@ const from=node('input','',{id:'evidence-from',type:'datetime-local'}),to=node('
 const status=node('p','',{id:'evidence-status',role:'status'}),results=node('div','',{id:'evidence-results'}),prev=node('button','上一页',{id:'evidence-prev',class:'btn btn-secondary',type:'button'}),next=node('button','下一页',{id:'evidence-next',class:'btn btn-secondary',type:'button'}),pages=node('div','',{class:'form-actions'});pages.append(prev,next);
 const create=node('form','',{id:'round-create-form',class:'evidence-filters'}),rid=node('input','',{id:'round-create-id',required:'',placeholder:'轮次编号'}),day=node('input','',{id:'round-create-date',required:'',type:'date'}),save=node('button','创建轮次',{id:'round-create-submit',class:'btn btn-secondary',type:'submit'});[[rid,'轮次编号'],[day,'日期（Asia/Shanghai）']].forEach(([input,text])=>{const label=node('label',text);label.append(input);create.append(label);});create.append(save);
 const created=node('p','',{role:'status'}),check=node('button','执行存储自检',{id:'storage-check-submit',class:'btn btn-secondary',type:'button'}),checked=node('pre','',{id:'storage-check-status',role:'status'});
-body.append(node('p','仅浏览阶段 02 接入后留存的记录，不回填旧历史；旧记录仍可在点位详情查看。轮次固定 09:00–09:45，Asia/Shanghai。'),controls,status,results,pages,node('h3','显式创建轮次'),create,created,node('h3','数据库存储自检'),check,checked);
+const roundTools=node('details','',{id:'round-tools'}),storageTools=node('details','',{id:'storage-tools'});
+roundTools.append(node('summary','显式创建轮次'),create,created);
+storageTools.append(node('summary','数据库存储自检'),check,checked);
+body.append(node('p','仅浏览阶段 02 接入后留存的记录，不回填旧历史；旧记录仍可在点位详情查看。轮次固定 09:00–09:45，Asia/Shanghai。'),controls,roundTools,storageTools,status,results,pages);
 facility.append(node('option','全部设施',{value:''}));
 const facilityRetry=node('button','重新加载设施目录',{type:'button',class:'btn btn-secondary',id:'evidence-facility-retry'});
 controls.append(facilityRetry);
