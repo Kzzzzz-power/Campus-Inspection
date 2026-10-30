@@ -96,7 +96,7 @@ def decode(row):
 
 def create_round(store, payload):
     if set(payload)-{'round_id','date','scenario_instance_id'} or not {'round_id','date'} <= set(payload):
-        raise HTTPException(422,'轮次只接受 inspection_round_id 和 date。')
+        raise HTTPException(422,'轮次接受 round_id、date 和可选 scenario_instance_id。')
     rid=service.request_key(payload['round_id'])
     instance=payload.get('scenario_instance_id')
     if instance is not None:
@@ -262,15 +262,18 @@ def storage_check(store):
                 raise sqlite3.DatabaseError('Probe readback mismatch')
         read_ms=(perf_counter()-start)*1000
         with store.transaction(write=True) as conn:
-            proof.append(add(conn,'sqlite_write','SYSTEM',probe,observed,{'write_ms':write_ms,'committed':True}))
-            proof.append(add(conn,'history_query','SYSTEM',probe,observed,{'query_ms':read_ms,'readback_matched':True,'observation_count':count}))
+            write_proof=add(conn,'sqlite_write','SYSTEM',probe,observed,{'write_ms':write_ms,'committed':True})
+            query_proof=add(conn,'history_query','SYSTEM',probe,observed,{'query_ms':read_ms,'readback_matched':True,'observation_count':count})
             conn.execute('DELETE FROM storage_probes WHERE probe_id=?',(probe,))
+        # Publish IDs only after the context manager successfully commits.
+        proof=[write_proof,query_proof]
         return {'evidence':proof}
     except sqlite3.Error as error:
         try:
             with store.transaction(write=True) as conn:
-                proof.append(add(conn,'storage_check','SYSTEM',probe,observed,None,status='error',error=str(error)))
+                error_proof=add(conn,'storage_check','SYSTEM',probe,observed,None,status='error',error=str(error))
                 conn.execute('DELETE FROM storage_probes WHERE probe_id=?',(probe,))
+            proof=[error_proof]
         except sqlite3.Error:
             pass
         raise HTTPException(503,{'message':'SQLite probe failed; persistence not confirmed','evidence':proof}) from None
