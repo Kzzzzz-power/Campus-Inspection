@@ -1,4 +1,6 @@
-﻿* f572134 docs(ai-snapshot): 归档 2026-10-30 选房动效截图与案例
+* 5a103ba feat(deploy): 添加正式 Release 部署入口与失败回退
+* 07753b5 docs(git): 补记提交索引与导出日志
+* f572134 docs(ai-snapshot): 归档 2026-10-30 选房动效截图与案例
 * f5bb32b docs(git): 建立提交日志索引与导出
 * 7b2c8ec docs(prompts): 归档前端复刻与 React Bits 动效提示词
 * cfb8ff4 feat(ui): 新增 3D 选房舞台与穿梭视差动效
