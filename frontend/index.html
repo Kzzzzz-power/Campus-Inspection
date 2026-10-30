@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/static/styles.css">
   <link rel="stylesheet" href="/static/motion.css">
   <link rel="stylesheet" href="/static/glass.css">
+  <link rel="stylesheet" href="/static/room-stage.css">
 </head>
 <body>
   <div class="ambient" aria-hidden="true"><span></span><span></span><span></span></div>
@@ -24,6 +25,39 @@
       <button id="run-btn" class="btn btn-primary" type="button"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H5v18h14V8zM14 3v5h5M8 12h8M8 16h5"/></svg><span>生成运行判断</span></button>
     </div>
   </header>
+
+  <section id="room-stage" class="room-stage" aria-labelledby="room-stage-title">
+    <div class="room-heading">
+      <div>
+        <span class="eyebrow">CHOOSE YOUR SPACE</span>
+        <h2 id="room-stage-title">选择巡查空间</h2>
+        <p>挑选一个点位，开始今天的巡检工作。</p>
+      </div>
+      <div class="carousel-count" aria-hidden="true"><span id="room-active-count">01</span><i>/</i><span id="room-count">08</span></div>
+    </div>
+    <div class="room-controls">
+      <span class="drag-hint"><span class="drag-arrows">↔</span> 拖动或使用方向键浏览</span>
+      <div class="room-arrows">
+        <button type="button" class="room-arrow" data-dir="-1" aria-label="上一个点位">←</button>
+        <button type="button" class="room-arrow" data-dir="1" aria-label="下一个点位">→</button>
+      </div>
+    </div>
+    <div class="room-viewport" id="room-carousel" role="region" aria-roledescription="carousel" aria-label="巡查点位" tabindex="0" hidden>
+      <div class="room-ring" id="room-ring"></div>
+    </div>
+    <p class="room-placeholder" id="room-placeholder">正在读取点位…</p>
+    <div class="room-stage__footer">
+      <div class="room-selection" aria-live="polite">
+        <span class="selection-spark" aria-hidden="true">✳</span>
+        <span>
+          <b id="room-selected-name">正在读取点位</b>
+          <small id="room-selected-location">等待巡检数据</small>
+          <small id="room-selected-status"></small>
+        </span>
+      </div>
+      <button class="btn btn-primary enter-button" id="room-enter" type="button" disabled>进入巡查 <span aria-hidden="true">↗</span></button>
+    </div>
+  </section>
 
   <div class="app-shell">
     <aside class="scope-rail" aria-labelledby="scope-heading">

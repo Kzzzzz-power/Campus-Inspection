@@ -2,6 +2,7 @@ import {matchesPoint} from './model.js';
 import {createRealtimeClient,projectPoint} from './realtime.js';
 import {initMotion} from './motion.js';
 import {createFilterPickers} from './filter-pickers.js';
+import {initRoomStage} from './room-stage.js';
 
 const $ = id => document.getElementById(id);
 const state = {queueButtons:new Map(),runButtons:new Map(),mapButtons:new Map(),runToken:0,refreshPromise:null,detailTrigger:null,data:null, runs:[], filters:{query:'',scope:'all',required:'all',status:'all'}, cards:new Map(), groups:new Map(), refreshing:false, detail:null, detailToken:0, dirty:false, saving:false, gallery:[], photoIndex:0, runRequest:null};
@@ -176,6 +177,7 @@ function renderDashboard(){
   $('window-label').textContent=`过去 ${d.window_minutes} 分钟 · ${clock(d.window_start)}—${clock(d.window_end)}`;$('updated-at').textContent=date(d.as_of,true);
   renderNavigation(d.points);renderFacilities();renderQueue();
   const strip=$('coverage-strip');syncChildren(strip,d.points.map(p=>{let b=state.mapButtons.get(p.point_id);if(!b){b=button(p.point_id,()=>openDetail(p.point_id),'map-point');state.mapButtons.set(p.point_id,b);}b.className=`map-point ${!p.required?'is-optional':p.covered?'is-covered':'is-missing'}`;b.setAttribute('aria-label',`${p.point_id} ${p.device}：${coverageState(p)[0]}`);return b;}));
+  document.dispatchEvent(new CustomEvent('inspectgo:data',{detail:{points:d.points}}));
 }
 async function refresh(manual=false,afterMutation=false){
   if(state.refreshPromise){if(!afterMutation)return state.refreshPromise;await state.refreshPromise;return refresh(manual,true);}
@@ -348,6 +350,11 @@ window.addEventListener('beforeunload',e=>{if(state.dirty||state.saving){e.preve
 let disposeMotion=initMotion();let poll=setInterval(()=>{if(!document.hidden)refresh();},30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});window.addEventListener('pagehide',()=>{clearInterval(poll);disposeMotion();realtime.stop();});window.addEventListener('pageshow',event=>{realtime.start();if(event.persisted){disposeMotion=initMotion({replayIntro:false});clearInterval(poll);poll=setInterval(()=>{if(!document.hidden)refresh();},30000);refresh();}});
 const realtime=createRealtimeClient({url:`${location.protocol==='https:'?'wss:':'ws:'}//${location.host}/ws/facilities`,onChange:updateRealtime});
 realtime.start();
+initRoomStage({
+  getPoints:()=>state.data?.points||[],
+  onSelect:point=>setFilters({query:point.point_id,scope:'all',required:'all',status:'all'}),
+  onEnter:point=>openDetail(point.point_id,'inspect')
+});
 refresh();
 
 for (const dialog of document.querySelectorAll('dialog')) {
