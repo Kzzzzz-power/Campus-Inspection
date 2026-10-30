@@ -17,3 +17,17 @@
 #judgment-proof-body code,#judgment-status,#manual-message { overflow-wrap:anywhere; }
 .task-workbench .form-actions { flex-wrap:wrap; }
 @media(max-width:580px){.task-workbench{padding:16px}.judgment-controls{grid-template-columns:1fr}.task-result summary{align-items:flex-start;gap:8px}.task-result summary strong{max-width:70%}}
+
+.scenario-picker {display:grid;gap:8px;font-size:14px;margin-bottom:14px;max-width:380px}
+.scenario-picker select {padding:10px;border:1px solid #abbec5;border-radius:8px;background:#f9fcfc;color:#163442;min-width:0;width:100%}
+.planning-controls {margin-top:16px;padding:16px;border:1px solid #c9d9dc;border-radius:12px;background:rgba(237,246,248,.65)}
+.planning-controls summary,.plan-checks summary {cursor:pointer;font-weight:600}
+#planning-results {margin-top:24px}
+.plan-grid,.run-comparison {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0}
+.plan-card,.comparison-card,.blocker-card {min-width:0;padding:18px;border:1px solid #c4d6da;border-radius:12px;background:rgba(255,255,255,.84);overflow-wrap:anywhere}
+.blocker-card {border-left:4px solid #b54c39;margin:12px 0}
+.plan-heading {display:flex;align-items:center;justify-content:space-between;gap:12px}
+.plan-heading h4 {margin:0}.plan-duration {font-size:24px;font-variant-numeric:tabular-nums;color:#125f65;margin:12px 0}
+.plan-card p,.comparison-card p {font-size:14px;line-height:1.65}.plan-checks {margin-top:16px;font-size:14px}.plan-checks .dependency-row {padding-left:0}
+.comparison-card code {display:block;overflow-wrap:anywhere;font-size:12px}.run-dialog .plan-grid {grid-template-columns:1fr}
+@media(max-width:768px){.plan-grid,.run-comparison{grid-template-columns:1fr}}

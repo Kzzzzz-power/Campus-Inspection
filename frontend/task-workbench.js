@@ -1,14 +1,29 @@
+import {renderPlanning,renderComparison} from './planning-view.js';
 import {allRounds} from './evidence-browser.js';
 const $=id=>document.getElementById(id);
 const states={established:['成立','good'],blocked:['受阻','danger'],pending_verification:['待验证','warn'],unknown:['状态未知','muted']};
 const depStates={satisfied:'已满足',unsatisfied:'未满足',unknown:'证据不足'};
 export function initTaskWorkbench({el,button,api,postJSON,showDialog,toast,onSelection,overlayChanged}){
-  let rounds=[],selectedRun=null,runRequest=null,prepareRequest=null,manualRequest=null,dirty=false,saving=false,manualRound=null;
+  let rounds=[],selectedRun=null,runRequest=null,prepareRequest=null,manualRequest=null,dirty=false,saving=false,manualRound=null,baselineRun=null;
   const panel=el('section',{class:'task-workbench','aria-labelledby':'task-heading'});
   const round=el('select',{id:'judgment-round'}),at=el('input',{id:'judgment-asof',type:'datetime-local',step:1});
   const variation=el('select',{id:'judgment-variation'},...[
     ['base','使用当前完整输入'],['ordinary','教学输入：排除普通点 C03'],['missing','教学输入：缺少必检点 C07'],['denied','教学输入：缺少 C07 且 Z3 拒绝进入']
   ].map(([value,text])=>el('option',{value},text)));
+  const scenario=el('select',{id:'judgment-scenario'},...['S1','S2','S3'].map((value,i)=>el('option',{value},[value+' · 稳定基线',value+' · C07 覆盖阻塞',value+' · 方案可行性'][i])));
+  const minutes=el('input',{id:'planning-minutes',type:'number',min:0,max:1440,step:'any',placeholder:'不覆盖；S3 标准输入为 35'});
+  const resourceInputs={};
+  const planningControls=el('details',{class:'planning-controls'},el('summary',{},'教学条件输入（仅影响下一次现实运行）'));
+  const planningGrid=el('div',{class:'judgment-controls'});
+  planningGrid.append(el('label',{},'剩余时间（分钟）',minutes));
+  for(const [key,name] of [['P1','P1'],['P2','P2'],['access_coordinator','临时访问协调人员'],['mobile_terminal','移动终端']]){
+    const input=el('select',{'data-resource':key},...['','AVAILABLE','UNAVAILABLE','unknown'].map((value,i)=>el('option',{value},['使用原输入','可用','不可用','未取得证据'][i])));
+    resourceInputs[key]=input;planningGrid.append(el('label',{},name,input));
+  }
+  const permission=el('select',{id:'planning-permission'},...['','ALLOWED','DENIED','unknown'].map((value,i)=>el('option',{value},['使用原输入','具备 Z3 权限','明确无 Z3 权限','未取得证据'][i])));
+  planningGrid.append(el('label',{},'P2 的 Z3 权限',permission));
+  planningControls.append(el('p',{class:'field-hint'},'SIMULATED 教学输入。S3 中 P2 不可用，案例未声明其当前 Z3 权限，保留未知。方案甲、丙的总耗时已包含访问协调。'),planningGrid);
+  const planningResults=el('section',{id:'planning-results'}),comparison=el('section',{id:'planning-comparison'});
   const status=el('p',{id:'judgment-status',role:'status',class:'field-hint'},'请选择轮次；尚未生成正式判断。');
   const selection=el('div',{class:'judgment-controls'});
   for(const [text,input] of [['巡检轮次',round],['判断截止时间（本机时区）',at],['运行输入',variation]])selection.append(el('label',{},text,input));
@@ -17,7 +32,7 @@ export function initTaskWorkbench({el,button,api,postJSON,showDialog,toast,onSel
   const reload=button('刷新轮次',loadRounds,'btn btn-ghost');reload.id='judgment-round-refresh';
   const manualButton=button('添加现场补证',openManual,'btn btn-secondary');manualButton.id='manual-evidence-open';
   panel.append(el('h2',{id:'task-heading'},'巡检任务判断'),el('p',{class:'field-hint'},'先计算，再解释。每次判断保存独立 run_id；新证据需要生成新运行。'),
-    selection,el('div',{class:'form-actions'},prepare,reload,manualButton),status,taskList);
+    selection,el('label',{class:'scenario-picker'},'教学场景',scenario),el('div',{class:'form-actions'},prepare,reload,manualButton),planningControls,status,taskList,planningResults,comparison);
   document.querySelector('.overview-section').before(panel);
   round.append(el('option',{value:''},'未选择轮次'));
   const proofDialog=el('dialog',{id:'judgment-proof-dialog',class:'run-dialog','aria-labelledby':'judgment-proof-title'});
@@ -44,27 +59,33 @@ export function initTaskWorkbench({el,button,api,postJSON,showDialog,toast,onSel
   document.body.append(proofDialog,manualDialog);
   for(const dialog of [proofDialog,manualDialog])dialog.addEventListener('close',overlayChanged);
   function localTime(value){const date=new Date(value);return new Date(date.getTime()-date.getTimezoneOffset()*60000).toISOString().slice(0,19);}
-  function changed(){selectedRun=null;runRequest=null;renderTasks(null,taskList);status.textContent='输入已更改；尚未生成此输入的正式判断。';onSelection();}
-  round.addEventListener('change',()=>{const r=rounds.find(r=>r.round_id===round.value);if(r)at.value=localTime(r.window_end);variation.value='base';changed();});
+  function changed(){selectedRun=null;runRequest=null;renderTasks(null,taskList);renderPlanning(null,planningResults,{el,button,proof});renderComparison(baselineRun,null,comparison,{el});status.textContent='输入已更改；尚未生成此输入的正式判断。';onSelection();}
+  round.addEventListener('change',()=>{const r=rounds.find(r=>r.round_id===round.value);if(r)at.value=localTime(r.window_end);variation.value='base';resetPlanning();changed();});
   at.addEventListener('change',changed);variation.addEventListener('change',()=>{runRequest=null;status.textContent='变更输入只影响下一次运行，已保存结果保持不变。';});
+  function resetPlanning(){minutes.value='';permission.value='';Object.values(resourceInputs).forEach(input=>input.value='');}
+  for(const input of [minutes,permission,...Object.values(resourceInputs)])input.addEventListener('input',()=>{runRequest=null;status.textContent='教学条件已更改；当前结果仍为已保存快照，生成新运行后才能比较。';});
+  scenario.addEventListener('change',()=>{prepareRequest=null;prepare.textContent='建立 '+scenario.value+' 教学实例';});
   function query(){if(selectedRun)return '?'+new URLSearchParams({run_id:selectedRun.run_id});if(!round.value||!at.value)return '';return '?'+new URLSearchParams({inspection_round_id:round.value,as_of:new Date(at.value).toISOString()});}
   async function loadRounds(){reload.disabled=true;try{rounds=(await allRounds()).items;const prior=round.value;round.replaceChildren(el('option',{value:''},'未选择轮次'),...rounds.map(r=>el('option',{value:r.round_id},`${r.date} · ${r.round_id}${r.scenario_instance_id?' · 教学模拟':''}`)));round.value=rounds.some(r=>r.round_id===prior)?prior:'';}catch(e){status.textContent='轮次读取失败：'+e.message+'，可重试。';}finally{reload.disabled=false;}}
-  async function prepareS1(){if(prepare.disabled)return;prepare.disabled=true;prepareRequest??={instance_id:'web-'+crypto.randomUUID(),request_id:crypto.randomUUID()};
+  async function prepareS1(){if(prepare.disabled)return;prepare.disabled=true;scenario.disabled=true;prepareRequest??={scenario:scenario.value,payload:{instance_id:'web-'+crypto.randomUUID(),request_id:crypto.randomUUID()}};
     let saved=false;
-    try{const data=await postJSON('/api/scenarios/S1/prepare',prepareRequest);saved=true;prepareRequest=null;await loadRounds();
+    try{const data=await postJSON('/api/scenarios/'+prepareRequest.scenario+'/prepare',prepareRequest.payload);saved=true;prepareRequest=null;await loadRounds();
       if(!rounds.some(r=>r.round_id===data.inspection_round_id))throw Error('实例已保存，但轮次列表尚未读取成功，请刷新轮次。');
-      round.value=data.inspection_round_id;at.value=localTime(data.as_of);variation.value='base';changed();status.textContent='S1 教学实例已保存（SIMULATED）；点击“生成运行判断”计算 T1–T5。';
-    }catch(e){status.textContent=(saved?'实例保存已确认，后续读取失败：':'实例保存结果未确认，可原样重试：')+e.message;}finally{prepare.disabled=false;}}
-  function request(){if(!round.value||!at.value)throw Error('请先选择轮次和判断截止时间，或建立 S1 教学实例。');
+      round.value=data.inspection_round_id;at.value=localTime(data.as_of);variation.value='base';resetPlanning();changed();status.textContent=data.scenario_id+' 教学实例已保存（SIMULATED）；点击“生成运行判断”计算 T1–T5。';
+    }catch(e){status.textContent=(saved?'实例保存已确认，后续读取失败：':'实例保存结果未确认，可原样重试：')+e.message;}finally{prepare.disabled=false;scenario.disabled=false;}}
+  function request(){if(!round.value||!at.value)throw Error('请先选择轮次和判断截止时间，或建立 S1–S3 教学实例。');
     const r=rounds.find(r=>r.round_id===round.value),input_overrides={};
     if(variation.value==='ordinary')input_overrides.exclude_inspection_points=['C03'];
     if(['missing','denied'].includes(variation.value))input_overrides.exclude_inspection_points=['C07'];
     if(variation.value==='denied')input_overrides.zone_access=[{zone_id:'Z3',access:'DENIED'}];
+    if(minutes.value!==''){if(!minutes.checkValidity())throw Error('剩余时间应为 0–1440 分钟。');input_overrides.remaining_minutes=Number(minutes.value);}
+    for(const [key,input] of Object.entries(resourceInputs))if(input.value){input_overrides.resources??={};input_overrides.resources[key]=input.value==='unknown'?null:input.value;}
+    if(permission.value)input_overrides.p2_z3_access=permission.value==='unknown'?null:permission.value;
     return runRequest??= {request_id:crypto.randomUUID(),inspection_round_id:round.value,as_of:new Date(at.value).toISOString(),
-      scenario_id:r?.scenario_instance_id?'S1':null,run_type:'reality',input_overrides};}
+      scenario_id:r?.scenario_instance_id?round.value.split('.')[0]:null,run_type:'reality',input_overrides};}
   function accept(run){selectedRun=run;runRequest=null;round.value=run.inspection_round_id;at.value=localTime(run.as_of);
     status.textContent=`已保存 ${run.run_id} · ${run.input_snapshot.round.scenario_instance_id?'教学模拟 · ':''}固定窗口 09:00–09:45（Asia/Shanghai）。当前显示冻结判断。`;
-    renderTasks(run,taskList);}
+    renderTasks(run,taskList);renderPlanning(run,planningResults,{el,button,proof});renderComparison(baselineRun,run,comparison,{el});}
   function proof(run,id){const p=run.evidence.find(p=>p.evidence_id===id);if(!p){toast('此运行未关联该证据。',true);return;}
     proofBody.replaceChildren(el('code',{},p.evidence_id),el('p',{},`取得状态：${p.status} · 来源：${p.source_type} · ${p.source_id}`),
       el('p',{},`点位：${p.checkpoint_id||'不适用'} · 复核：${p.review_id||'无'} · 轮次：${p.inspection_round_id||'运行探针'}`),
@@ -80,9 +101,9 @@ export function initTaskWorkbench({el,button,api,postJSON,showDialog,toast,onSel
       if(task.limitations?.length)details.append(el('p',{class:'field-hint'},task.limitations.join('；')));
       return details;
     }));}
-  function renderRun(run,target){const box=el('div');renderTasks(run,box);target.replaceChildren(el('code',{class:'run-id'},run.run_id),
+  function renderRun(run,target){const box=el('div'),plans=el('section');renderTasks(run,box);renderPlanning(run,plans,{el,button,proof});target.replaceChildren(el('code',{class:'run-id'},run.run_id),
       el('p',{},`${run.summary} · 规则 ${run.rule_version}`),el('p',{class:'field-hint'},`判断截止 ${run.as_of} · 完成 ${run.completed_at}`),
-      button('在主工作台查看此运行',()=>{accept(run);$('run-dialog').close();onSelection();panel.scrollIntoView({block:'start',behavior:'instant'});}),box,
+      button('在主工作台查看此运行',()=>{accept(run);$('run-dialog').close();onSelection();panel.scrollIntoView({block:'start',behavior:'instant'});}),button('设为对比基准',()=>{baselineRun=run;renderComparison(baselineRun,selectedRun,comparison,{el});toast('已设为对比基准：'+run.run_id);}),box,plans,
       el('p',{class:'field-hint'},'任务成立不等于设施正常。本结果为教学判断，不替代安全检查、专业诊断、维修验收或正式销号。'));
   }
   function openManual(){if(!round.value){toast('请先选择归属轮次。',true);round.focus();return;}
@@ -103,6 +124,6 @@ export function initTaskWorkbench({el,button,api,postJSON,showDialog,toast,onSel
     finally{saving=false;controls.forEach(c=>c.disabled=false);manualClose.disabled=false;}
   });
   renderTasks(null,taskList);loadRounds();
-  function busy(value){for(const control of [round,at,variation,prepare,reload,manualButton])control.disabled=value;}
+  function busy(value){for(const control of [round,at,variation,scenario,minutes,permission,...Object.values(resourceInputs),prepare,reload,manualButton])control.disabled=value;}
   return {query,request,accept,renderRun,busy,get selectedRun(){return selectedRun;}};
 }
