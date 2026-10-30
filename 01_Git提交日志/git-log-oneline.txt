@@ -1,4 +1,6 @@
-﻿7b2c8ec 2026-10-30 docs(prompts): 归档前端复刻与 React Bits 动效提示词
+﻿f572134 2026-10-30 docs(ai-snapshot): 归档 2026-10-30 选房动效截图与案例
+f5bb32b 2026-10-30 docs(git): 建立提交日志索引与导出
+7b2c8ec 2026-10-30 docs(prompts): 归档前端复刻与 React Bits 动效提示词
 cfb8ff4 2026-10-30 feat(ui): 新增 3D 选房舞台与穿梭视差动效
 1abac21 2026-10-29 docs(ai-sessions): 归档 2026-10-29 对话截图
 be87fac 2026-10-29 feat(realtime): 打通阶段 01 MQTT 与 WebSocket 状态链
