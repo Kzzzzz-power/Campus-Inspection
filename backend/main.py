@@ -115,6 +115,17 @@ def create_app(db_path=None, uploads_dir=None, seed_demo=None, realtime_enabled=
     @application.middleware('http')
     async def local_mutations(request, call_next):
         if request.method in ('POST','PUT','PATCH','DELETE'):
+            # Deployment-only write barrier; local development leaves this env unset.
+            maintenance = os.environ.get("INSPECTGO_MAINTENANCE_FILE")
+            if maintenance:
+                try:
+                    paused = Path(maintenance).exists()
+                except OSError:
+                    paused = True
+                if paused:
+                    return JSONResponse(
+                        {"detail": "服务器正在更新，暂时无法保存。请保留输入，稍后重试。"},
+                        status_code=503, headers={"Retry-After": "30", "Cache-Control": "no-store"})
             origin = request.headers.get('origin')
             expected = f'{request.url.scheme}://{request.url.netloc}'
             if origin and origin.rstrip('/') != expected:

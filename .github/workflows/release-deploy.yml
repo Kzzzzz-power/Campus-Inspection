@@ -1,0 +1,29 @@
+name: Deploy campus Release
+run-name: Deploy ${{ github.event.release.tag_name }}
+on:
+  release:
+    types: [published]
+permissions:
+  contents: read
+concurrency:
+  group: campus-inspection-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: >-
+      github.repository == 'Kzzzzz-power/Campus-Inspection-draft' &&
+      github.event.repository.private == true &&
+      github.event.release.draft == false &&
+      github.event.release.prerelease == false
+    runs-on: [self-hosted, Linux, X64, campus-inspection]
+    timeout-minutes: 60
+    steps:
+      - name: Test, build and deploy the exact released commit
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo -n /usr/local/sbin/campus-release-deploy "$RELEASE_TAG" "$RELEASE_SHA"
+          printf 'Deployed %s at %s\n' "$RELEASE_TAG" "$RELEASE_SHA" >> "$GITHUB_STEP_SUMMARY"
