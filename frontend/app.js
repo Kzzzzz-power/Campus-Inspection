@@ -1,3 +1,4 @@
+import {attachRoundSelector,initEvidenceBrowser} from './evidence-browser.js';
 import {matchesPoint,facilityState,coverageState} from './model.js';
 import {createRealtimeClient,projectPoint} from './realtime.js';
 import {initMotion} from './motion.js';
@@ -70,7 +71,7 @@ function remoteMetadata(p){
   if(!observation)return context+'远程观测：尚未收到';
   const source=observation.source_type==='SIMULATED'?'模拟源':'设备源';
   const latency=Object.hasOwn(observation.metrics,'latency_ms')?`${observation.metrics.latency_ms} ms`:'未提供';
-  return `${context}${remote.current?'业务值':'最后业务值'} ${observation.availability} / ${observation.condition} · 观测 ${date(observation.observed_at,true)} · ${source} ${observation.source_type} · latency_ms ${latency}`;
+  return `${context}${remote.current?'业务值':'最后业务值'} ${observation.availability} / ${observation.condition} · 观测 ${date(observation.observed_at,true)} · ${source} ${observation.source_type} · latency_ms ${latency} · 持久化 ${remote.facility?.storage?.status??'未提供'}${remote.facility?.storage?.error?' · '+remote.facility.storage.error:''}`;
 }
 function displayedPoint(point){return projectPoint(point,realtime.state);}
 function updateRealtime(){
@@ -227,6 +228,7 @@ function inspectionForm(point,review=null){
   const files=el('input',{name:'photos',type:'file',accept:'image/jpeg,image/png,image/webp',multiple:true}),fileInfo=el('p',{class:'field-hint'});
   const confirmed=el('input',{name:'onsite_confirmed',type:'checkbox',required:true,value:'true'});
   const grid=el('div',{class:'form-grid'},field('巡检人',inspector),field('现场时间',time,'按本机时区填写'),field(review?'人工确认结论':'检查结果',result,review?'“仍无法确认”会保留待复核状态。':null,true),field('现场说明',notes,null,true),field('照片（可选）',files,'JPEG、PNG、WebP；每张不超过 10MB，最多 5 张。',true));
+  if(!review)attachRoundSelector(grid);
   grid.append(fileInfo,el('label',{class:'check-field field-wide'},confirmed,el('span',{},'我已到达现场并完成上述检查。照片上传本身不代表复核通过。')));
   if(review)form.append(el('p',{class:'field-hint'},`复核原因：${review.reason} · 当前版本 ${review.version}`));form.append(grid,message,el('div',{class:'form-actions'},submit));
   let requestId=crypto.randomUUID();
@@ -234,7 +236,7 @@ function inspectionForm(point,review=null){
   files.addEventListener('change',()=>{const selected=[...files.files];fileInfo.textContent=selected.map(f=>`${f.name} (${(f.size/1024/1024).toFixed(1)}MB)`).join('、');files.setCustomValidity(selected.length>5?'最多选择 5 张图片。':selected.some(f=>f.size>10*1024*1024)?'单张图片不能超过 10MB。':'');});
   form.addEventListener('submit',async event=>{
     event.preventDefault();if(state.saving||!form.reportValidity())return;state.saving=true;
-    const body=new FormData(form);body.set('point_id',point.point_id);body.set('request_id',requestId);body.set('inspected_at',new Date(time.value).toISOString());if(!files.files.length)body.delete('photos');
+    const body=new FormData(form);if(!body.get('inspection_round_id'))body.delete('inspection_round_id');body.set('point_id',point.point_id);body.set('request_id',requestId);body.set('inspected_at',new Date(time.value).toISOString());if(!files.files.length)body.delete('photos');
     if(review){body.set('version',String(review.version));body.set('result',({normal:'ok',fault:'alarm',unknown:'unknown'})[result.value]);}
     const controls=[...form.querySelectorAll('input,select,textarea,button')];controls.forEach(c=>c.disabled=true);submit.setAttribute('aria-busy','true');submit.textContent='正在保存…';formMessage(message,'正在等待服务端保存确认。');
     try{await api(review?`/api/reviews/${encodeURIComponent(review.review_id)}/evidence`:'/api/inspections',{method:'POST',body});state.dirty=false;state.saving=false;toast(review&&result.value==='unknown'?'复核证据已保存，仍需继续确认。':'已保存到本地数据库。');await refresh(false,true);await openDetail(point.point_id);}
@@ -358,3 +360,5 @@ for (const dialog of document.querySelectorAll('dialog')) {
     else if (!event.shiftKey && (index === targets.length - 1 || index < 0)) { event.preventDefault(); targets[0].focus(); }
   });
 }
+
+initEvidenceBrowser({showDialog,overlayChanged});

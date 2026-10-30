@@ -531,4 +531,4 @@ html[data-feedback='off'] .click-ring { display: none; }
   .click-ring { display: none; }
   .view-switch .thumb { transition: none; }
   ::view-transition-old(*), ::view-transition-new(*), ::view-transition-group(*) { animation: none !important; }
-}
+}.evidence-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:16px 0}.evidence-filters label{display:grid;gap:6px;min-width:0}.evidence-filters input,.evidence-filters select{width:100%;min-width:0}.evidence-record{padding:16px 0;border-bottom:1px solid var(--border,#d4dce2);overflow-wrap:anywhere}.evidence-record p{margin:6px 0}.evidence-record pre,#storage-check-status{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}.evidence-record h3{font-size:14px}#evidence-browser-dialog{width:min(900px,calc(100vw - 24px));max-height:calc(100dvh - 24px)}#evidence-browser-dialog .drawer-body{overflow:auto}#evidence-browser-open{margin:12px;max-width:calc(100% - 24px)}
