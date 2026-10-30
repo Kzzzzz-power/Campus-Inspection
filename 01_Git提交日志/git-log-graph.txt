@@ -1,3 +1,5 @@
+* 1e75706 fix(ui): 同步选房状态并修复桌面与触屏交互
+* 6130d21 docs(deploy): 归档 Release 部署交接与提交索引
 * 5a103ba feat(deploy): 添加正式 Release 部署入口与失败回退
 * 07753b5 docs(git): 补记提交索引与导出日志
 * f572134 docs(ai-snapshot): 归档 2026-10-30 选房动效截图与案例
