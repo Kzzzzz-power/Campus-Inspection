@@ -1,12 +1,22 @@
 const node=(tag,text,attrs={})=>{const e=document.createElement(tag);e.textContent=text;Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));
 return e;};
+
 export async function request(url,options){const response=await fetch(url,options);
 let data;
 try{data=await response.json();}catch{throw Error(`服务返回非 JSON（HTTP ${response.status}）`);}if(!response.ok)throw Error(`HTTP ${response.status}：${typeof data.detail==='string'?data.detail:JSON.stringify(data.detail??data)}`);
 return data;}
+export async function allRounds(){
+  const items=[];
+  for(let offset=0;;offset+=200){
+    const page=await request('/api/rounds?limit=200&offset='+offset);
+    items.push(...page.items);
+    if(items.length>=page.total||!page.items.length)return {items};
+
+  }
+}
 export function attachRoundSelector(grid){const label=node('label','归属轮次（可选）',{class:'field field-wide'}),select=node('select','',{name:'inspection_round_id'}),hint=node('span','默认留存，不归入轮次。固定窗口 09:00–09:45，Asia/Shanghai。',{class:'field-hint'}),retry=node('button','重新读取轮次',{type:'button',class:'btn btn-secondary'});select.append(node('option','留存，不归入轮次',{value:''}));label.append(select,hint,retry);grid.append(label);
 async function load(){retry.disabled=true;
-try{const data=await request('/api/rounds?limit=200');
+try{const data=await allRounds();
 const value=select.value;select.replaceChildren(node('option','留存，不归入轮次',{value:''}),...data.items.map(r=>node('option',`${r.date} · ${r.round_id}`,{value:r.round_id})));select.value=value;hint.textContent='固定窗口 09:00–09:45，Asia/Shanghai；窗口外记录仍留存。';}catch(e){hint.textContent=`轮次读取失败：${e.message}。可重试，其他输入保留。`;}finally{retry.disabled=false;}}retry.onclick=load;load();}
 export function initEvidenceBrowser({showDialog,overlayChanged}={}){
 const open=node('button','记录与证据',{id:'evidence-browser-open',type:'button',class:'btn btn-secondary'});document.querySelector('.activity-rail').prepend(open);
@@ -20,11 +30,25 @@ const create=node('form','',{id:'round-create-form',class:'evidence-filters'}),r
 const created=node('p','',{role:'status'}),check=node('button','执行存储自检',{id:'storage-check-submit',class:'btn btn-secondary',type:'button'}),checked=node('pre','',{id:'storage-check-status',role:'status'});
 body.append(node('p','仅浏览阶段 02 接入后留存的记录，不回填旧历史；旧记录仍可在点位详情查看。轮次固定 09:00–09:45，Asia/Shanghai。'),controls,status,results,pages,node('h3','显式创建轮次'),create,created,node('h3','数据库存储自检'),check,checked);
 facility.append(node('option','全部设施',{value:''}));
-request('/api/facilities').then(items=>facility.append(...items.map(f=>node('option',`${f.checkpoint_id} · ${f.facility_id}`,{value:f.facility_id})))).catch(e=>{created.textContent=`设施目录读取失败：${e.message}`;});
+const facilityRetry=node('button','重新加载设施目录',{type:'button',class:'btn btn-secondary',id:'evidence-facility-retry'});
+controls.append(facilityRetry);
+async function facilities(){
+  facilityRetry.disabled=true;
+  try{
+    const items=await request('/api/facilities'),value=facility.value;
+    facility.replaceChildren(node('option','全部设施',{value:''}),...items.map(f=>node('option',`${f.checkpoint_id} · ${f.facility_id}`,{value:f.facility_id})));
+    facility.value=value;
+    facilityRetry.textContent='重新加载设施目录';
+  }catch(e){facilityRetry.textContent=`目录读取失败，点击重试：${e.message}`;}
+  finally{facilityRetry.disabled=false;}
+}
+facilityRetry.onclick=facilities;
+facilities();
 let offset=0,token=0;
 const labels={NORMAL:'正常',WARNING:'预警',FAULT:'故障',SIMULATED:'模拟源',DEVICE:'设备源',ON_SITE:'现场',SYSTEM:'系统',ok:'成功',error:'失败',missing:'缺失',unavailable:'不可用',success:'成功',REMOTE:'远程'};
+
 const human=v=>labels[v]??v??'未提供';
-async function rounds(){const data=await request('/api/rounds?limit=200');
+async function rounds(){const data=await allRounds();
 const value=round.value;round.replaceChildren(node('option','全部轮次',{value:''}),...data.items.map(r=>node('option',`${r.date} · ${r.round_id}`,{value:r.round_id})));round.value=value;}
 async function load(){const mine=++token;search.disabled=true;prev.disabled=true;next.disabled=true;status.textContent='正在读取持久化记录…';results.replaceChildren();
 try{const query=new URLSearchParams({limit:'20',offset:String(offset)});
@@ -37,12 +61,49 @@ if(mine!==token)return;status.textContent=`共 ${data.total} 条 · 第 ${Math.f
 for(const row of data.items){const article=node('article','',{class:'evidence-record'});article.append(node('h3',row.evidence_id??row.inspection_id??row.observation_id),node('p',`设施 ${row.facility_id??'不适用'} · 来源 ${human(row.source_type??row.method??row.origin)} · 轮次 ${row.inspection_round_id??'未归入轮次'}`),node('p',`业务事实：${human(row.result??row.payload_json?.condition??row.value_json?.result??row.value_json?.condition)}${row.raw_result?` · 原始结论 ${row.raw_result}（不推定严重程度）`:''}`),node('p',`采集状态：${row.status?human(row.status):'记录已持久化（未提供独立采集状态）'}`));
 for(const [key,text]of [['observed_at','观测时间'],['received_at','接收时间'],['inspected_at','现场检查时间'],['created_at','入库时间'],['retrieved_at','取证时间'],['valid_until','有效期截止']])if(key in row)article.append(node('p',`${text}：${row[key]??'未设定'}`));
 if(row.result_semantics)article.append(node('p','结论语义：'+row.result_semantics));
-if('window_eligible' in row)article.append(node('p','固定窗口资格：'+String(row.window_eligible)+'（记录仍留存）'));
+if('window_eligible' in row)article.append(node('p','固定窗口资格：'+(row.window_eligible===true?'窗口内':row.window_eligible===false?'窗口外':'未指定轮次')+'（记录仍留存）'));
 const details=node('details',''),summary=node('summary','完整记录与来源详情'),pre=node('pre',JSON.stringify(row,null,2));details.append(summary,pre);article.append(details);results.append(article);}prev.disabled=offset===0;next.disabled=offset+20>=data.total;}catch(e){if(mine===token)status.textContent=`读取失败：${e.message}。请重试。`;}finally{if(mine===token)search.disabled=false;}}
-controls.onsubmit=e=>{e.preventDefault();offset=0;load();};tab.onchange=()=>{offset=0;load();};prev.onclick=()=>{offset=Math.max(0,offset-20);load();};next.onclick=()=>{offset+=20;load();};create.onsubmit=async e=>{e.preventDefault();save.disabled=true;
-try{await request('/api/rounds',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({round_id:rid.value,date:day.value})});roundDirty=false;created.textContent='轮次已保存。';await rounds();}catch(error){created.textContent=`创建失败：${error.message}。输入已保留，可重试。`;}finally{save.disabled=false;}};check.onclick=async()=>{check.disabled=true;checked.textContent='正在执行真实写入、读回和历史查询…';
-try{checked.textContent='存储自检已通过，写入与读回已完成。详情：\\n'+JSON.stringify(await request('/api/evidence/storage-check',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}),null,2);}catch(e){checked.textContent=`存储自检失败：${e.message}。可重试；数据库错误不代表设施故障。`;}finally{check.disabled=false;}};open.onclick=()=>{if(showDialog)showDialog(dialog);else dialog.showModal();load();rounds().catch(e=>{created.textContent=`轮次读取失败：${e.message}。重新打开可重试。`;});};let roundDirty=false;create.addEventListener('input',()=>roundDirty=true);const allowClose=()=>!roundDirty||confirm('还有未提交的轮次信息。关闭将保留输入，是否继续？');close.onclick=()=>{if(allowClose())dialog.close();};dialog.addEventListener('cancel',e=>{if(!allowClose())e.preventDefault();});dialog.addEventListener('close',()=>{overlayChanged?.();open.focus();});
+controls.onsubmit=e=>{e.preventDefault();offset=0;load();};
+tab.onchange=()=>{offset=0;load();};
+prev.onclick=()=>{offset=Math.max(0,offset-20);load();};
+next.onclick=()=>{offset+=20;load();};
+
+const roundRetry=node('button','刷新轮次列表',{id:'round-refresh',type:'button',class:'btn btn-secondary'});
+create.after(roundRetry);
+async function refreshRounds(){
+  roundRetry.disabled=true;
+  try{await rounds();return true;}
+  catch(error){created.textContent+=` 列表刷新失败：${error.message}。可单独刷新重试。`;return false;}
+  finally{roundRetry.disabled=false;}
 }
+roundRetry.onclick=refreshRounds;
+create.onsubmit=async e=>{
+  e.preventDefault();
+  if(save.disabled)return;
+  [save,rid,day].forEach(input=>input.disabled=true);
+  try{
+    await request('/api/rounds',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({round_id:rid.value,date:day.value})});
+    roundDirty=false;
+    created.textContent=`轮次 ${rid.value} 已保存。`;
+    await refreshRounds();
+  }catch(error){created.textContent=`创建失败：${error.message}。输入已保留，可重试。`;}
+  finally{[save,rid,day].forEach(input=>input.disabled=false);}
+};
 
+const checkDetails=node('details',''),checkJSON=node('pre','');
+checkDetails.append(node('summary','完整存储自检结果'),checkJSON);
+checked.after(checkDetails);
+check.onclick=async()=>{check.disabled=true;checkJSON.textContent='';checked.textContent='正在执行真实写入、读回和历史查询…';
+try{
+  const data=await request('/api/evidence/storage-check',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+  checked.textContent='存储自检已通过：写入、读回与历史查询完成。';
+  checkJSON.textContent=JSON.stringify(data,null,2);
+  const ids=JSON.stringify(data).match(/(?:E|P)-[a-zA-Z0-9-]+/g);
+  if(ids)checked.textContent+=' 证据编号：'+[...new Set(ids)].join('、');
+}catch(e){checked.textContent=`存储自检失败：${e.message}。可重试；数据库错误不代表设施故障。`;}finally{check.disabled=false;}};
+open.onclick=()=>{if(showDialog)showDialog(dialog);else dialog.showModal();load();rounds().catch(e=>{created.textContent=`轮次读取失败：${e.message}。重新打开可重试。`;});};
 
-
+let roundDirty=false;create.addEventListener('input',()=>roundDirty=true);
+const allowClose=()=>!roundDirty||confirm('还有未提交的轮次信息。关闭将保留输入，是否继续？');close.onclick=()=>{if(allowClose())dialog.close();};
+dialog.addEventListener('cancel',e=>{if(!allowClose())e.preventDefault();});dialog.addEventListener('close',()=>{overlayChanged?.();open.focus();});
+}

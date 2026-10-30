@@ -166,7 +166,7 @@ function renderRuns(){
 function syncRoomStage(){roomStage?.sync((state.data?.points||[]).map(displayedPoint));}
 function renderDashboard(){
   const d=state.data;$('covered-count').textContent=d.covered;$('missing-count').textContent=d.missing.length;$('required-count').textContent=d.required_total;
-  $('window-label').textContent=`过去 ${d.window_minutes} 分钟 · ${clock(d.window_start)}—${clock(d.window_end)}`;$('updated-at').textContent=date(d.as_of,true);
+  $('window-label').textContent=`兼容滚动窗口 ${d.window_minutes} 分钟 · 非正式轮次覆盖 · ${clock(d.window_start)}—${clock(d.window_end)}`;$('updated-at').textContent=date(d.as_of,true);
   renderNavigation(d.points);renderFacilities();renderQueue();
   const strip=$('coverage-strip');syncChildren(strip,d.points.map(p=>{let b=state.mapButtons.get(p.point_id);if(!b){b=button(p.point_id,()=>openDetail(p.point_id),'map-point');state.mapButtons.set(p.point_id,b);}b.className=`map-point ${!p.required?'is-optional':p.covered?'is-covered':'is-missing'}`;b.setAttribute('aria-label',`${p.point_id} ${p.device}：${coverageState(p)[0]}`);return b;}));
   syncRoomStage();
@@ -350,6 +350,7 @@ roomStage=initRoomStage({
 realtime.start();
 refresh();
 
+initEvidenceBrowser({showDialog,overlayChanged});
 for (const dialog of document.querySelectorAll('dialog')) {
   dialog.addEventListener('keydown', event => {
     if (event.key !== 'Tab') return;
@@ -360,5 +361,3 @@ for (const dialog of document.querySelectorAll('dialog')) {
     else if (!event.shiftKey && (index === targets.length - 1 || index < 0)) { event.preventDefault(); targets[0].focus(); }
   });
 }
-
-initEvidenceBrowser({showDialog,overlayChanged});
