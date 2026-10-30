@@ -1,5 +1,6 @@
 """One validated B02 catalog; legacy API names are projections of this config."""
 import json
+import hashlib
 from pathlib import Path
 import re
 
@@ -52,8 +53,10 @@ def load_catalog(directory=CONFIG):
         raise ValueError('三个区域的点位数必须为 3、3、2。')
     if sum(p['required'] for p in points.values()) != 6:
         raise ValueError('B02 基线必须包含六个必检点。')
-    return {'facilities': facilities, 'zones': zone_map, 'points': points}
+    config_hash=hashlib.sha256(json.dumps({'facilities':facilities,'zones':zones},ensure_ascii=False,sort_keys=True,separators=(',',':'),allow_nan=False).encode('utf-8')).hexdigest()
+    return {'facilities': facilities, 'zones': zone_map, 'points': points, 'config_hash':config_hash}
 
 
 CATALOG = load_catalog()
+CONFIG_HASH = CATALOG['config_hash']
 FACILITIES, ZONES, POINTS = (CATALOG[k] for k in ('facilities', 'zones', 'points'))

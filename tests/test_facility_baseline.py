@@ -170,11 +170,13 @@ def test_s1_records_and_review_survive_restart_without_erasing_historical_alarm(
             conn.execute('INSERT INTO records (point_id,status,source,evidence,created_at,inspected_at,is_legacy) VALUES (?,?,?,?,?,?,0)',
                          (point, {'NORMAL':'ok','WARNING':'alarm'}[row['payload_json']['condition']], 'remote',
                           row['observation_id'], row['observed_at'], row['observed_at']))
-    assert client.get('/api/dashboard').json()['covered'] == 0, 'remote observations cannot cover required points'
+    client.post('/api/rounds',json={'round_id':'baseline-round','date':'2026-10-29'})
+    query='?inspection_round_id=baseline-round&as_of=2026-10-29T01:10:00Z'
+    assert client.get('/api/dashboard'+query).json()['covered'] == 0, 'remote observations cannot cover required points'
     for row in scenario['inspection_records']:
         result = client.post('/api/inspections', data={
             'point_id': row['checkpoint_id'], 'inspector_id': row['inspector_id'], 'inspected_at': row['inspected_at'],
-            'result': 'ok', 'notes': row['notes'], 'onsite_confirmed': 'true', 'request_id': row['inspection_id']})
+            'result': 'ok', 'notes': row['notes'], 'onsite_confirmed': 'true', 'request_id': row['inspection_id'],'inspection_round_id':'baseline-round'})
         assert result.status_code == 200, result.text
     fixture_review = scenario['review_requests'][0]
     review = client.post('/api/reviews', json={'point_id': 'C03', 'reason': fixture_review['reason'], 'request_id': 's1-review'}).json()['review']
@@ -183,12 +185,12 @@ def test_s1_records_and_review_survive_restart_without_erasing_historical_alarm(
         'result': 'ok', 'conclusion': 'normal', 'notes': 'SIMULATED: historical alert confirmed; current abnormality ruled out',
         'onsite_confirmed': 'true', 'version': '1', 'request_id': 's1-review-confirmation'})
     assert result.status_code == 200, result.text
-    assert client.get('/api/dashboard').json()['covered'] == 6
+    assert client.get('/api/dashboard'+query).json()['covered'] == 6
     detail = client.get('/api/points/C03').json()
     assert detail['point']['latest_status'] == 'ok'
     assert detail['point']['review']['status'] == 'completed'
     assert any(r['status'] == 'alarm' and r['source'] == 'remote' for r in detail['records'])
     with TestClient(api.create_app(root / 'test.db', root / 'uploads', seed_demo=False)) as restarted:
         assert restarted.get('/api/points/C03').json() == detail
-        assert restarted.get('/api/dashboard').json()['covered'] == 6
+        assert restarted.get('/api/dashboard'+query).json()['covered'] == 6
         assert get_s1(restarted) == scenario

@@ -101,7 +101,10 @@ def create_review(client, point='C03', request_id='review-one'):
 
 def test_dashboard_uses_correct_required_set_and_keeps_onsite_under_remote_alarm(state):
     client, *_ = state
-    response = client.get('/api/dashboard')
+    client.post('/api/rounds',json={'round_id':'api-round','date':'2026-10-29'})
+    assert inspect(client,form(point_id='C01',inspection_round_id='api-round',inspected_at='2026-10-29T09:05:00+08:00')).status_code==200
+    query='?inspection_round_id=api-round&as_of=2026-10-29T01:10:00Z'
+    response = client.get('/api/dashboard'+query)
     assert response.status_code == 200
     value = response.json()
     points = {p['point_id']: p for p in value['points']}
@@ -116,8 +119,8 @@ def test_dashboard_uses_correct_required_set_and_keeps_onsite_under_remote_alarm
     assert points['C06']['latest_status'] == 'alarm'
     assert points['C04']['covered'] is False
     assert datetime.fromisoformat(value['window_end']) - datetime.fromisoformat(value['window_start']) == timedelta(minutes=45)
-    assert value['as_of'] == value['window_end']
-    assert client.get('/api/coverage').json()['covered'] == 1
+    assert datetime.fromisoformat(value['as_of']) < datetime.fromisoformat(value['window_end'])
+    assert client.get('/api/coverage'+query).json()['covered'] == 1
 
 
 def test_migration_preserves_legacy_rows_and_summary_across_restart(state):
@@ -148,7 +151,7 @@ def test_inspection_saves_real_photo_and_returns_it_after_restart(state, format,
     detail = client.get('/api/points/C07').json()
     record = next(r for r in detail['records'] if r['id'] == record_id)
     assert record['inspector_id'] == 'P1' and record['is_legacy'] is False
-    assert detail['point']['covered'] is True
+    assert detail['point']['covered'] is None, 'unassigned records cannot imply a formal round'
     assert detail['point']['photo_count'] == 1
     assert len(detail['photos']) == 1
     photo = detail['photos'][0]
@@ -165,7 +168,7 @@ def test_inspection_saves_real_photo_and_returns_it_after_restart(state, format,
 @pytest.mark.parametrize('changes', [
     {'point_id':'C99'}, {'inspector_id':' '}, {'inspected_at':'2026-10-27T12:00:00'},
     {'inspected_at':'invalid'}, {'inspected_at':stamp(60)}, {'onsite_confirmed':'false'},
-    {'result':'FAULT'}, {'request_id':''}, {'notes':'x' * 2001}, {'notes':'   '},
+    {'result':'NOT_A_RESULT'}, {'request_id':''}, {'notes':'x' * 2001}, {'notes':'   '},
 ])
 def test_invalid_inspection_is_rejected_without_writing(state, changes):
     client, database, *_ = state
@@ -259,20 +262,20 @@ def test_review_requires_matching_point_and_conclusion(state):
 
 
 def test_run_freezes_snapshot_without_changing_records_and_idempotent_retry_returns_same(state):
-    client, database, *_ = state
-    first = client.post('/api/runs', json={'request_id':'run-once'})
-    assert first.status_code == 200
-    run = first.json()
-    assert run['snapshot']['covered'] == 1 and run['coverage']['covered'] == 1
+    client,database,*_=state
+    prepared=client.post('/api/scenarios/S1/prepare',json={'instance_id':'test-api','request_id':'test-prepare'}).json()
+    payload={'request_id':'run-once','inspection_round_id':prepared['inspection_round_id'],'as_of':prepared['as_of'],'scenario_id':'S1'}
+    first=client.post('/api/runs',json=payload)
+    assert first.status_code==200,first.text
+    run=first.json()
+    assert run['coverage']['covered']==6
     with local_db(database) as db:
-        assert db.execute('SELECT COUNT(*) FROM records').fetchone()[0] == 5
-    assert inspect(client, form()).status_code == 200
-    saved = client.get('/api/runs/' + run['run_id']).json()
-    assert saved['snapshot'] == run['snapshot'] and saved['legacy'] is False
-    assert client.get('/api/dashboard').json()['covered'] == 2
-    assert client.post('/api/runs', json={'request_id':'run-once'}).json() == run
-    assert client.post('/api/runs').status_code == 200
-    assert isinstance(client.get('/api/runs').json(), list)
+        assert db.execute('SELECT COUNT(*) FROM records').fetchone()[0]==5
+    assert inspect(client,form()).status_code==200
+    assert client.get('/api/runs/'+run['run_id']).json()==run
+    assert client.post('/api/runs',json=payload).json()==run
+    assert client.post('/api/runs').status_code==422
+    assert isinstance(client.get('/api/runs').json(),list)
 
 
 def test_sqlite_commit_failure_rolls_back_record_photo_and_request_for_safe_retry(state):
@@ -327,7 +330,7 @@ def test_existing_empty_records_are_not_reseeded_during_migration(state):
     with local_db(database) as db:
         db.execute('DELETE FROM records')
     with TestClient(api.create_app(db_path=database,uploads_dir=uploads,seed_demo=True)) as restarted:
-        assert restarted.get('/api/dashboard').json()['covered'] == 0
+        assert restarted.get('/api/dashboard').json()['covered'] is None
         assert restarted.get('/api/points/C01').json()['records'] == []
         assert restarted.get('/api/runs/legacy-run').json()['summary'] == 'original summary'
 

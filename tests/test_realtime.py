@@ -95,7 +95,8 @@ def test_live_feed_http_websocket_do_not_write_records_or_coverage(monkeypatch):
         with TestClient(app) as client:
             assert client.get('/api/current').status_code == 200
             before = client.get('/api/dashboard').json()
-            run = client.post('/api/runs', json={'request_id':'stage01-freeze'}).json()
+            prepared=client.post('/api/scenarios/S1/prepare',json={'instance_id':'realtime','request_id':'realtime-prepare'}).json()
+            run = client.post('/api/runs', json={'request_id':'stage01-freeze','inspection_round_id':prepared['inspection_round_id'],'as_of':prepared['as_of'],'scenario_id':'S1'}).json()
             app.state.facilities.mark_connection('connected')
             assert send(app.state.facilities) == 'accepted'
             with client.websocket_connect('/ws/facilities') as ws:
@@ -104,10 +105,10 @@ def test_live_feed_http_websocket_do_not_write_records_or_coverage(monkeypatch):
                 live = next(p for p in pushed['facilities'] if p['facility_id']=='switch-301')
                 assert live['observation']['metrics']['latency_ms'] == 18
             assert client.get('/api/current').json()['diagnostics']['accepted'] == 1
-            assert client.get('/api/dashboard').json()['covered'] == before['covered'] == 0
+            assert client.get('/api/dashboard').json()['covered'] == before['covered'] is None
             assert client.get('/api/points/C07').json()['records'] == []
             assert client.get('/api/points/C07').json()['reviews'] == []
-            assert client.get('/api/runs/'+run['run_id']).json()['snapshot'] == run['snapshot']
+            assert client.get('/api/runs/'+run['run_id']).json() == run
         with TestClient(api.create_app(root/'test.db', root/'uploads', seed_demo=False, realtime_enabled=False)) as restarted:
             assert all(p['observation'] is None for p in restarted.get('/api/current').json()['facilities'])
 

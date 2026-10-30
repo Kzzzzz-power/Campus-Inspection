@@ -77,11 +77,16 @@ def inspection_fields(fields, review=False, canonical=False):
     except (AttributeError, TypeError, ValueError, OverflowError):
         raise HTTPException(422, '巡检时间必须是带时区且不晚于当前时间的 ISO 时间。') from None
     result = fields.get('result')
+    canonical_result = result if result in ('NORMAL','WARNING','FAULT') else None
+    if canonical_result:
+        result = {'NORMAL':'ok','WARNING':'alarm','FAULT':'alarm'}[canonical_result]
     if result not in ('ok','alarm','unknown') or fields.get('onsite_confirmed') != 'true':
         raise HTTPException(422, '请选择有效现场结果并明确确认已到现场。')
     value = {'point_id':point_id, 'inspector_id':inspector, 'inspected_at':observed.isoformat(),
              'result':result, 'notes':text(fields.get('notes',''),'现场说明',2000),
              'request_id':request_key(fields.get('request_id'))}
+    if canonical_result:
+        value['canonical_result'] = canonical_result
     if fields.get('inspection_round_id') is not None:
         value['inspection_round_id'] = request_key(fields['inspection_round_id'])
     if canonical:
@@ -153,35 +158,37 @@ def photo_metadata(row, inspected_at):
             'inspected_at':inspected_at,'created_at':row['created_at']}
 
 
-def dashboard(conn, at=None):
-    at = at or utcnow()
-    start = at - timedelta(minutes=WINDOW_MINUTES)
-    records = [dict(r) for r in conn.execute('SELECT * FROM records ORDER BY id DESC')]
-    photo_counts = {r['point_id']:r['n'] for r in conn.execute('SELECT point_id,COUNT(*) n FROM photos GROUP BY point_id')}
-    review_by_point = {}
+def point_projection(conn):
+    """Current record/review presentation; coverage comes only from formal rounds."""
+    at=utcnow()
+    records=[dict(r) for r in conn.execute('SELECT * FROM records ORDER BY id DESC')]
+    photos={r['point_id']:r['n'] for r in conn.execute('SELECT point_id,COUNT(*) n FROM photos GROUP BY point_id')}
+    reviews={}
     for row in conn.execute("SELECT * FROM reviews ORDER BY CASE status WHEN 'pending' THEN 0 ELSE 1 END, created_at DESC, rowid DESC"):
-        review_by_point.setdefault(row['point_id'],dict(row))
-    result = []
-    for zone_id, zone in ZONES.items():
+        reviews.setdefault(row['point_id'],dict(row))
+    result=[]
+    for zone_id,zone in ZONES.items():
         for point_id in zone['points']:
-            history = [(timestamp(r['inspected_at'] or r['created_at']),r) for r in records if r['point_id']==point_id]
-            history = sorted(((t,r) for t,r in history if t and t<=at),key=lambda pair:(pair[0],pair[1]['id']),reverse=True)
-            current = [(t,r) for t,r in history if start<=t]
-            latest = current[0][1] if current else None
-            onsite = [(t,r) for t,r in history if r['source']=='onsite' and (r['is_legacy'] or r['inspector_id'])]
-            covered = any(start<=t for t,r in onsite)
+            history=[(timestamp(r['inspected_at'] or r['created_at']),r) for r in records if r['point_id']==point_id]
+            history=sorted(((t,r) for t,r in history if t and t<=at),key=lambda pair:(pair[0],pair[1]['id']),reverse=True)
+            latest=history[0][1] if history else None
+            onsite=[(t,r) for t,r in history if r['source']=='onsite']
             result.append({'point_id':point_id,**POINTS[point_id],'zone_id':zone_id,'zone_name':zone['name'],
-                'building':zone['building'],'floor':zone['floor'],'covered':covered,
+                'building':zone['building'],'floor':zone['floor'],'covered':None,
                 'latest_status':latest['status'] if latest else 'no-record',
-                'evidence':latest['evidence'] if latest else None,'at':current[0][0].isoformat() if current else None,
+                'evidence':latest['evidence'] if latest else None,'at':history[0][0].isoformat() if history else None,
                 'record_id':latest['id'] if latest else None,'record_source':latest['source'] if latest else None,
-                'review':review_by_point.get(point_id),'photo_count':photo_counts.get(point_id,0),
+                'review':reviews.get(point_id),'photo_count':photos.get(point_id,0),
                 'last_inspection_at':onsite[0][0].isoformat() if onsite else None})
-    required = [p for p in result if p['required']]
-    return {'as_of':at.isoformat(),'window_start':start.isoformat(),'window_end':at.isoformat(),
-            'window_minutes':WINDOW_MINUTES,'required_total':len(required),
-            'covered':sum(p['covered'] for p in required),'missing':[p['point_id'] for p in required if not p['covered']],
-            'points':result}
+    return result
+
+
+def dashboard(conn, **selection):
+    if __package__:
+        from .runs import dashboard as formal_dashboard
+    else:
+        from backend.runs import dashboard as formal_dashboard
+    return formal_dashboard(conn,**selection)
 
 
 def coverage(snapshot):
@@ -198,9 +205,23 @@ def point_detail(conn, point_id):
         row['photos'] = [photo_metadata(p,row['inspected_at'] or row['created_at'])
                          for p in conn.execute('SELECT * FROM photos WHERE record_id=? ORDER BY created_at,image_id',(row['id'],))]
         photos.extend(row['photos'])
-    reviews = [dict(r) for r in conn.execute('SELECT * FROM reviews WHERE point_id=? ORDER BY created_at DESC, rowid DESC',(point_id,))]
+    reviews = [dict(r) for r in conn.execute('''SELECT reviews.*, runs.inspection_round_id FROM reviews
+        LEFT JOIN runs ON runs.run_id=reviews.trigger_run_id WHERE reviews.point_id=?
+        ORDER BY reviews.created_at DESC, reviews.rowid DESC''',(point_id,))]
     return {'point':next(p for p in snapshot['points'] if p['point_id']==point_id),
             'records':rows,'photos':photos,'reviews':reviews}
+
+
+def review_round(conn, review):
+    """Resolve one review scope from its triggering run and immutable evidence."""
+    scopes={r[0] for r in conn.execute('SELECT DISTINCT inspection_round_id FROM evidence WHERE review_id=? AND inspection_round_id IS NOT NULL',(review['review_id'],))}
+    if review['trigger_run_id']:
+        row=conn.execute('SELECT inspection_round_id FROM runs WHERE run_id=?',(review['trigger_run_id'],)).fetchone()
+        if row:
+            scopes.add(row[0])
+    if len(scopes)>1:
+        raise HTTPException(409,'该复核已有冲突的轮次关联，请核对原始证据。')
+    return next(iter(scopes),None)
 
 
 def create_review(store, payload):
@@ -217,7 +238,7 @@ def create_review(store, payload):
         prior = receipt(conn,key,'review',digest)
         if prior is not None:
             return prior
-        if value['trigger_run_id'] and not conn.execute('SELECT 1 FROM runs WHERE run_id=?',(value['trigger_run_id'],)).fetchone():
+        if value['trigger_run_id'] and not conn.execute('SELECT 1 FROM run_references WHERE run_id=?',(value['trigger_run_id'],)).fetchone():
             raise HTTPException(404,'触发运行不存在。')
         if conn.execute("SELECT 1 FROM reviews WHERE point_id=? AND status='pending'",(value['point_id'],)).fetchone():
             raise HTTPException(409,'此点位已有待处理复核，请打开原请求继续补证。')
@@ -249,6 +270,12 @@ def save_inspection(store, fields, photos, review_id=None, canonical=False):
                 if row is None:
                     raise HTTPException(404,'复核请求不存在。')
                 review = dict(row)
+                bound_round=review_round(conn,review)
+                supplied_round=value.get('inspection_round_id')
+                if bound_round and supplied_round not in (None,bound_round):
+                    raise HTTPException(422,'补证轮次与复核请求所属轮次不一致。')
+                if bound_round:
+                    value['inspection_round_id']=bound_round
                 if review['point_id'] != value['point_id']:
                     raise HTTPException(422,'现场记录的点位与复核请求不一致。')
                 if review['version'] != value['version'] or review['status'] != 'pending':
@@ -301,29 +328,16 @@ def save_inspection(store, fields, photos, review_id=None, canonical=False):
 
 
 def create_run(store, payload):
-    if payload is not None and set(payload)-{'request_id'}:
-        raise HTTPException(422,'运行请求只接受 request_id。')
-    key = request_key(payload['request_id']) if payload and 'request_id' in payload else None
-    digest = fingerprint({})
-    with store.transaction(write=True) as conn:
-        prior = receipt(conn,key,'run',digest)
-        if prior is not None:
-            return prior
-        snapshot = dashboard(conn)
-        run = {'run_id':'run-'+uuid4().hex,'created_at':snapshot['as_of'],
-               'summary':f"覆盖 {snapshot['covered']}/{snapshot['required_total']}，缺 {','.join(snapshot['missing']) or '无'}"}
-        conn.execute('INSERT INTO runs VALUES (:run_id,:created_at,:summary)',run)
-        conn.execute('INSERT INTO run_snapshots VALUES (?,?)',(run['run_id'],json_text(snapshot)))
-        response = {**run,'coverage':coverage(snapshot),'snapshot':snapshot}
-        save_receipt(conn,key,'run',digest,response)
-    return response
+    if __package__:
+        from .runs import create
+    else:
+        from backend.runs import create
+    return create(store,payload)
 
 
 def run_detail(conn, run_id):
-    row = conn.execute('''SELECT r.*,s.snapshot_json FROM runs r LEFT JOIN run_snapshots s
-        ON s.run_id=r.run_id WHERE r.run_id=?''',(run_id,)).fetchone()
-    if row is None:
-        raise HTTPException(404,'运行记录不存在。')
-    return {'run_id':row['run_id'],'created_at':row['created_at'],'summary':row['summary'],
-            'snapshot':json.loads(row['snapshot_json']) if row['snapshot_json'] else None,
-            'legacy':row['snapshot_json'] is None}
+    if __package__:
+        from .runs import detail
+    else:
+        from backend.runs import detail
+    return detail(conn,run_id)

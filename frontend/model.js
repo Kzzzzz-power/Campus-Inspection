@@ -7,7 +7,7 @@ export function matchesPoint(point, filters) {
   if (filters.required === 'required' && !point.required) return false;
   if (filters.required === 'optional' && point.required) return false;
   switch (filters.status) {
-    case 'missing': return point.required && !point.covered;
+    case 'missing': return point.required && point.covered === false;
     case 'covered': return point.required && point.covered;
     case 'alarm': return point.latest_status === 'alarm';
     case 'unknown': return ['unknown', 'no-record'].includes(point.latest_status);
@@ -27,4 +27,4 @@ export function facilityState(p) {
   }
   return ({ok:['最近记录正常','good'],alarm:['告警待关注','danger'],unknown:['状态待确认','warn'],'no-record':['暂无状态记录','muted']})[p.latest_status]||['状态待确认','muted']; }
 
-export function coverageState(p) { return !p.required?['不计入必检统计','muted']:p.covered?['现场记录有效','good']:['缺少有效现场记录','warn']; }
+export function coverageState(p) { return p.covered===null?['未选择轮次','muted']:!p.required?['不计入必检统计','muted']:p.covered?['现场记录有效','good']:['缺少有效现场记录','warn']; }

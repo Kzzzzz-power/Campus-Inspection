@@ -11,13 +11,15 @@ class Store:
         self.uploads = Path(uploads)
 
     @contextmanager
-    def transaction(self, write=False, timeout=5):
+    def transaction(self, write=False, timeout=5, migration=False):
         conn = sqlite3.connect(self.path, timeout=timeout)
         conn.row_factory = sqlite3.Row
         try:
-            conn.execute('PRAGMA foreign_keys=ON')
+            conn.execute('PRAGMA foreign_keys=OFF' if migration else 'PRAGMA foreign_keys=ON')
             conn.execute('BEGIN IMMEDIATE' if write else 'BEGIN')
             yield conn
+            if migration and conn.execute('PRAGMA foreign_key_check').fetchone():
+                raise sqlite3.IntegrityError('Migration left invalid foreign keys')
             conn.commit()
         except BaseException:
             conn.rollback()
@@ -27,7 +29,7 @@ class Store:
 
     def initialize(self, seed_demo=True):
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self.transaction(write=True) as conn:
+        with self.transaction(write=True, migration=True) as conn:
             fresh_database = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name IN ('records','runs')").fetchone() is None
             conn.execute('''CREATE TABLE IF NOT EXISTS records (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, point_id TEXT NOT NULL,
@@ -68,6 +70,11 @@ class Store:
             else:
                 from evidence import initialize
             initialize(conn)
+            if __package__:
+                from . import run_schema
+            else:
+                import run_schema
+            run_schema.initialize(conn)
             if seed_demo and fresh_database:
                 now = datetime.now(timezone.utc)
                 demo = [

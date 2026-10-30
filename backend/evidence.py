@@ -8,10 +8,10 @@ from uuid import uuid4
 from fastapi import HTTPException
 if __package__:
     from . import service
-    from .configuration import FACILITIES, CONFIG, read_json
+    from .configuration import FACILITIES, CONFIG_HASH
 else:
     import service
-    from configuration import FACILITIES, CONFIG, read_json
+    from configuration import FACILITIES, CONFIG_HASH
 
 SHANGHAI = timezone(timedelta(hours=8))
 CATALOG = {f['checkpoint_id']: f for f in FACILITIES}
@@ -101,7 +101,7 @@ def create_round(store, payload):
     instance=payload.get('scenario_instance_id')
     if instance is not None:
         instance=service.text(instance,'scenario_instance_id',128)
-    config_hash=service.fingerprint({name:read_json(CONFIG/(name+'.json')) for name in ('facilities','zones')})
+    config_hash=CONFIG_HASH
     try:
         day=date.fromisoformat(payload['date'])
         if day.isoformat()!=payload['date']:

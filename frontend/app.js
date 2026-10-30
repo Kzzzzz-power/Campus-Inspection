@@ -1,3 +1,4 @@
+import {initTaskWorkbench} from './task-workbench.js';
 import {attachRoundSelector,initEvidenceBrowser} from './evidence-browser.js';
 import {matchesPoint,facilityState,coverageState} from './model.js';
 import {createRealtimeClient,projectPoint} from './realtime.js';
@@ -9,7 +10,7 @@ const $ = id => document.getElementById(id);
 const state = {queueButtons:new Map(),runButtons:new Map(),mapButtons:new Map(),runToken:0,refreshPromise:null,detailTrigger:null,data:null, runs:[], filters:{query:'',scope:'all',required:'all',status:'all'}, cards:new Map(), groups:new Map(), refreshing:false, detail:null, detailToken:0, dirty:false, saving:false, gallery:[], photoIndex:0, runRequest:null};
 const motionEffects = new WeakMap(), activeEffects = new Set();
 let activeViewTransition = null, photoDirection = 0;
-let filterPickers = null, roomStage = null;
+let filterPickers = null, roomStage = null, taskWorkbench = null;
 function presentationMotionAllowed(){return !document.hidden&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&document.documentElement.dataset.feedback==='on';}
 function animateFeedback(target,frames,duration=180){
   if(!target)return;
@@ -155,7 +156,7 @@ function renderFacilities(){
   syncChildren($('facility-groups'),groups);
 }
 function renderQueue(){
-  const points=state.data.points.map(displayedPoint);const pending=points.filter(p=>p.review?.status==='pending');const gaps=points.filter(p=>p.required&&!p.covered);const seen=new Set([...pending,...gaps].map(p=>p.point_id));const alarms=points.filter(p=>p.latest_status==='alarm'&&!seen.has(p.point_id));
+  const points=state.data.points.map(displayedPoint);const pending=points.filter(p=>p.review?.status==='pending');const gaps=points.filter(p=>p.required&&p.covered===false);const seen=new Set([...pending,...gaps].map(p=>p.point_id));const alarms=points.filter(p=>p.latest_status==='alarm'&&!seen.has(p.point_id));
   const items=[...pending.map(p=>({p,kind:'待处理复核',tone:'warn'})),...gaps.filter(p=>!pending.includes(p)).map(p=>({p,kind:'待补现场记录',tone:'warn'})),...alarms.map(p=>({p,kind:'告警待关注',tone:'danger'}))];
   syncChildren($('pending-list'),items.length?items.map(({p,kind,tone})=>{let b=state.queueButtons.get(p.point_id);if(!b){b=button('',()=>openDetail(p.point_id),'queue-item');state.queueButtons.set(p.point_id,b);}b.replaceChildren(el('span',{class:'queue-point'},p.point_id),el('span',{},el('strong',{},p.device),el('small',{},kind)),icon('arrow'));b.dataset.tone=tone;return b;}):[el('p',{class:'empty-state'},'当前没有待补检点或待处理复核。')]);
 }
@@ -165,10 +166,10 @@ function renderRuns(){
 }
 function syncRoomStage(){roomStage?.sync((state.data?.points||[]).map(displayedPoint));}
 function renderDashboard(){
-  const d=state.data;$('covered-count').textContent=d.covered;$('missing-count').textContent=d.missing.length;$('required-count').textContent=d.required_total;
-  $('window-label').textContent=`兼容滚动窗口 ${d.window_minutes} 分钟 · 非正式轮次覆盖 · ${clock(d.window_start)}—${clock(d.window_end)}`;$('updated-at').textContent=date(d.as_of,true);
+  const d=state.data;$('covered-count').textContent=d.covered??'—';$('missing-count').textContent=d.round_state==='no_round'?'—':d.missing.length;$('missing-shortcut').disabled=d.round_state==='no_round';$('required-count').textContent=d.required_total;
+  $('window-label').textContent=d.round_state==='no_round'?'未选择轮次；覆盖尚未判断':`${d.inspection_round_id} · 固定窗口 ${date(d.window_start,true)}—${date(d.window_end,true)}${d.run_id?' · 已冻结运行':''}`;$('updated-at').textContent='刷新成功 '+date(new Date().toISOString(),true);
   renderNavigation(d.points);renderFacilities();renderQueue();
-  const strip=$('coverage-strip');syncChildren(strip,d.points.map(p=>{let b=state.mapButtons.get(p.point_id);if(!b){b=button(p.point_id,()=>openDetail(p.point_id),'map-point');state.mapButtons.set(p.point_id,b);}b.className=`map-point ${!p.required?'is-optional':p.covered?'is-covered':'is-missing'}`;b.setAttribute('aria-label',`${p.point_id} ${p.device}：${coverageState(p)[0]}`);return b;}));
+  const strip=$('coverage-strip');syncChildren(strip,d.points.map(p=>{let b=state.mapButtons.get(p.point_id);if(!b){b=button(p.point_id,()=>openDetail(p.point_id),'map-point');state.mapButtons.set(p.point_id,b);}b.className=`map-point ${!p.required?'is-optional':p.covered===null?'':p.covered?'is-covered':'is-missing'}`;b.setAttribute('aria-label',`${p.point_id} ${p.device}：${coverageState(p)[0]}`);return b;}));
   syncRoomStage();
 }
 async function refresh(manual=false,afterMutation=false){
@@ -177,7 +178,7 @@ async function refresh(manual=false,afterMutation=false){
 }
 async function performRefresh(manual=false){
   state.refreshing=true;$('refresh-btn').disabled=true;$('refresh-btn').setAttribute('aria-busy','true');
-  const [dashboard,runs]=await Promise.allSettled([api('/api/dashboard'),api('/api/runs')]);
+  const [dashboard,runs]=await Promise.allSettled([api('/api/dashboard'+(taskWorkbench?.query()||'')),api('/api/runs')]);
   if(dashboard.status==='fulfilled'){state.data=dashboard.value;renderDashboard();$('connection-status').textContent='本地服务已连接 · 每 30 秒刷新';$('connection-status').classList.remove('is-error');}
   else{$('connection-status').textContent=`刷新失败${state.data?' · 正在显示上次数据':''}：${errorText(dashboard.reason)}`;$('connection-status').classList.add('is-error');if(!state.data)$('facility-groups').replaceChildren(el('div',{class:'error-state'},el('h3',{},'暂时无法读取巡检数据'),el('p',{},errorText(dashboard.reason)),button('重新连接',()=>refresh(true))));}
   if(runs.status==='fulfilled'){state.runs=runs.value;renderRuns();}else{$('recent-runs').replaceChildren(el('p',{class:'error-state'},'运行历史加载失败。'),button('重试',()=>refresh(true)));}
@@ -192,7 +193,7 @@ async function openDetail(id,mode=null){
   if(!$('detail-dialog').open)state.detailTrigger=document.activeElement;
   if($('detail-dialog').open&&state.dirty&&!confirm('还有未提交的内容。切换点位将放弃这次填写，是否继续？'))return;
   const token=++state.detailToken;state.detail=null;state.dirty=false;$('detail-title').textContent=id;$('detail-subtitle').textContent='正在读取点位证据';$('detail-body').replaceChildren(el('div',{class:'empty-state'},'正在读取现场记录与复核信息…'));showDialog($('detail-dialog'));
-  try{const data=await api(`/api/points/${encodeURIComponent(id)}`);if(token!==state.detailToken||!$('detail-dialog').open)return;state.detail=data;renderDetail(mode);}catch(error){if(token!==state.detailToken)return;$('detail-body').replaceChildren(el('div',{class:'error-state'},errorText(error),button('重试',()=>openDetail(id,mode))));}
+  try{const data=await api(`/api/points/${encodeURIComponent(id)}`);if(token!==state.detailToken||!$('detail-dialog').open)return;data.point.covered=state.data?.points.find(p=>p.point_id===id)?.covered??null;state.detail=data;renderDetail(mode);}catch(error){if(token!==state.detailToken)return;$('detail-body').replaceChildren(el('div',{class:'error-state'},errorText(error),button('重试',()=>openDetail(id,mode))));}
 }
 function detailSection(title,...content){return el('section',{class:'detail-section'},el('h3',{class:'section-title'},title),...content);}
 function chooseDetailMode(mode){if(state.saving){toast('正在保存，请等待确认。');return;}if(state.dirty&&!confirm('切换操作将放弃尚未提交的内容，是否继续？'))return;state.dirty=false;renderDetail(mode);$('detail-body').querySelector('input,textarea')?.focus();}
@@ -223,12 +224,13 @@ function inspectionForm(point,review=null){
   const form=el('form',{'data-form':review?'review-evidence':'inspection'}),message=el('p',{class:'form-message','aria-live':'polite'}),submit=el('button',{type:'submit',class:'btn btn-primary'},review?'提交复核结果':'保存现场记录');
   const inspector=el('input',{name:'inspector_id',required:true,maxLength:80,placeholder:'填写姓名或巡检编号',autocomplete:'name'});
   const time=el('input',{name:'inspected_at',type:'datetime-local',value:localInputTime(),required:true});
-  const result=el('select',{name:review?'conclusion':'result',required:true},... (review?[['','请选择确认结论'],['normal','确认正常'],['fault','确认异常'],['unknown','仍无法确认']]:[['','请选择检查结果'],['ok','现场未发现异常'],['alarm','现场发现异常'],['unknown','现场仍无法判断']]).map(([value,label])=>el('option',{value},label)));
+  const result=el('select',{name:review?'conclusion':'result',required:true},... (review?[['','请选择确认结论'],['normal','确认正常'],['fault','确认异常'],['unknown','仍无法确认']]:[['','请选择检查结果'],['NORMAL','现场正常'],['WARNING','现场警告'],['FAULT','现场故障'],['unknown','现场仍无法判断']]).map(([value,label])=>el('option',{value},label)));
   const notes=el('textarea',{name:'notes',required:true,maxLength:2000,rows:3,placeholder:review?'填写复核过程、所见事实和判断依据':'记录现场所见、检查内容和发现的问题'});
   const files=el('input',{name:'photos',type:'file',accept:'image/jpeg,image/png,image/webp',multiple:true}),fileInfo=el('p',{class:'field-hint'});
   const confirmed=el('input',{name:'onsite_confirmed',type:'checkbox',required:true,value:'true'});
   const grid=el('div',{class:'form-grid'},field('巡检人',inspector),field('现场时间',time,'按本机时区填写'),field(review?'人工确认结论':'检查结果',result,review?'“仍无法确认”会保留待复核状态。':null,true),field('现场说明',notes,null,true),field('照片（可选）',files,'JPEG、PNG、WebP；每张不超过 10MB，最多 5 张。',true));
   if(!review)attachRoundSelector(grid);
+  else if(review.inspection_round_id)grid.append(el('input',{type:'hidden',name:'inspection_round_id',value:review.inspection_round_id}));
   grid.append(fileInfo,el('label',{class:'check-field field-wide'},confirmed,el('span',{},'我已到达现场并完成上述检查。照片上传本身不代表复核通过。')));
   if(review)form.append(el('p',{class:'field-hint'},`复核原因：${review.reason} · 当前版本 ${review.version}`));form.append(grid,message,el('div',{class:'form-actions'},submit));
   let requestId=crypto.randomUUID();
@@ -248,21 +250,23 @@ function reviewForm(point){
   const form=el('form',{'data-form':'review-request'}),reason=el('textarea',{name:'reason',rows:3,required:true,maxLength:1000,placeholder:'说明需要现场确认的问题，例如告警与现场情况不一致'}),message=el('p',{class:'form-message','aria-live':'polite'}),submit=el('button',{type:'submit',class:'btn btn-primary'},'创建复核请求');let requestId=crypto.randomUUID();
   form.append(field('复核原因',reason,'发起请求只会加入待复核队列，不会修改设施状态。',true),message,el('div',{class:'form-actions'},submit));form.addEventListener('input',()=>{state.dirty=true;requestId=crypto.randomUUID();});
   form.addEventListener('submit',async e=>{e.preventDefault();if(state.saving||!form.reportValidity())return;state.saving=true;submit.disabled=true;reason.disabled=true;submit.setAttribute('aria-busy','true');submit.textContent='正在创建…';
-    try{await postJSON('/api/reviews',{point_id:point.point_id,reason:reason.value,request_id:requestId});state.dirty=false;state.saving=false;toast('复核请求已创建，等待现场证据。');await refresh(false,true);await openDetail(point.point_id,'review');}catch(error){formMessage(message,errorText(error),true);}finally{state.saving=false;submit.disabled=false;reason.disabled=false;submit.removeAttribute('aria-busy');submit.textContent='创建复核请求';}
+    try{await postJSON('/api/reviews',{point_id:point.point_id,reason:reason.value,request_id:requestId,trigger_run_id:taskWorkbench?.selectedRun?.run_id||null});state.dirty=false;state.saving=false;toast('复核请求已创建，等待现场证据。');await refresh(false,true);await openDetail(point.point_id,'review');}catch(error){formMessage(message,errorText(error),true);}finally{state.saving=false;submit.disabled=false;reason.disabled=false;submit.removeAttribute('aria-busy');submit.textContent='创建复核请求';}
   });return form;
 }
 function openPhotos(photos,index){state.gallery=photos;state.photoIndex=index;renderPhoto();showDialog($('photo-dialog'));}
 function renderPhoto(direction=0){const photo=state.gallery[state.photoIndex];if(!photo)return;photoDirection=direction;$('photo-image').setAttribute('aria-busy','true');motionEffects.get($('photo-image'))?.cancel();$('photo-image').src=photo.url;$('photo-image').alt=`${photo.point_id} 现场证据照片`;$('photo-caption').textContent=`${photo.point_id} · 现场时间 ${date(photo.inspected_at,true)} · 上传时间 ${date(photo.created_at,true)}`;$('photo-position').textContent=`${state.photoIndex+1} / ${state.gallery.length}`;$('photo-prev').disabled=state.photoIndex===0;$('photo-next').disabled=state.photoIndex===state.gallery.length-1;}
 function stepPhoto(delta){const next=state.photoIndex+delta;if(next>=0&&next<state.gallery.length){state.photoIndex=next;renderPhoto(delta);}}
 function renderRun(run){
+  if(run.schema_version===3){taskWorkbench.renderRun(run,$('run-body'));return;}
+
   $('run-title').textContent='运行判断';const content=[el('code',{class:'run-id'},run.run_id),el('p',{},date(run.created_at,true)),el('h3',{},run.summary||'覆盖快照')];
   if(!run.snapshot)content.push(el('p',{class:'empty-state'},'这是一条历史摘要。旧版本未保存完整快照，无法补造当时的点位详情。'));
   else {const s=run.snapshot;content.push(el('p',{class:'field-hint'},`保存时的窗口：${date(s.window_start,true)}—${date(s.window_end,true)}。此结果不会随当前看板刷新而变化。`),el('div',{class:'run-stat'},el('strong',{},`${s.covered} / ${s.required_total}`),' 个必检点已覆盖'),el('div',{class:'run-points'},...s.points.filter(p=>p.required).map(p=>el('div',{class:'status-row'},el('span',{},`${p.point_id} · ${p.device}`),statusBadge(...coverageState(p))))));}
   content.push(el('p',{class:'field-hint'},'本次为覆盖判断快照，不修改设施状态，也不代表完成全部任务或安全验收。'));$('run-body').replaceChildren(...content);animateFeedback($('run-body'),[{opacity:.6},{opacity:1}],160);
 }
 async function openRun(id){const token=++state.runToken;$('run-title').textContent='运行判断';$('run-body').replaceChildren(el('p',{class:'empty-state'},'正在读取保存结果…'));showDialog($('run-dialog'));try{const run=await api(`/api/runs/${encodeURIComponent(id)}`);if(token===state.runToken&&$('run-dialog').open)renderRun(run);}catch(error){$('run-body').replaceChildren(el('p',{class:'error-state'},errorText(error)),button('重试',()=>openRun(id)));}}
-async function newRun(){const b=$('run-btn');if(b.disabled)return;b.disabled=true;b.setAttribute('aria-busy','true');state.runRequest??=crypto.randomUUID();
-  try{const run=await postJSON('/api/runs',{request_id:state.runRequest});state.runRequest=null;state.runToken++;renderRun(run);showDialog($('run-dialog'));toast('运行判断已保存。');await refresh(false,true);}catch(error){toast(errorText(error),true);}finally{b.disabled=false;b.removeAttribute('aria-busy');}
+async function newRun(){const b=$('run-btn');if(b.disabled)return;b.disabled=true;b.setAttribute('aria-busy','true');taskWorkbench.busy(true);
+  try{const run=await postJSON('/api/runs',taskWorkbench.request());state.runRequest=null;taskWorkbench.accept(run);state.runToken++;renderRun(run);showDialog($('run-dialog'));toast('运行判断已保存。');await refresh(false,true);}catch(error){toast(errorText(error),true);}finally{taskWorkbench.busy(false);b.disabled=false;b.removeAttribute('aria-busy');}
 }
 $('refresh-btn').addEventListener('click',()=>refresh(true));$('run-btn').addEventListener('click',newRun);$('missing-shortcut').addEventListener('click',missingFilter);$('reset-filters').addEventListener('click',resetFilters);
 $('search').addEventListener('input',e=>setFilters({query:e.target.value},{animate:false}));$('mobile-scope').addEventListener('change',e=>setFilters({scope:e.target.value}));$('required-filter').addEventListener('change',e=>setFilters({required:e.target.value}));$('status-filter').addEventListener('change',e=>setFilters({status:e.target.value}));
@@ -338,7 +342,7 @@ for(const dialog of document.querySelectorAll('dialog'))dialog.addEventListener(
 $('detail-close').addEventListener('click',closeDetail);$('detail-dialog').addEventListener('cancel',e=>{e.preventDefault();closeDetail();});$('detail-dialog').addEventListener('close',()=>{state.detailToken++;state.dirty=false;state.detail=null;overlayChanged();if(!state.detailTrigger?.isConnected)$('search').focus({preventScroll:true});});
 for(const name of ['photo','run']){$(name+'-close').addEventListener('click',()=>$(name+'-dialog').close());$(name+'-dialog').addEventListener('close',overlayChanged);}
 $('photo-prev').addEventListener('click',()=>stepPhoto(-1));$('photo-next').addEventListener('click',()=>stepPhoto(1));$('photo-dialog').addEventListener('keydown',e=>{if(e.key==='ArrowLeft')stepPhoto(-1);if(e.key==='ArrowRight')stepPhoto(1);});$('photo-image').addEventListener('load',()=>{$('photo-image').removeAttribute('aria-busy');if($('photo-dialog').open)animateFeedback($('photo-image'),[{opacity:.55,transform:`translateX(${photoDirection*10}px)`},{opacity:1,transform:'translateX(0)'}],180);});$('photo-image').addEventListener('error',()=>{$('photo-image').removeAttribute('aria-busy');$('photo-caption').textContent='图片暂时无法读取，请关闭后重试。';});
-$('all-runs-btn').addEventListener('click',()=>{state.runToken++;$('run-title').textContent='最近运行记录';$('run-body').replaceChildren(el('p',{class:'field-hint'},'最多显示最近 20 次运行；点击查看当时保存的结果。'),...state.runs.map(r=>button(`${date(r.created_at)} · ${r.summary||r.run_id}`,()=>openRun(r.run_id),'run-item')));showDialog($('run-dialog'));});
+$('all-runs-btn').addEventListener('click',()=>{state.runToken++;$('run-title').textContent='最近运行记录';$('run-body').replaceChildren(el('p',{class:'field-hint'},'最多显示最近 50 次运行；点击查看当时保存的结果。'),...state.runs.map(r=>button(`${date(r.created_at)} · ${r.summary||r.run_id}`,()=>openRun(r.run_id),'run-item')));showDialog($('run-dialog'));});
 window.addEventListener('beforeunload',e=>{if(state.dirty||state.saving){e.preventDefault();e.returnValue='';}});
 let disposeMotion=initMotion();let poll=setInterval(()=>{if(!document.hidden)refresh();},30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});window.addEventListener('pagehide',()=>{clearInterval(poll);disposeMotion();realtime.stop();});window.addEventListener('pageshow',event=>{realtime.start();if(event.persisted){disposeMotion=initMotion({replayIntro:false});clearInterval(poll);poll=setInterval(()=>{if(!document.hidden)refresh();},30000);refresh();}});
 const realtime=createRealtimeClient({url:`${location.protocol==='https:'?'wss:':'ws:'}//${location.host}/ws/facilities`,onChange:updateRealtime});
@@ -347,6 +351,7 @@ roomStage=initRoomStage({
   onSelect:point=>setFilters({query:point.point_id,scope:'all',required:'all',status:'all'}),
   onEnter:point=>openDetail(point.point_id,'inspect')
 });
+taskWorkbench=initTaskWorkbench({el,button,api,postJSON,showDialog,toast,overlayChanged,onSelection:()=>refresh(false,true)});
 realtime.start();
 refresh();
 

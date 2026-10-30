@@ -17,7 +17,7 @@ from starlette.datastructures import UploadFile
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 if __package__:
-    from . import service, evidence
+    from . import service, evidence, runs as formal_runs, scenario_input
     from .storage import Store
     from .configuration import FACILITIES
     from .baseline import load_s1
@@ -25,6 +25,7 @@ if __package__:
 else:
     import service
     import evidence
+    from backend import runs as formal_runs, scenario_input
     from storage import Store
     from configuration import FACILITIES
     from baseline import load_s1
@@ -189,20 +190,34 @@ def create_app(db_path=None, uploads_dir=None, seed_demo=None, realtime_enabled=
             raise HTTPException(404, '此场景输入尚未建立。')
         return s1_input
 
+    @application.post('/api/scenarios/S1/prepare')
+    def prepare_s1(payload: dict = Body(...)):
+        return scenario_input.prepare_s1(store,payload)
+
+    @application.post('/api/evidence/manual')
+    def manual_evidence(payload: dict = Body(...)):
+        return scenario_input.manual(store,payload)
+
+    @application.get('/api/tasks')
+    def tasks(run_id: str):
+        with store.transaction() as conn:
+            result=formal_runs.detail(conn,run_id)
+            return result.get('task_results',[])
+
     @application.get('/api/zones')
     def zones():
         return {zid:{'name':zone['name'],'points':[{'id':pid,**service.POINTS[pid]} for pid in zone['points']]}
                 for zid,zone in service.ZONES.items()}
 
     @application.get('/api/dashboard')
-    def dashboard():
+    def dashboard(inspection_round_id: str | None = None, as_of: str | None = None, run_id: str | None = None):
         with store.transaction() as conn:
-            return service.dashboard(conn)
+            return formal_runs.dashboard(conn,inspection_round_id,as_of,run_id)
 
     @application.get('/api/coverage')
-    def coverage():
+    def coverage(inspection_round_id: str | None = None, as_of: str | None = None, run_id: str | None = None):
         with store.transaction() as conn:
-            return service.coverage(service.dashboard(conn))
+            return formal_runs.dashboard(conn,inspection_round_id,as_of,run_id)
 
     @application.get('/api/points/{point_id}')
     def point(point_id: str):
@@ -275,7 +290,7 @@ def create_app(db_path=None, uploads_dir=None, seed_demo=None, realtime_enabled=
     @application.get('/api/runs')
     def runs():
         with store.transaction() as conn:
-            return [dict(row) for row in conn.execute('SELECT * FROM runs ORDER BY created_at DESC, rowid DESC LIMIT 20')]
+            return formal_runs.listing(conn)
 
     @application.get('/api/runs/{run_id}')
     def run(run_id: str):

@@ -132,8 +132,8 @@ def test_migration_preserves_old_rows_without_round_backfill(client):
     store=client.app.state.store
     with sqlite3.connect(store.path) as db:
         db.execute("INSERT INTO records (point_id,status,source,evidence,created_at) VALUES ('C07','alarm','onsite','old','2020-01-01')")
-        db.execute("INSERT INTO runs VALUES ('oldrun','2020-01-01','old summary')")
-        before={t:db.execute('SELECT * FROM '+t).fetchall() for t in ('records','runs','reviews','photos')}
+        db.execute("INSERT INTO legacy_runs VALUES ('oldrun','2020-01-01','old summary')")
+        before={t:db.execute('SELECT * FROM '+t).fetchall() for t in ('records','legacy_runs','reviews','photos')}
     store.initialize(True);store.initialize(True)
     with sqlite3.connect(store.path) as db:
         assert before=={t:db.execute('SELECT * FROM '+t).fetchall() for t in before}
