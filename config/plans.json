@@ -1,0 +1,46 @@
+[
+  {
+    "plan_id": "PLAN_A",
+    "name": "方案甲",
+    "estimated_minutes": 25,
+    "description": "临时授权 + P1 直达 C07 补检",
+    "required_resources": [
+      "P1",
+      "access_coordinator",
+      "mobile_terminal"
+    ],
+    "required_permissions": [],
+    "estimate_basis": "案例书 2.7 固定教学总耗时，已包含访问协调；不是实测路线耗时。"
+  },
+  {
+    "plan_id": "PLAN_B",
+    "name": "方案乙",
+    "estimated_minutes": 20,
+    "description": "P1 处理其他剩余点位；具备 Z3 权限的 P2 完成 C07 补检",
+    "required_resources": [
+      "P1",
+      "P2",
+      "mobile_terminal"
+    ],
+    "required_permissions": [
+      {
+        "person_id": "P2",
+        "zone_id": "Z3"
+      }
+    ],
+    "estimate_basis": "案例书 2.7 固定教学总耗时，已包含访问协调；不是实测路线耗时。"
+  },
+  {
+    "plan_id": "PLAN_C",
+    "name": "方案丙",
+    "estimated_minutes": 55,
+    "description": "临时授权 + P1 对六个必检点重新巡检并完成详细多媒体取证",
+    "required_resources": [
+      "P1",
+      "access_coordinator",
+      "mobile_terminal"
+    ],
+    "required_permissions": [],
+    "estimate_basis": "案例书 2.7 固定教学总耗时，已包含访问协调；不是实测路线耗时。"
+  }
+]

@@ -1,6 +1,6 @@
 """Stage03 migrations preserve legacy history and freeze completed judgments."""
 
-RULE_VERSION = 'b02-stage03-v1'
+RULE_VERSION = 'b02-stage04-v1'
 TASKS = {
     'T1':'关键设施巡检覆盖', 'T2':'异常项复核与确认',
     'T3':'巡检记录可靠留存与汇聚', 'T4':'现场复核与证据补充',
@@ -94,7 +94,19 @@ def initialize(conn):
         conn.execute(f"""CREATE TRIGGER IF NOT EXISTS frozen_run_{op} BEFORE {op} ON runs
           WHEN OLD.status IN ('completed','failed')
           BEGIN SELECT RAISE(ABORT,'terminal run is immutable'); END""")
-    for table in ('run_evidence','dependency_checks','task_results'):
+    conn.execute('''CREATE TABLE IF NOT EXISTS plan_definitions (
+      plan_version TEXT NOT NULL,plan_id TEXT NOT NULL,definition_json TEXT NOT NULL,
+      PRIMARY KEY(plan_version,plan_id))''')
+    conn.execute('''CREATE TABLE IF NOT EXISTS plan_results (
+      run_id TEXT NOT NULL REFERENCES runs(run_id),plan_id TEXT NOT NULL,plan_version TEXT NOT NULL,
+      state TEXT NOT NULL CHECK(state IN ('executable','not_executable','unknown')),
+      result_json TEXT NOT NULL,PRIMARY KEY(run_id,plan_id),
+      FOREIGN KEY(plan_version,plan_id) REFERENCES plan_definitions(plan_version,plan_id))''')
+    conn.execute('''CREATE TABLE IF NOT EXISTS blockers (
+      run_id TEXT NOT NULL REFERENCES runs(run_id),task_id TEXT NOT NULL,dependency_id TEXT NOT NULL,
+      reason TEXT NOT NULL,evidence_refs TEXT NOT NULL,point_ids TEXT NOT NULL,
+      PRIMARY KEY(run_id,task_id,dependency_id))''')
+    for table in ('run_evidence','dependency_checks','task_results','plan_results','blockers'):
         for op in ('INSERT','UPDATE','DELETE'):
             reference = 'NEW' if op=='INSERT' else 'OLD'
             condition = f"(SELECT status FROM runs WHERE run_id={reference}.run_id) != 'running'"

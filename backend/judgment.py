@@ -76,18 +76,21 @@ def evaluate(snapshot):
         check('T1','window','satisfied' if start<=cutoff<=end else 'unsatisfied','判断截止时间位于固定巡检窗口',cr),
         check('T1','coverage','satisfied' if cp and value(cp)==coverage and not coverage['missing'] else 'unknown',
               '全部必检点有现场记录' if not coverage['missing'] else '缺少有效记录：'+','.join(coverage['missing']),cr,'reality')]
-    access_state='satisfied'; ar=list(cr)
+    access_state='satisfied'; ar=list(cr); denied_zones=set()
     for zone in {p['zone_id'] for p in coverage['points'] if p['required'] and not p['covered']}:
-        candidates=[p for p in items('zone_access') if value(p).get('zone_id')==zone]
+        candidates=[p for p in evidence if p['evidence_type']=='zone_access' and p.get('inspection_round_id')==rid
+            and (p.get('zone_id') or value(p).get('zone_id'))==zone and traceable(p)
+            and start<=timestamp(p['observed_at'])<=timestamp(p['retrieved_at'])<=cutoff]
         latest=max((timestamp(p['observed_at']) for p in candidates),default=None)
         current=[p for p in candidates if timestamp(p['observed_at'])==latest]
-        ar.extend(refs(current)); states={value(p).get('access') for p in current}
+        ar.extend(refs(current)); states={value(p).get('access') for p in current} if all(usable(p) for p in current) else {None}
         if states=={'DENIED'}:
-            access_state='unsatisfied'
+            access_state='unsatisfied'; denied_zones.add(zone)
         elif states!={'ALLOWED'} and access_state!='unsatisfied':
             access_state='unknown'
     t1.append(check('T1','access',access_state,{'satisfied':'已覆盖点有到达证据；缺口区域访问证据已核对',
-        'unsatisfied':'必检缺口所在区域明确拒绝进入','unknown':'缺口所在区域访问条件未知'}[access_state],ar,'reality'))
+        'unsatisfied':'必检缺口所在区域明确拒绝进入：'+','.join(sorted(denied_zones)),'unknown':'缺口所在区域访问条件未知'}[access_state],ar,'reality'))
+    t1[-1]['point_ids']=[p['checkpoint_id'] for p in coverage['points'] if p['required'] and not p['covered'] and p['zone_id'] in denied_zones]
     results=[task_result('T1',t1)]
 
     anomalies=one('anomaly_list'); targets=value(anomalies).get('checkpoint_ids')

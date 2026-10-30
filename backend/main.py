@@ -194,6 +194,10 @@ def create_app(db_path=None, uploads_dir=None, seed_demo=None, realtime_enabled=
     def prepare_s1(payload: dict = Body(...)):
         return scenario_input.prepare_s1(store,payload)
 
+    @application.post('/api/scenarios/{scenario_id}/prepare')
+    def prepare_scenario(scenario_id: str, payload: dict = Body(...)):
+        return scenario_input.prepare_s1(store,payload,scenario_id)
+
     @application.post('/api/evidence/manual')
     def manual_evidence(payload: dict = Body(...)):
         return scenario_input.manual(store,payload)

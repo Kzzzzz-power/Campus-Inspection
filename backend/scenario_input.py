@@ -1,40 +1,55 @@
 """Explicit teaching instances and the minimal, traceable manual evidence port."""
 from datetime import datetime
+from copy import deepcopy
 from uuid import uuid4
 from fastapi import HTTPException
 from . import evidence as ev, service
 from .baseline import load_s1
-from .configuration import FACILITIES, CONFIG, read_json
+from .configuration import FACILITIES, CONFIG, CONFIG_HASH, read_json
 
 CATALOG = {f['checkpoint_id']:f for f in FACILITIES}
 
 
-def _prepare_s1(store, payload):
+def load_scenario(scenario_id):
+    if scenario_id=='S1':return load_s1()
+    if scenario_id not in ('S2','S3'):raise HTTPException(404,'该阶段尚未接入此场景。')
+    definition=read_json(CONFIG/'scenarios'/(scenario_id+'.json'))
+    if definition['scenario_id']!=scenario_id or definition['source_type']!='SIMULATED' or definition['base_scenario']!='S1':
+        raise ValueError('Invalid standard teaching scenario')
+    fixture=deepcopy(load_s1())
+    fixture.update(scenario_id=scenario_id,scenario_definition=definition)
+    fixture['inspection_records']=[r for r in fixture['inspection_records'] if r['checkpoint_id'] not in definition['exclude_inspection_points']]
+    fixture['context']['zone_access']=definition['zone_access']
+    fixture['context']['planning']=definition.get('planning_context',{})
+    return fixture
+
+
+def _prepare_s1(store, payload, scenario_id='S1'):
     if set(payload) != {'instance_id','request_id'}:
         raise HTTPException(422,'需要 instance_id 和 request_id。')
     instance = service.request_key(payload['instance_id'])
     key = service.request_key(payload['request_id'])
-    fixture = load_s1()
+    fixture = load_scenario(scenario_id)
     digest = service.fingerprint({'instance_id':instance,'fixture':fixture})
-    rid = 'S1.' + instance
+    rid = scenario_id + '.' + instance
     prefix = rid + '.'
     original = fixture['inspection_round']
-    response = {'scenario_id':'S1','source_type':'SIMULATED','inspection_round_id':rid,
+    response = {'scenario_id':scenario_id,'source_type':'SIMULATED','inspection_round_id':rid,
                 'as_of':fixture['as_of'],'instance_id':instance}
     with store.transaction(write=True) as conn:
-        prior = service.receipt(conn,key,'prepare-S1',digest)
+        prior = service.receipt(conn,key,'prepare-'+scenario_id,digest)
         if prior is not None:
             return prior
         existing = conn.execute('SELECT * FROM scenario_instances WHERE instance_id=?',(instance,)).fetchone()
         if existing:
             if existing['fixture_hash'] != service.fingerprint(fixture):
                 raise HTTPException(409,'该实例绑定另一版教学输入。')
-            service.save_receipt(conn,key,'prepare-S1',digest,response)
+            service.save_receipt(conn,key,'prepare-'+scenario_id,digest,response)
             return response
         if conn.execute('SELECT 1 FROM inspection_rounds WHERE inspection_round_id=?',(rid,)).fetchone():
             raise HTTPException(409,'教学轮次标识已被其他数据占用。')
         ev.insert(conn,'inspection_rounds',dict(inspection_round_id=rid,round_id=rid,scenario_instance_id=instance,
-            config_hash=service.fingerprint({n:read_json(CONFIG/(n+'.json')) for n in ('facilities','zones')}),
+            config_hash=CONFIG_HASH,
             date=original['window_start'][:10],timezone='Asia/Shanghai',window_start=ev.stamp(original['window_start']),
             window_end=ev.stamp(original['window_end']),created_at=ev.now()))
         observation_ids = {}
@@ -58,7 +73,7 @@ def _prepare_s1(store, payload):
                 'SIMULATED',row['observation_id'],row['observed_at'],row['payload_json'],
                 inspection_round_id=rid,checkpoint_id=f['checkpoint_id'],facility_id=f['facility_id'],zone_id=f['zone_id'],
                 observation_id=row['observation_id'],retrieved_at=row['observed_at'],
-                provenance={'fixture':'config/scenarios/S1.json','original_id':original_row['observation_id'],'instance_id':instance})
+                provenance={'fixture':'config/scenarios/'+scenario_id+'.json','original_id':original_row['observation_id'],'instance_id':instance})
         for source in fixture['inspection_records']:
             row = {k:source[k] for k in ('checkpoint_id','facility_id','zone_id','inspector_id','method','result','notes','source_type')}
             row.update(inspection_id=prefix+source['inspection_id'],inspection_round_id=rid,
@@ -69,7 +84,7 @@ def _prepare_s1(store, payload):
             ev.add(conn,'inspection_record','SIMULATED',row['inspection_id'],row['inspected_at'],row,
                 inspection_round_id=rid,checkpoint_id=row['checkpoint_id'],facility_id=row['facility_id'],zone_id=row['zone_id'],
                 inspection_id=row['inspection_id'],retrieved_at=row['inspected_at'],
-                provenance={'fixture':'config/scenarios/S1.json','original_id':source['inspection_id'],'instance_id':instance})
+                provenance={'fixture':'config/scenarios/'+scenario_id+'.json','original_id':source['inspection_id'],'instance_id':instance})
         for source in fixture['review_requests']:
             f=next(f for f in FACILITIES if f['facility_id']==source['facility_id'])
             ev.insert(conn,'reviews',dict(review_id=prefix+source['review_id'],point_id=f['checkpoint_id'],
@@ -89,20 +104,22 @@ def _prepare_s1(store, payload):
                 inspection_round_id=rid,checkpoint_id='C03',facility_id=source['facility_id'],zone_id='Z1',
                 review_id=prefix+source['review_id'] if source['review_id'] else None,
                 inspection_id=value.get('inspection_id') if source['evidence_type']=='inspection_record' else None,
-                provenance={'fixture':'config/scenarios/S1.json','original_id':source['evidence_id'],
+                provenance={'fixture':'config/scenarios/'+scenario_id+'.json','original_id':source['evidence_id'],
                             'original_created_at':source['created_at'],'instance_id':instance})
         for access in fixture['context']['zone_access']:
             ev.add(conn,'zone_access','SIMULATED',prefix+access['zone_id'],fixture['as_of'],access,
                 inspection_round_id=rid,zone_id=access['zone_id'],retrieved_at=fixture['as_of'],
-                provenance={'fixture':'config/scenarios/S1.json','instance_id':instance})
+                provenance={'fixture':'config/scenarios/'+scenario_id+'.json','instance_id':instance})
+        from . import planning
+        planning.inputs(conn,fixture['context'].get('planning',{}),rid,fixture['as_of'],ev.stamp(original['window_end']),prefix+'planning',{'fixture':'config/scenarios/'+scenario_id+'.json','instance_id':instance})
         ev.insert(conn,'scenario_instances',dict(instance_id=instance,inspection_round_id=rid,
             fixture_hash=service.fingerprint(fixture),response_json=service.json_text(response)))
-        service.save_receipt(conn,key,'prepare-S1',digest,response)
+        service.save_receipt(conn,key,'prepare-'+scenario_id,digest,response)
     return response
 
 
-def prepare_s1(store, payload):
-    response=_prepare_s1(store,payload)
+def prepare_s1(store, payload, scenario_id='S1'):
+    response=_prepare_s1(store,payload,scenario_id)
     prefix=response['inspection_round_id']+'.'
     # Exercise the same validated entry as the manual API; these remain simulated facts.
     manual(store,{'request_id':prefix+'manual-proof','inspection_round_id':response['inspection_round_id'],

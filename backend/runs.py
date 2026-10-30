@@ -9,6 +9,8 @@ from . import evidence as ev, service
 from .configuration import FACILITIES, ZONES, CONFIG_HASH
 from .coverage import calculate_coverage
 from .run_schema import RULE_VERSION, TASKS
+from . import planning
+from .feasibility import evaluate_plans, derive_blockers
 
 
 def inputs(payload):
@@ -19,10 +21,10 @@ def inputs(payload):
     cutoff=ev.stamp(payload.get('as_of'))
     if cutoff>ev.now():
         raise HTTPException(422,'运行截止时间不能晚于当前时间。')
-    if payload.get('run_type','reality')!='reality' or payload.get('scenario_id') not in (None,'S1'):
-        raise HTTPException(422,'阶段 03 只支持现实运行和 S1；条件推演尚未接入。')
+    if payload.get('run_type','reality')!='reality' or payload.get('scenario_id') not in (None,'S1','S2','S3'):
+        raise HTTPException(422,'阶段 04 只支持现实运行和 S1–S3；条件推演尚未接入。')
     overrides=payload.get('input_overrides',{})
-    if not isinstance(overrides,dict) or set(overrides)-{'exclude_inspection_points','zone_access'}:
+    if not isinstance(overrides,dict) or set(overrides)-{'exclude_inspection_points','zone_access','remaining_minutes','resources','p2_z3_access'}:
         raise HTTPException(422,'输入覆盖字段无效。')
     excluded=overrides.get('exclude_inspection_points',[])
     if not isinstance(excluded,list) or len(excluded)>8 or any(not isinstance(p,str) or p not in service.POINTS for p in excluded):
@@ -38,7 +40,7 @@ def inputs(payload):
         seen.add(item['zone_id'])
     return {'request_id':key,'inspection_round_id':rid,'as_of':cutoff,'scenario_id':payload.get('scenario_id'),
             'run_type':'reality','input_overrides':{'exclude_inspection_points':sorted(set(excluded)),
-            'zone_access':sorted(accesses,key=lambda x:x['zone_id'])}}
+            'zone_access':sorted(accesses,key=lambda x:x['zone_id']),**planning.validate(overrides)}}
 
 
 def storage_proof(store, rid):
@@ -87,7 +89,7 @@ def basic_statistics(coverage,records,proofs,reviews):
     limitations=[]
     if len(durations)!=len(valid):
         limitations.append(f'耗时仅有 {len(durations)}/{len(valid)} 条可追溯样本；未记录的耗时不推算。')
-    limitations.append('阶段 03 仅提供基础统计，AI 增强尚未接入。')
+    limitations.append('当前仅提供基础统计，AI 增强尚未接入。')
     return {'coverage_rate':coverage['coverage_rate'],'required':coverage['required'],'covered':coverage['covered'],
             'zone_completion':{z:{'required':sum(p['required'] for p in coverage['points'] if p['zone_id']==z),
                                   'covered':sum(p['required'] and p['covered'] for p in coverage['points'] if p['zone_id']==z)} for z in ZONES},
@@ -104,8 +106,11 @@ def create(store,payload):
         if prior is not None:
             return prior
         round_value=dict(ev.round_row(conn,value['inspection_round_id']))
-        if (value['scenario_id']=='S1' or any(value['input_overrides'].values())) and not round_value['scenario_instance_id']:
+        if (value['scenario_id'] is not None or any(value['input_overrides'].values())
+            or any(k in value['input_overrides'] for k in ('remaining_minutes','resources','p2_z3_access'))) and not round_value['scenario_instance_id']:
             raise HTTPException(422,'场景输入覆盖只用于显式建立的教学实例。')
+    if value['scenario_id'] and not value['inspection_round_id'].startswith(value['scenario_id']+'.'):
+        raise HTTPException(422,'场景标识与独立教学轮次不一致。')
     probes=storage_proof(store,value['inspection_round_id'])
     run_id='run-'+uuid4().hex
     with store.transaction(write=True) as conn:
@@ -127,11 +132,12 @@ def create(store,payload):
                     provenance={'run_id':run_id,'basis_evidence_ids':[p['evidence_id']]}))
             else:
                 scoped.append(p)
-        proofs=scoped
+        proofs=planning.apply_overrides(conn,scoped,overrides,rid,cutoff,round_value['window_end'],run_id)
         source_watermark={'captured_at':ev.now(),'inspection_ids':[r['inspection_id'] for r in records],
                           'evidence_ids':[p['evidence_id'] for p in proofs]}
         snapshot={**value,'round':round_value,'facilities':FACILITIES,'rule_version':RULE_VERSION,
-                  'aggregation_limit_seconds':120,'review_snapshot':reviews}
+                  'aggregation_limit_seconds':120,'review_snapshot':reviews,
+                  'plan_definitions':planning.DEFINITIONS,'plan_version':planning.PLAN_VERSION}
         created=ev.now()
         ev.insert(conn,'runs',dict(run_id=run_id,schema_version=3,scenario_id=value['scenario_id'],
             inspection_round_id=rid,run_type='reality',parent_run_id=None,rule_version=RULE_VERSION,
@@ -172,6 +178,17 @@ def create(store,payload):
         derived('basic_statistics',stats)
         from .judgment import evaluate
         tasks=evaluate({'coverage':coverage,'evidence':proofs,'reviews':reviews,'inspection_records':records,'as_of':cutoff})
+        plans=evaluate_plans(planning.DEFINITIONS,proofs,rid,cutoff) if (rid.startswith('S3.') or any(p['evidence_type'] in ('time_budget','resource_availability','access_permission') for p in proofs)) else []
+        blockers=derive_blockers(tasks)
+        for plan in planning.DEFINITIONS:
+            definition=service.json_text(plan)
+            previous=conn.execute('SELECT definition_json FROM plan_definitions WHERE plan_version=? AND plan_id=?',(planning.PLAN_VERSION,plan['plan_id'])).fetchone()
+            if previous and previous[0]!=definition:raise HTTPException(409,'方案定义已变化，必须更新方案版本。')
+            conn.execute('INSERT OR IGNORE INTO plan_definitions VALUES (?,?,?)',(planning.PLAN_VERSION,plan['plan_id'],definition))
+        for plan in plans:
+            ev.insert(conn,'plan_results',dict(run_id=run_id,plan_id=plan['plan_id'],plan_version=planning.PLAN_VERSION,state=plan['state'],result_json=service.json_text(plan)))
+        for blocker in blockers:
+            ev.insert(conn,'blockers',{**blocker,'run_id':run_id,'evidence_refs':service.json_text(blocker['evidence_refs']),'point_ids':service.json_text(blocker['point_ids'])})
         for proof in proofs:
             conn.execute('INSERT OR IGNORE INTO run_evidence VALUES (?,?)',(run_id,proof['evidence_id']))
         for task in tasks:
@@ -185,7 +202,8 @@ def create(store,payload):
         result=dict(run_id=run_id,schema_version=3,legacy=False,status='completed',run_status='completed',
             scenario_id=value['scenario_id'],inspection_round_id=rid,run_type='reality',parent_run_id=None,
             rule_version=RULE_VERSION,as_of=cutoff,created_at=created,completed_at=ev.now(),input_snapshot=snapshot,
-            source_watermark=source_watermark,coverage=coverage,statistics=stats,task_results=tasks,evidence=proofs,summary=summary)
+            source_watermark=source_watermark,coverage=coverage,statistics=stats,task_results=tasks,evidence=proofs,summary=summary,
+            implementation_stage=4,plan_results=plans,blockers=blockers)
         conn.execute('UPDATE runs SET status=?,completed_at=?,summary=?,result_json=? WHERE run_id=?',
                      ('completed',result['completed_at'],summary,service.json_text(result),run_id))
         service.save_receipt(conn,key,'formal-run',digest,result)

@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "scenario_id": "S3",
+  "source_type": "SIMULATED",
+  "base_scenario": "S1",
+  "description": "复用 S1 基线的事实模板，写入独立轮次；不读取 S1 已完成记录，不预填任务或方案状态。",
+  "exclude_inspection_points": [
+    "C07"
+  ],
+  "zone_access": [
+    {
+      "zone_id": "Z1",
+      "access": "ALLOWED"
+    },
+    {
+      "zone_id": "Z2",
+      "access": "ALLOWED"
+    },
+    {
+      "zone_id": "Z3",
+      "access": "DENIED"
+    }
+  ],
+  "planning_context": {
+    "remaining_minutes": 35,
+    "resources": {
+      "P1": "AVAILABLE",
+      "P2": "UNAVAILABLE",
+      "access_coordinator": "AVAILABLE",
+      "mobile_terminal": "AVAILABLE"
+    },
+    "p2_z3_access": null,
+    "assumptions": [
+      "案例未声明 P2 当前 Z3 权限，保留取证未知；P2 明确不可用已足以否定方案乙。"
+    ]
+  }
+}
