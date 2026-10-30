@@ -5,14 +5,17 @@ import json
 import logging
 import math
 import threading
+import sqlite3
 from uuid import uuid4
 
 import paho.mqtt.client as mqtt
 
 if __package__:
     from .configuration import FACILITIES
+    from . import evidence
 else:
     from configuration import FACILITIES
+    import evidence
 
 TOPIC_PREFIX = 'nova/bb02/facility/'
 SUBSCRIPTION = TOPIC_PREFIX + '+/status'
@@ -30,8 +33,10 @@ def validate_message(topic, payload, received_at):
         raise ValueError('Non-finite JSON number')
     value = json.loads(payload.decode('utf-8'), parse_constant=invalid_constant)
     fields = {'facility_id','zone_id','observed_at','source_type','availability','condition','metrics'}
-    if not isinstance(value, dict) or set(value) != fields:
+    if not isinstance(value, dict) or set(value)-{'event_id'} != fields:
         raise ValueError('Observation fields are incomplete or unsupported')
+    if 'event_id' in value and (not isinstance(value['event_id'],str) or not 1 <= len(value['event_id']) <= 128 or not value['event_id'].strip()):
+        raise ValueError('Invalid event_id')
     catalog = {f['facility_id']: f for f in FACILITIES}
     fid = value['facility_id']
     if not isinstance(fid, str) or fid not in catalog or topic != TOPIC_PREFIX + fid + '/status':
@@ -57,7 +62,9 @@ def validate_message(topic, payload, received_at):
 
 
 class FacilityFeed:
-    def __init__(self, enabled=True, stale_after_seconds=10):
+    def __init__(self, enabled=True, stale_after_seconds=10, store=None):
+        self.store = store
+        self._storage = {}
         if not 2 <= stale_after_seconds <= 300:
             raise ValueError('Stale threshold must be between 2 and 300 seconds')
         self.stale_after_seconds = stale_after_seconds
@@ -86,25 +93,41 @@ class FacilityFeed:
                 self._diagnostics['last_error'] = str(error)
             LOGGER.warning('Rejected facility observation: %s', error)
             return 'rejected'
+        value['observed_at'] = observed.isoformat(timespec='microseconds')
+        event_id = value.pop('event_id',None)
+        derived = event_id is None
+        event_id = event_id or 'derived-'+evidence.service.fingerprint(value)
         with self._lock:
             previous = self._current.get(value['facility_id'])
             if previous:
                 if observed < previous['observed']:
                     self._diagnostics['out_of_order'] += 1
                     return 'out_of_order'
-                if observed == previous['observed']:
-                    if value != previous['observation']:
-                        self._diagnostics['rejected'] += 1
-                        self._diagnostics['last_error'] = 'Conflicting observation at the same observed_at'
-                        return 'rejected'
-                    previous['epoch'] = self._epoch
-                    self._diagnostics['duplicates'] += 1
-                    return 'duplicate'
+                if observed == previous['observed'] and value != previous['observation']:
+                    self._diagnostics['rejected'] += 1
+                    self._diagnostics['last_error'] = 'Conflicting observation at the same observed_at'
+                    return 'rejected'
+            persisted_result = None
+            if self.store:
+                try:
+                    persisted_result, observation_id = evidence.persist_observation(self.store,value,received_at.isoformat(),event_id,derived)
+                    if persisted_result in ('rejected','out_of_order'):
+                        self._diagnostics['rejected' if persisted_result=='rejected' else 'out_of_order'] += 1
+                        return persisted_result
+                    self._storage[value['facility_id']] = {'status':'ok','observation_id':observation_id,'error':None}
+                except (sqlite3.Error, OSError) as error:
+                    self._storage[value['facility_id']] = {'status':'error','observation_id':None,
+                        'error':str(error),'retry':'Resend the same message; no automatic historical freshness restoration'}
+                    LOGGER.error('Observation persistence failed: %s',error)
+            if previous and observed == previous['observed']:
+                previous['epoch'] = self._epoch
+                self._diagnostics['duplicates'] += 1
+                return 'duplicate'
             self._current[value['facility_id']] = {'observation':value, 'observed':observed,
                                                     'received_at':received_at.isoformat(), 'epoch':self._epoch}
             self._diagnostics['accepted'] += 1
             self._revision += 1
-        return 'accepted'
+        return 'duplicate' if persisted_result == 'duplicate' else 'accepted'
 
     def snapshot(self, at=None):
         at = at or utcnow()
@@ -116,6 +139,7 @@ class FacilityFeed:
                          and (at - current['observed']).total_seconds() <= self.stale_after_seconds)
                 points.append({**facility, 'observation':current['observation'] if current else None,
                                'received_at':current['received_at'] if current else None,
+                               'storage':self._storage.get(facility['facility_id'], {'status':'not_attempted'}),
                                'freshness':'fresh' if fresh else 'stale' if current else 'missing'})
             return deepcopy({'type':'facilities_snapshot', 'revision':self._revision, 'as_of':at.isoformat(),
                              'stale_after_seconds':self.stale_after_seconds, 'broker':self._broker,

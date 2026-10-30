@@ -11,8 +11,8 @@ class Store:
         self.uploads = Path(uploads)
 
     @contextmanager
-    def transaction(self, write=False):
-        conn = sqlite3.connect(self.path, timeout=5)
+    def transaction(self, write=False, timeout=5):
+        conn = sqlite3.connect(self.path, timeout=timeout)
         conn.row_factory = sqlite3.Row
         try:
             conn.execute('PRAGMA foreign_keys=ON')
@@ -63,6 +63,11 @@ class Store:
             ]
             for statement in statements:
                 conn.execute(statement)
+            if __package__:
+                from .evidence import initialize
+            else:
+                from evidence import initialize
+            initialize(conn)
             if seed_demo and fresh_database:
                 now = datetime.now(timezone.utc)
                 demo = [

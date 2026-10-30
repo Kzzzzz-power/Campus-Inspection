@@ -55,8 +55,11 @@ def require_point(point_id, code=422):
     return point_id
 
 
-def inspection_fields(fields, review=False):
+def inspection_fields(fields, review=False, canonical=False):
     allowed = {'point_id','inspector_id','inspected_at','result','notes','onsite_confirmed','request_id'}
+    allowed.add('inspection_round_id')
+    if canonical:
+        allowed.update({'canonical_result','started_at','duration_seconds','supersedes_id','assumed_timezone'})
     if review:
         allowed |= {'conclusion','version'}
     if set(fields) - allowed:
@@ -79,6 +82,10 @@ def inspection_fields(fields, review=False):
     value = {'point_id':point_id, 'inspector_id':inspector, 'inspected_at':observed.isoformat(),
              'result':result, 'notes':text(fields.get('notes',''),'现场说明',2000),
              'request_id':request_key(fields.get('request_id'))}
+    if fields.get('inspection_round_id') is not None:
+        value['inspection_round_id'] = request_key(fields['inspection_round_id'])
+    if canonical:
+        value.update({k:fields[k] for k in ('canonical_result','started_at','duration_seconds','supersedes_id','assumed_timezone')})
     if review:
         conclusion = fields.get('conclusion')
         if {'normal':'ok','fault':'alarm','unknown':'unknown'}.get(conclusion) != result:
@@ -223,8 +230,8 @@ def create_review(store, payload):
     return response
 
 
-def save_inspection(store, fields, photos, review_id=None):
-    value = inspection_fields(fields,review=review_id is not None)
+def save_inspection(store, fields, photos, review_id=None, canonical=False):
+    value = inspection_fields(fields,review=review_id is not None,canonical=canonical)
     if len(photos)>5:
         raise HTTPException(422,'每次最多提交 5 张照片。')
     key = value['request_id']
@@ -276,6 +283,11 @@ def save_inspection(store, fields, photos, review_id=None):
                 conn.execute('UPDATE reviews SET status=?,conclusion=?,version=?,updated_at=? WHERE review_id=?',
                     (review['status'],review['conclusion'],review['version'],now,review_id))
                 response['review'] = review
+            if __package__:
+                from . import evidence
+            else:
+                import evidence
+            response.update(evidence.save_inspection(conn,value,record_id,review_id,saved_photos))
             save_receipt(conn,key,action,digest,response)
         return response
     except BaseException:

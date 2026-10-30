@@ -17,13 +17,14 @@ from starlette.datastructures import UploadFile
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 if __package__:
-    from . import service
+    from . import service, evidence
     from .storage import Store
     from .configuration import FACILITIES
     from .baseline import load_s1
     from .realtime import FacilityFeed, MqttReceiver
 else:
     import service
+    import evidence
     from storage import Store
     from configuration import FACILITIES
     from baseline import load_s1
@@ -90,7 +91,7 @@ def create_app(db_path=None, uploads_dir=None, seed_demo=None, realtime_enabled=
     store = Store(database,uploads)
     if realtime_enabled is None:
         realtime_enabled = os.environ.get('INSPECTGO_MQTT_ENABLED', 'true').lower() == 'true'
-    feed = FacilityFeed(enabled=realtime_enabled,
+    feed = FacilityFeed(enabled=realtime_enabled, store=store,
                         stale_after_seconds=float(os.environ.get('INSPECTGO_STALE_SECONDS', '10')))
     receiver = MqttReceiver(feed, os.environ.get('INSPECTGO_MQTT_HOST', '127.0.0.1'),
                             int(os.environ.get('INSPECTGO_MQTT_PORT', '1883'))) if realtime_enabled else None
@@ -210,8 +211,39 @@ def create_app(db_path=None, uploads_dir=None, seed_demo=None, realtime_enabled=
 
     @application.post('/api/inspections')
     async def inspection(request: Request):
+        if request.headers.get('content-type','').split(';')[0].strip() == 'application/json':
+            try:
+                payload = await request.json()
+            except ValueError:
+                raise HTTPException(422,'无效 JSON。') from None
+            fields = evidence.canonical_fields(payload,request.headers.get('Idempotency-Key'))
+            return await run_in_threadpool(service.save_inspection,store,fields,[],None,True)
         fields,photos = await inspection_form(request)
         return await run_in_threadpool(service.save_inspection,store,fields,photos)
+
+    @application.post('/api/rounds')
+    def new_round(payload: dict = Body(...)):
+        return evidence.create_round(store,payload)
+
+    @application.get('/api/rounds')
+    def rounds(request: Request):
+        return evidence.query(store,'inspection_rounds',request.query_params)
+
+    @application.get('/api/history')
+    def history(request: Request):
+        return evidence.query(store,'facility_observations',request.query_params)
+
+    @application.get('/api/inspections')
+    def inspections(request: Request):
+        return evidence.query(store,'inspection_records',request.query_params)
+
+    @application.get('/api/evidence')
+    def evidence_list(request: Request):
+        return evidence.query(store,'evidence',request.query_params)
+
+    @application.post('/api/evidence/storage-check')
+    def storage_check():
+        return evidence.storage_check(store)
 
     @application.post('/api/reviews')
     def review(payload: dict = Body(...)):
