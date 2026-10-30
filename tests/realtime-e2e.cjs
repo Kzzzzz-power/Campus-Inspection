@@ -5,7 +5,7 @@ const {spawn,spawnSync}=require('node:child_process'),assert=require('node:asser
 const ROOT=path.resolve(__dirname,'..'),OUT=path.join(ROOT,'.runtime','stage01','e2e-'+Date.now());
 fs.mkdirSync(OUT,{recursive:true});
 const env={...process.env,TEMP:OUT,TMP:OUT,PYTHONDONTWRITEBYTECODE:'1',PYTHONIOENCODING:'utf-8',INSPECTGO_SEED_DEMO:'false'};
-const PY=path.join(ROOT,'.venv','Scripts','python.exe'),BPY=path.join(ROOT,'.runtime','broker-venv','Scripts','python.exe');
+const PY=process.env.INSPECTGO_PYTHON||path.join(ROOT,'.venv','Scripts','python.exe'),BPY=process.env.INSPECTGO_BROKER_PYTHON||path.join(ROOT,'.runtime','broker-venv','Scripts','python.exe');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms)),children=[],probeMessages=[],frames=[];
 const report={started_at:new Date().toISOString(),out:OUT,status:'failed',checks:[],errors:[]};
 async function until(fn,label,timeout=20000){const end=Date.now()+timeout;let last;while(Date.now()<end){try{const v=await fn();if(v)return v;}catch(e){last=e;}await sleep(100);}throw Error(label+' timed out'+(last?' '+last.message:''));}
