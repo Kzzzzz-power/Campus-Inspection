@@ -1,4 +1,4 @@
-import {matchesPoint} from './model.js';
+import {matchesPoint,facilityState,coverageState} from './model.js';
 import {createRealtimeClient,projectPoint} from './realtime.js';
 import {initMotion} from './motion.js';
 import {createFilterPickers} from './filter-pickers.js';
@@ -8,7 +8,7 @@ const $ = id => document.getElementById(id);
 const state = {queueButtons:new Map(),runButtons:new Map(),mapButtons:new Map(),runToken:0,refreshPromise:null,detailTrigger:null,data:null, runs:[], filters:{query:'',scope:'all',required:'all',status:'all'}, cards:new Map(), groups:new Map(), refreshing:false, detail:null, detailToken:0, dirty:false, saving:false, gallery:[], photoIndex:0, runRequest:null};
 const motionEffects = new WeakMap(), activeEffects = new Set();
 let activeViewTransition = null, photoDirection = 0;
-let filterPickers = null;
+let filterPickers = null, roomStage = null;
 function presentationMotionAllowed(){return !document.hidden&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&document.documentElement.dataset.feedback==='on';}
 function animateFeedback(target,frames,duration=180){
   if(!target)return;
@@ -62,15 +62,6 @@ function button(label, action, className='btn btn-secondary', symbol) { return e
 function date(value, full=false) { if(!value) return '未记录'; const d=new Date(value);return Number.isNaN(d.valueOf())?'时间格式未知':d.toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',...(full?{second:'2-digit'}:{})}); }
 function clock(value) { const d=new Date(value);return Number.isNaN(d.valueOf())?'—':d.toLocaleTimeString('zh-CN',{hour12:false}); }
 function statusBadge(text,tone='muted') { return el('span',{class:`status-badge is-${tone}`},icon(tone==='good'?'check':tone==='danger'?'alert':'clock'),text); }
-function facilityState(p) {
-  if(p.realtime && p.realtime.reason!=='disabled'){
-    if(!p.realtime.current)return ['状态未知','warn'];
-    const observation=p.realtime.facility.observation;
-    const availability={AVAILABLE:'可用',UNAVAILABLE:'不可用',UNKNOWN:'可用性未知'};
-    const condition={NORMAL:'正常',WARNING:'警告',FAULT:'故障'};
-    return [`${availability[observation.availability]} · ${condition[observation.condition]}`,p.latest_status==='alarm'?'danger':p.latest_status==='ok'?'good':'warn'];
-  }
-  return ({ok:['最近记录正常','good'],alarm:['告警待关注','danger'],unknown:['状态待确认','warn'],'no-record':['暂无状态记录','muted']})[p.latest_status]||['状态待确认','muted']; }
 function remoteMetadata(p){
   const remote=p.realtime,observation=remote?.facility?.observation;
   if(remote?.reason==='disabled')return '实时接入未启用 · 当前显示既有记录状态';
@@ -89,7 +80,7 @@ function updateRealtime(){
   if($('realtime-status').textContent!==labels[status.connection])$('realtime-status').textContent=labels[status.connection];
   $('realtime-status').classList.toggle('is-error',status.connection==='disconnected');
   $('broker-status').textContent=broker?((status.ready?'':'上次状态：')+brokerLabels[broker.state]+(broker.reason?` · ${broker.reason}`:'')):'等待消息代理状态';
-  if(state.data){renderFacilities();renderQueue();}
+  if(state.data){renderFacilities();renderQueue();syncRoomStage();}
   if(state.detail && $('detail-dialog').open){
     const point=displayedPoint(state.detail.point),row=$('detail-facility-status');
     if(row)row.replaceChildren(el('span',{class:'status-label'},'设施状态'),statusBadge(...facilityState(point)));
@@ -97,7 +88,6 @@ function updateRealtime(){
   }
 }
 function reviewState(review) { if(!review) return ['尚未发起','muted'];if(review.status==='pending') return ['待复核','warn'];return review.conclusion==='fault'?['已复核 · 确认异常','danger']:['已复核 · 确认正常','good']; }
-function coverageState(p) { return !p.required?['不计入必检统计','muted']:p.covered?['现场记录有效','good']:['缺少有效现场记录','warn']; }
 function statusRow(label, status) { return el('div',{class:'status-row'},el('span',{class:'status-label'},label),statusBadge(...status)); }
 function errorText(error) { if(error.status===403) return '没有执行此操作的权限，请核对访问权限。';if(error.status===409) return error.message+' 请重新打开详情核对，已填写内容仍保留。';return error.message||'请求失败，请稍后重试。'; }
 async function api(url, options={}) {
@@ -172,12 +162,13 @@ function renderRuns(){
   syncChildren($('recent-runs'),state.runs.length?state.runs.slice(0,5).map(r=>{let b=state.runButtons.get(r.run_id);if(!b){b=button('',()=>openRun(r.run_id),'run-item');state.runButtons.set(r.run_id,b);}b.replaceChildren(el('time',{},date(r.created_at)),el('strong',{},r.summary||'覆盖判断'),el('code',{},r.run_id));return b;}):[el('p',{class:'empty-state'},'还没有运行记录。生成一次判断，保留当前覆盖结果。')]);
   $('all-runs-btn').disabled=!state.runs.length;
 }
+function syncRoomStage(){roomStage?.sync((state.data?.points||[]).map(displayedPoint));}
 function renderDashboard(){
   const d=state.data;$('covered-count').textContent=d.covered;$('missing-count').textContent=d.missing.length;$('required-count').textContent=d.required_total;
   $('window-label').textContent=`过去 ${d.window_minutes} 分钟 · ${clock(d.window_start)}—${clock(d.window_end)}`;$('updated-at').textContent=date(d.as_of,true);
   renderNavigation(d.points);renderFacilities();renderQueue();
   const strip=$('coverage-strip');syncChildren(strip,d.points.map(p=>{let b=state.mapButtons.get(p.point_id);if(!b){b=button(p.point_id,()=>openDetail(p.point_id),'map-point');state.mapButtons.set(p.point_id,b);}b.className=`map-point ${!p.required?'is-optional':p.covered?'is-covered':'is-missing'}`;b.setAttribute('aria-label',`${p.point_id} ${p.device}：${coverageState(p)[0]}`);return b;}));
-  document.dispatchEvent(new CustomEvent('inspectgo:data',{detail:{points:d.points}}));
+  syncRoomStage();
 }
 async function refresh(manual=false,afterMutation=false){
   if(state.refreshPromise){if(!afterMutation)return state.refreshPromise;await state.refreshPromise;return refresh(manual,true);}
@@ -349,12 +340,12 @@ $('all-runs-btn').addEventListener('click',()=>{state.runToken++;$('run-title').
 window.addEventListener('beforeunload',e=>{if(state.dirty||state.saving){e.preventDefault();e.returnValue='';}});
 let disposeMotion=initMotion();let poll=setInterval(()=>{if(!document.hidden)refresh();},30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});window.addEventListener('pagehide',()=>{clearInterval(poll);disposeMotion();realtime.stop();});window.addEventListener('pageshow',event=>{realtime.start();if(event.persisted){disposeMotion=initMotion({replayIntro:false});clearInterval(poll);poll=setInterval(()=>{if(!document.hidden)refresh();},30000);refresh();}});
 const realtime=createRealtimeClient({url:`${location.protocol==='https:'?'wss:':'ws:'}//${location.host}/ws/facilities`,onChange:updateRealtime});
-realtime.start();
-initRoomStage({
-  getPoints:()=>state.data?.points||[],
+roomStage=initRoomStage({
+  getPoints:()=>(state.data?.points||[]).map(displayedPoint),
   onSelect:point=>setFilters({query:point.point_id,scope:'all',required:'all',status:'all'}),
   onEnter:point=>openDetail(point.point_id,'inspect')
 });
+realtime.start();
 refresh();
 
 for (const dialog of document.querySelectorAll('dialog')) {

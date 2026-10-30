@@ -3,7 +3,7 @@
 
 #room-stage {
   --room-card-w: 236px;
-  --room-card-h: 302px;
+  --room-card-h: 322px;
   --room-radius: 342px;
   --room-step: 45deg;
   position: relative;
@@ -147,8 +147,11 @@
 #room-stage .room-card__location i { margin: 0 3px; color: #bec9c8; font-style: normal; }
 #room-stage .room-card__location b { margin: 0 2px; color: #a4b7b4; font-weight: 400; }
 #room-stage .room-card__status { position: relative; z-index: 2; display: flex; align-items: center; gap: 4px; margin-top: auto; padding-top: 6px; color: #46835e; font-size: 9px; }
+#room-stage .room-card__facility { margin-top: 0; padding-top: 3px; }
+#room-stage .status-danger .status-warn-icon { color: #b42318; background: #fee4e2; }
 #room-stage .status-check { display: grid; width: 13px; height: 13px; place-items: center; border-radius: 50%; color: #2e8b59; background: #e1f1e7; font-size: 8px; font-style: normal; }
 #room-stage .room-card__status.status-warn { color: #a26516; }
+#room-stage .room-card__status.status-danger { color: #b42318; }
 #room-stage .status-warn-icon { display: grid; width: 13px; height: 13px; place-items: center; border-radius: 50%; color: #a26516; background: #fff0d9; font-size: 8px; font-style: normal; font-weight: 700; }
 #room-stage .room-card__status.status-muted { color: #71838a; }
 #room-stage .status-muted-icon { display: grid; width: 13px; height: 13px; place-items: center; border-radius: 50%; color: #71838a; background: #e7edec; font-size: 8px; font-style: normal; }
@@ -191,7 +194,7 @@
   #room-stage .room-ring::-webkit-scrollbar { display: none; }
   #room-stage .room-card {
     position: relative; left: auto; top: auto; flex: 0 0 184px;
-    width: 184px; height: 244px; margin: 0; transform: none !important;
+    width: 184px; height: 264px; margin: 0; transform: none !important;
     opacity: 1 !important; scroll-snap-align: center;
   }
   #room-stage .illu-scene { transform: scale(1.18); }
@@ -209,7 +212,7 @@
   #room-stage h2 { font-size: 19px; }
   #room-stage .room-heading p { font-size: 10px; }
   #room-stage .room-ring { margin-right: -13px; margin-left: -13px; padding-right: 13px; padding-left: 13px; }
-  #room-stage .room-card { flex-basis: 168px; width: 168px; height: 232px; }
+  #room-stage .room-card { flex-basis: 168px; width: 168px; height: 252px; }
   #room-stage .room-illustration { height: 106px; }
   #room-stage .enter-button { min-width: 112px; min-height: 34px; padding: 0 10px; font-size: 10px; }
   #room-stage .room-selection small { max-width: 170px; }

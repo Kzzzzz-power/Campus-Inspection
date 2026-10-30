@@ -1,3 +1,5 @@
+import {facilityState,coverageState} from './model.js';
+
 // Room stage: native 3D circular carousel, warp transition and parallax.
 // No third-party component source; visual mechanics adapted from the approved design.
 
@@ -41,23 +43,11 @@ function createRoomStage({ getPoints, onSelect, onEnter }) {
   let wheelLock = 0;
   let scrollFrame = 0;
   let scrollTimer = 0;
+  let selectionTimer = 0;
   let mobile = matchMedia('(max-width: 767px)').matches;
 
   function pointFor(id) {
     return points.find(point => point.point_id === id) || null;
-  }
-
-  function coverage(point) {
-    if (!point.required) return ['不计入必检统计', 'muted'];
-    if (point.covered) return ['现场记录有效', 'good'];
-    return ['缺少有效记录', 'warn'];
-  }
-
-  function statusOf(point) {
-    if (point.latest_status === 'alarm') return ['告警待关注', 'danger'];
-    if (point.latest_status === 'ok') return ['最近记录正常', 'good'];
-    if (point.latest_status === 'unknown') return ['状态待确认', 'warn'];
-    return ['暂无状态记录', 'muted'];
   }
 
   function illustration(point, index) {
@@ -84,11 +74,16 @@ function createRoomStage({ getPoints, onSelect, onEnter }) {
     return '<i class="sensor-body"><b></b></i><i class="sensor-wave"></i><i class="illu-floor"></i>';
   }
 
+  function statusMarkup(label, text, tone, className) {
+    const kind = tone === 'good' ? 'check' : tone === 'muted' ? 'muted' : 'warn';
+    const symbol = kind === 'check' ? '✓' : kind === 'muted' ? '·' : '!';
+    const iconClass = kind === 'check' ? 'status-check' : `status-${kind}-icon`;
+    return `<span class="room-card__status ${className} status-${kind}${tone === 'danger' ? ' status-danger' : ''}"><span class="sr-only">${label}：</span><i class="${iconClass}" aria-hidden="true">${symbol}</i>${text}</span>`;
+  }
+
   function cardMarkup(point, index, total) {
-    const [coverageText, coverageTone] = coverage(point);
-    const [statusText, statusTone] = statusOf(point);
-    const tone = statusTone === 'danger' ? 'warn' : statusTone === 'warn' ? 'warn' : statusTone === 'muted' ? 'muted' : 'check';
-    const statusIcon = tone === 'warn' ? '!' : tone === 'muted' ? '·' : '✓';
+    const [coverageText, coverageTone] = coverageState(point);
+    const [statusText, statusTone] = facilityState(point);
     const kind = illustration(point, index);
     return `<button class="room-card" data-point="${point.point_id}" type="button"
       aria-label="${point.device}，${point.building}${point.floor}，点位 ${index + 1} / ${total}"
@@ -97,10 +92,8 @@ function createRoomStage({ getPoints, onSelect, onEnter }) {
       <span class="room-illustration"><span class="illu-scene">${illustrationMarkup(kind)}</span></span>
       <span class="room-card__name">${point.device}</span>
       <span class="room-card__location">${point.building} <i>/</i> ${point.floor} <b>·</b> ${point.zone_id}</span>
-      <span class="room-card__status ${tone === 'warn' ? 'status-warn' : tone === 'muted' ? 'status-muted' : ''}">
-        <i class="${tone === 'warn' ? 'status-warn-icon' : tone === 'muted' ? 'status-muted-icon' : 'status-check'}">${statusIcon}</i>
-        ${statusTone === 'danger' ? statusText : coverageText}
-      </span>
+      ${statusMarkup('现场覆盖', coverageText, coverageTone, 'room-card__coverage')}
+      ${statusMarkup('设施状态', statusText, statusTone, 'room-card__facility')}
     </button>`;
   }
 
@@ -169,22 +162,23 @@ function createRoomStage({ getPoints, onSelect, onEnter }) {
     });
   }
 
-  function updateSelection(notify = true) {
+  function updateSelection(notify = true, scroll = true) {
     const point = points[active];
     if (!point) return;
     countEl.textContent = pad2(active + 1);
     nameEl.textContent = point.device;
-    const [coverageText] = coverage(point);
-    const [statusText] = statusOf(point);
+    const [coverageText] = coverageState(point);
+    const [statusText] = facilityState(point);
     locationEl.textContent = `${point.building} · ${point.floor} · ${point.point_id}`;
     statusEl.textContent = `${coverageText} · ${statusText}`;
     cards.forEach((card, index) => {
       const isActive = index === active;
       card.classList.toggle('is-active', isActive);
       card.setAttribute('aria-pressed', String(isActive));
+      card.tabIndex = isActive ? 0 : -1;
     });
     if (notify && typeof onSelect === 'function') onSelect(point);
-    if (mobile && notify) {
+    if (mobile && notify && scroll) {
       cards[active]?.scrollIntoView({ behavior: motionAllowed() ? 'smooth' : 'auto', inline: 'center', block: 'nearest' });
     }
   }
@@ -324,15 +318,15 @@ function createRoomStage({ getPoints, onSelect, onEnter }) {
 
   function pointerDown(event) {
     if (mobile || event.button !== 0 || !points.length) return;
-    pointer = { x: event.clientX, startPosition: position, moved: false };
-    viewport.setPointerCapture?.(event.pointerId);
+    pointer = { id: event.pointerId, x: event.clientX, startPosition: position, moved: false };
   }
 
   function pointerMove(event) {
-    if (!pointer || mobile) return;
+    if (!pointer || pointer.id !== event.pointerId || mobile) return;
     const dx = event.clientX - pointer.x;
     if (!pointer.moved && Math.abs(dx) < 5) return;
     if (!pointer.moved) {
+      viewport.setPointerCapture?.(event.pointerId);
       pointer.moved = true;
       dragging = true;
       ring.classList.add('is-dragging');
@@ -342,8 +336,9 @@ function createRoomStage({ getPoints, onSelect, onEnter }) {
     apply();
   }
 
-  function pointerUp() {
-    if (!pointer) return;
+  function pointerUp(event) {
+    if (!pointer || pointer.id !== event.pointerId) return;
+    if (viewport.hasPointerCapture?.(event.pointerId)) viewport.releasePointerCapture(event.pointerId);
     const moved = pointer.moved;
     pointer = null;
     if (!moved) return;
@@ -374,6 +369,7 @@ function createRoomStage({ getPoints, onSelect, onEnter }) {
 
   function onKeyDown(event) {
     if (!points.length) return;
+    const cardFocused = Boolean(event.target.closest?.('.room-card'));
     if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
       event.preventDefault();
       setActive(active + 1, { notify: true, animate: true });
@@ -392,13 +388,16 @@ function createRoomStage({ getPoints, onSelect, onEnter }) {
         warp();
       }
     }
+    if (cardFocused && ['ArrowRight','ArrowDown','ArrowLeft','ArrowUp','Home','End'].includes(event.key)) {
+      cards[active]?.focus({ preventScroll: true });
+    }
   }
 
   function sync(nextPoints) {
     const list = Array.isArray(nextPoints) ? nextPoints : [];
-    const signature = list.map(point => `${point.point_id}:${point.device}:${point.covered}:${point.latest_status}:${point.review?.status || ''}`).join('|');
-    const previousSignature = points.map(point => `${point.point_id}:${point.device}:${point.covered}:${point.latest_status}:${point.review?.status || ''}`).join('|');
-    if (signature === previousSignature && list.length === points.length) return;
+    const signature = items => JSON.stringify(items.map(point => [point.point_id, point.device,
+      point.building, point.floor, point.zone_id, point.required, point.covered, ...facilityState(point)]));
+    if (signature(list) === signature(points)) { points = list; return; }
     const focusedCard = document.activeElement?.closest?.('.room-card');
     const hadFocus = Boolean(focusedCard && ring.contains(focusedCard));
     const activeId = points[active]?.point_id;
@@ -472,6 +471,23 @@ function createRoomStage({ getPoints, onSelect, onEnter }) {
     }
   }
 
+  ring.addEventListener('scroll', () => {
+    window.clearTimeout(selectionTimer);
+    if (!mobile || !cards.length) return;
+    selectionTimer = window.setTimeout(() => {
+      selectionTimer = 0;
+      if (!mobile || document.hidden) return;
+      const bounds = ring.getBoundingClientRect(), center = bounds.left + bounds.width / 2;
+      let nearest = active, distance = Infinity;
+      cards.forEach((card, index) => {
+        const rect = card.getBoundingClientRect(), next = Math.abs(rect.left + rect.width / 2 - center);
+        if (next < distance) { nearest = index; distance = next; }
+      });
+      if (nearest !== active) { active = position = nearest; updateSelection(true, false); }
+    }, 120);
+  }, { passive: true });
+  window.addEventListener('pagehide', () => { window.clearTimeout(selectionTimer); cancelAnimationFrame(scrollFrame); scrollFrame = 0; });
+
   viewport.addEventListener('pointerdown', pointerDown, { passive: true });
   viewport.addEventListener('pointermove', pointerMove, { passive: true });
   viewport.addEventListener('pointerup', pointerUp, { passive: true });
@@ -493,7 +509,6 @@ function createRoomStage({ getPoints, onSelect, onEnter }) {
       document.querySelectorAll('#room-spark').forEach(node => node.remove());
     }
   });
-  document.addEventListener('inspectgo:data', event => sync(event.detail?.points));
   document.getElementById('search')?.addEventListener('input', syncFromSearch);
   document.getElementById('mobile-scope')?.addEventListener('change', syncFromScope);
   document.addEventListener('inspectgo:feedback', event => {
