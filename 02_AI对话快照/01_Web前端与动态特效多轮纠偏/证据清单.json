@@ -1,0 +1,686 @@
+{
+  "case": "Web前端与动态特效多轮纠偏",
+  "prepared_on": "2026-10-31",
+  "timestamps_required": false,
+  "originals_unchanged": true,
+  "image_editing": "Python/Pillow, explicitly user-authorized; no generative redraw",
+  "source_inventory": [
+    {
+      "file": "01-desktop.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\01-desktop.png",
+      "sha256": "e699909c061da54eed1316b19af585ab925407e7fea01d59aebe0d50f3321ad0",
+      "size": [
+        1440,
+        1000
+      ],
+      "original_copy": "D:\\校园设施巡检与复核\\.runtime\\ai-case-web-20261031\\原始图片\\01-desktop.png"
+    },
+    {
+      "file": "compare-desktop.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\compare-desktop.png",
+      "sha256": "da14faaefcd1b3ffdcbe57ede1b1594a4253b7d4c6a4f06a85f7af298c71f6fc",
+      "size": [
+        1448,
+        878
+      ],
+      "original_copy": "D:\\校园设施巡检与复核\\.runtime\\ai-case-web-20261031\\原始图片\\compare-desktop.png"
+    },
+    {
+      "file": "compare-mobile.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\compare-mobile.png",
+      "sha256": "e99dce4006b3ad912c13f7c956633fa81e635975a2bed70bce86a9fec9719897",
+      "size": [
+        828,
+        918
+      ],
+      "original_copy": "D:\\校园设施巡检与复核\\.runtime\\ai-case-web-20261031\\原始图片\\compare-mobile.png"
+    },
+    {
+      "file": "desktop.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\desktop.png",
+      "sha256": "26226219f188a81813676c8d6ab6d88f8dbca411c4ac16644abf6efe8734c671",
+      "size": [
+        1430,
+        1643
+      ],
+      "original_copy": "D:\\校园设施巡检与复核\\.runtime\\ai-case-web-20261031\\原始图片\\desktop.png"
+    },
+    {
+      "file": "final-1440.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\final-1440.png",
+      "sha256": "26226219f188a81813676c8d6ab6d88f8dbca411c4ac16644abf6efe8734c671",
+      "size": [
+        1430,
+        1643
+      ],
+      "original_copy": "D:\\校园设施巡检与复核\\.runtime\\ai-case-web-20261031\\原始图片\\final-1440.png"
+    },
+    {
+      "file": "QQ20261027-224136.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\QQ20261027-224136.png",
+      "sha256": "08f548be600dee0a0c22fc1ce142128995e4efa0f6d970fa56678c614c33fc28",
+      "size": [
+        1694,
+        1306
+      ],
+      "original_copy": "D:\\校园设施巡检与复核\\.runtime\\ai-case-web-20261031\\原始图片\\QQ20261027-224136.png"
+    },
+    {
+      "file": "QQ20261027-224643.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\QQ20261027-224643.png",
+      "sha256": "0ab622dc3392e83e1fe44173fe6cb06a71463e99d653c272fb9b492e8975ecab",
+      "size": [
+        1884,
+        1256
+      ],
+      "original_copy": "D:\\校园设施巡检与复核\\.runtime\\ai-case-web-20261031\\原始图片\\QQ20261027-224643.png"
+    },
+    {
+      "file": "QQ20261029-123935.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\QQ20261029-123935.png",
+      "sha256": "e32d7d3222665c456714f1191a79ed4194426425cff9e9f92f62f5190db4d225",
+      "size": [
+        1274,
+        1034
+      ],
+      "original_copy": "D:\\校园设施巡检与复核\\.runtime\\ai-case-web-20261031\\原始图片\\QQ20261029-123935.png"
+    },
+    {
+      "file": "QQ20261030-220656.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\QQ20261030-220656.png",
+      "sha256": "d36d5f6b2853e0ddb7386a6814e2b8f87756c9dca74207f5c674e7d43e6c7ca6",
+      "size": [
+        2559,
+        1378
+      ],
+      "original_copy": "D:\\校园设施巡检与复核\\.runtime\\ai-case-web-20261031\\原始图片\\QQ20261030-220656.png"
+    },
+    {
+      "file": "QQ20261030-222955.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\QQ20261030-222955.png",
+      "sha256": "23a29b12af3aa87630bcff47796f063f158e57599b67c190cb0bf42b232918f6",
+      "size": [
+        2559,
+        1376
+      ],
+      "original_copy": "D:\\校园设施巡检与复核\\.runtime\\ai-case-web-20261031\\原始图片\\QQ20261030-222955.png"
+    },
+    {
+      "file": "QQ20261030-230151.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\QQ20261030-230151.png",
+      "sha256": "f55f526b733255177167a1f92685641bd3ebf388d43702f853edced560eafa0c",
+      "size": [
+        2559,
+        1376
+      ],
+      "original_copy": "D:\\校园设施巡检与复核\\.runtime\\ai-case-web-20261031\\原始图片\\QQ20261030-230151.png"
+    },
+    {
+      "file": "QQ20261030-230429.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\QQ20261030-230429.png",
+      "sha256": "caad2b6e47d73abea20bf94838033f752784c50260f51ebc611e52caf0f1f85b",
+      "size": [
+        2559,
+        1376
+      ],
+      "original_copy": "D:\\校园设施巡检与复核\\.runtime\\ai-case-web-20261031\\原始图片\\QQ20261030-230429.png"
+    },
+    {
+      "file": "QQ20261030-230516.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\QQ20261030-230516.png",
+      "sha256": "84ebdc093328f1e4bca37cf07223e180cbe666caf858dcbb06246278872e02f0",
+      "size": [
+        2559,
+        1378
+      ],
+      "original_copy": "D:\\校园设施巡检与复核\\.runtime\\ai-case-web-20261031\\原始图片\\QQ20261030-230516.png"
+    },
+    {
+      "file": "QQ20261030-230535.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\QQ20261030-230535.png",
+      "sha256": "b679bb0e0aaeac655990b6c426ce9a98684074a1bb247223db1e1a16144f510a",
+      "size": [
+        2559,
+        1380
+      ],
+      "original_copy": "D:\\校园设施巡检与复核\\.runtime\\ai-case-web-20261031\\原始图片\\QQ20261030-230535.png"
+    },
+    {
+      "file": "QQ20261030-231955.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\QQ20261030-231955.png",
+      "sha256": "a3a36cd519a08e0fbc4b62c18dd2d9b798f410013f6be19e03e2ad5a2695914e",
+      "size": [
+        1209,
+        1215
+      ],
+      "original_copy": "D:\\校园设施巡检与复核\\.runtime\\ai-case-web-20261031\\原始图片\\QQ20261030-231955.png"
+    },
+    {
+      "file": "QQ20261030-232055.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\QQ20261030-232055.png",
+      "sha256": "e09614b9cf02423f87bbf35fd77226bf8c8b967459a05c4d2ab9833a5b7322b3",
+      "size": [
+        1051,
+        836
+      ],
+      "original_copy": "D:\\校园设施巡检与复核\\.runtime\\ai-case-web-20261031\\原始图片\\QQ20261030-232055.png"
+    },
+    {
+      "file": "QQ20261030-232408.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\QQ20261030-232408.png",
+      "sha256": "d47b8954b6cb95197af00a71ca3a370cc463d88131abe142e5f62a2857a15c10",
+      "size": [
+        2285,
+        1183
+      ],
+      "original_copy": "D:\\校园设施巡检与复核\\.runtime\\ai-case-web-20261031\\原始图片\\QQ20261030-232408.png"
+    },
+    {
+      "file": "QQ20261030-232531.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\QQ20261030-232531.png",
+      "sha256": "4cd5a321b92f78532a60b0027c69fa82fa326563710b5a02fd517031e6588ef1",
+      "size": [
+        2559,
+        1381
+      ],
+      "original_copy": "D:\\校园设施巡检与复核\\.runtime\\ai-case-web-20261031\\原始图片\\QQ20261030-232531.png"
+    },
+    {
+      "file": "QQ20261030-232554.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\QQ20261030-232554.png",
+      "sha256": "ad4b58037735047250d4917f75aa96debc933624848e7ce7dfebaf3089ea16be",
+      "size": [
+        2559,
+        1188
+      ],
+      "original_copy": "D:\\校园设施巡检与复核\\.runtime\\ai-case-web-20261031\\原始图片\\QQ20261030-232554.png"
+    },
+    {
+      "file": "QQ20261030-233107.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\QQ20261030-233107.png",
+      "sha256": "e338bad6c95290f2c0ff3cb1e38d9a016326af3c5576ab934fd480e641364ba7",
+      "size": [
+        2559,
+        1380
+      ],
+      "original_copy": "D:\\校园设施巡检与复核\\.runtime\\ai-case-web-20261031\\原始图片\\QQ20261030-233107.png"
+    },
+    {
+      "file": "QQ20261030-233115.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\QQ20261030-233115.png",
+      "sha256": "6078cc5da4bfad83f4c106c3e389dc377fabd49fb2d0ff793b22ff258ac12f61",
+      "size": [
+        2559,
+        1380
+      ],
+      "original_copy": "D:\\校园设施巡检与复核\\.runtime\\ai-case-web-20261031\\原始图片\\QQ20261030-233115.png"
+    }
+  ],
+  "independent_evidence": [
+    {
+      "file": "01-我的原始提问.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\QQ20261030-220656.png",
+      "source_sha256": "d36d5f6b2853e0ddb7386a6814e2b8f87756c9dca74207f5c674e7d43e6c7ca6",
+      "source_size": [
+        2559,
+        1378
+      ],
+      "crop_xyxy": [
+        512,
+        112,
+        1445,
+        330
+      ],
+      "display_scale": 1,
+      "focus_source_xyxy": [
+        518,
+        120,
+        1434,
+        323
+      ],
+      "output_size": [
+        1280,
+        358
+      ],
+      "output_sha256": "090f7f5e5bb942fc74a60b58497adb77d672b1aa76301d2b50bc6b9ca94e5084",
+      "method": "single crop; white canvas; caption; at most one red rectangle; no text reconstruction"
+    },
+    {
+      "file": "02-AI第一次的方案.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\QQ20261030-220656.png",
+      "source_sha256": "d36d5f6b2853e0ddb7386a6814e2b8f87756c9dca74207f5c674e7d43e6c7ca6",
+      "source_size": [
+        2559,
+        1378
+      ],
+      "crop_xyxy": [
+        468,
+        375,
+        1500,
+        1165
+      ],
+      "display_scale": 1,
+      "focus_source_xyxy": [
+        478,
+        465,
+        1425,
+        509
+      ],
+      "output_size": [
+        1280,
+        930
+      ],
+      "output_sha256": "b1e168eed8c961b2fad98d484f054e68138c9512e0c2fefb803e0bd757e8a0fc",
+      "method": "single crop; white canvas; caption; at most one red rectangle; no text reconstruction"
+    },
+    {
+      "file": "02b-首轮落地与局限.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\QQ20261030-230151.png",
+      "source_sha256": "f55f526b733255177167a1f92685641bd3ebf388d43702f853edced560eafa0c",
+      "source_size": [
+        2559,
+        1376
+      ],
+      "crop_xyxy": [
+        820,
+        110,
+        2070,
+        1160
+      ],
+      "display_scale": 1,
+      "focus_source_xyxy": [
+        830,
+        822,
+        2028,
+        862
+      ],
+      "output_size": [
+        1298,
+        1190
+      ],
+      "output_sha256": "082e47961238dc7a2499e61ff0ff80701f3520bfe31672f51aaadeb7e16437a0",
+      "method": "single crop; white canvas; caption; at most one red rectangle; no text reconstruction"
+    },
+    {
+      "file": "04-我的纠偏指令.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\QQ20261030-233107.png",
+      "source_sha256": "e338bad6c95290f2c0ff3cb1e38d9a016326af3c5576ab934fd480e641364ba7",
+      "source_size": [
+        2559,
+        1380
+      ],
+      "crop_xyxy": [
+        820,
+        110,
+        2080,
+        1160
+      ],
+      "display_scale": 1,
+      "focus_source_xyxy": [
+        1125,
+        120,
+        2067,
+        183
+      ],
+      "output_size": [
+        1308,
+        1190
+      ],
+      "output_sha256": "7d95d75135a4ee7d0e041d9b74295b2f39d3d24cd0a52ed4b4364c2bfc21c6e0",
+      "method": "single crop; white canvas; caption; at most one red rectangle; no text reconstruction"
+    },
+    {
+      "file": "04b-弹窗反馈修复与验证答复.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\QQ20261030-233115.png",
+      "source_sha256": "6078cc5da4bfad83f4c106c3e389dc377fabd49fb2d0ff793b22ff258ac12f61",
+      "source_size": [
+        2559,
+        1380
+      ],
+      "crop_xyxy": [
+        820,
+        110,
+        2080,
+        1160
+      ],
+      "display_scale": 1,
+      "focus_source_xyxy": [
+        830,
+        265,
+        2068,
+        332
+      ],
+      "output_size": [
+        1308,
+        1190
+      ],
+      "output_sha256": "ce2c2fd60bd5bb24235c3507e3a5fb83fca9c1f5a79d9682af897e9ce9506103",
+      "method": "single crop; white canvas; caption; at most one red rectangle; no text reconstruction"
+    },
+    {
+      "file": "04c-玻璃界面与空间下拉框要求.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\QQ20261029-123935.png",
+      "source_sha256": "e32d7d3222665c456714f1191a79ed4194426425cff9e9f92f62f5190db4d225",
+      "source_size": [
+        1274,
+        1034
+      ],
+      "crop_xyxy": [
+        235,
+        0,
+        1195,
+        992
+      ],
+      "display_scale": 1,
+      "focus_source_xyxy": [
+        525,
+        8,
+        1180,
+        238
+      ],
+      "output_size": [
+        1280,
+        1132
+      ],
+      "output_sha256": "bfd39705d27435d823ccde02eb4ae5202edf072cd1cb1c296e94ea6646bc2fdc",
+      "method": "single crop; white canvas; caption; at most one red rectangle; no text reconstruction"
+    },
+    {
+      "file": "04d-名称纠正与正式接入.png",
+      "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\QQ20261030-230535.png",
+      "source_sha256": "b679bb0e0aaeac655990b6c426ce9a98684074a1bb247223db1e1a16144f510a",
+      "source_size": [
+        2559,
+        1380
+      ],
+      "crop_xyxy": [
+        980,
+        190,
+        1960,
+        1170
+      ],
+      "display_scale": 1,
+      "focus_source_xyxy": [
+        997,
+        946,
+        1915,
+        1098
+      ],
+      "output_size": [
+        1280,
+        1120
+      ],
+      "output_sha256": "61415c4bedd95c260af7c8bef4525c145fc3e737239b10ff79614f5930425c2d",
+      "method": "single crop; white canvas; caption; at most one red rectangle; no text reconstruction"
+    },
+    {
+      "file": "05-验证结果.png",
+      "source": "D:\\校园设施巡检与复核\\docs\\evidence\\glass-ui-2026-10-29\\live-picker-1440.png",
+      "source_sha256": "a2ac40fec0c712791340f06565145879da3a381f61ca044d5c2f4d39e3d5ed4f",
+      "source_size": [
+        1440,
+        1000
+      ],
+      "crop_xyxy": [
+        0,
+        0,
+        1440,
+        1000
+      ],
+      "display_scale": 1,
+      "focus_source_xyxy": [
+        540,
+        507,
+        873,
+        985
+      ],
+      "output_size": [
+        1488,
+        1140
+      ],
+      "output_sha256": "1ed86ec2183ab487cb5b8277223a9320bf24ccbf5af1ce66083918da6a6f1e0f",
+      "method": "single crop; white canvas; caption; at most one red rectangle; no text reconstruction"
+    },
+    {
+      "file": "05a-刷新忙碌反馈.png",
+      "source": "D:\\校园设施巡检与复核\\.runtime\\ui-motion-review\\final\\mobile-refresh-busy.png",
+      "source_sha256": "c1bc4c0ab487f0dc5796535022e1d0d7f18758dfacb0a9f6443b3a74dab906cb",
+      "source_size": [
+        390,
+        844
+      ],
+      "crop_xyxy": [
+        0,
+        0,
+        390,
+        844
+      ],
+      "display_scale": 1.5,
+      "focus_source_xyxy": [
+        142,
+        54,
+        239,
+        102
+      ],
+      "output_size": [
+        1280,
+        1406
+      ],
+      "output_sha256": "5a246ffacaa6302df2cb71c01b44c9b70631c537ca1db6cc86fe1da0fbc90fb0",
+      "method": "single crop; white canvas; caption; at most one red rectangle; no text reconstruction"
+    },
+    {
+      "file": "05b-弹窗内的控件反馈.png",
+      "source": "D:\\校园设施巡检与复核\\.runtime\\ui-motion-review\\final\\mobile-dialog-ring.png",
+      "source_sha256": "4e9adfb4ba29163b68d53bbbfebf6cd5042bf65d75a92b92bdfdfa2311e6d1ae",
+      "source_size": [
+        390,
+        844
+      ],
+      "crop_xyxy": [
+        0,
+        0,
+        390,
+        844
+      ],
+      "display_scale": 1.5,
+      "focus_source_xyxy": [
+        12,
+        305,
+        200,
+        357
+      ],
+      "output_size": [
+        1280,
+        1406
+      ],
+      "output_sha256": "d42324d747a9e18ff412622ea086b9a6379bff8461b0ffb93f33505a8cd7e4a9",
+      "method": "single crop; white canvas; caption; at most one red rectangle; no text reconstruction"
+    },
+    {
+      "file": "05c-移动端空间浮层.png",
+      "source": "D:\\校园设施巡检与复核\\docs\\evidence\\glass-ui-2026-10-29\\live-picker-390.png",
+      "source_sha256": "9ff0eeb7db66c2a3fa354985dcab7dc908592ec96f4ac2dd82791994f68dbba0",
+      "source_size": [
+        390,
+        844
+      ],
+      "crop_xyxy": [
+        0,
+        0,
+        390,
+        844
+      ],
+      "display_scale": 1.5,
+      "focus_source_xyxy": [
+        16,
+        395,
+        366,
+        829
+      ],
+      "output_size": [
+        1280,
+        1406
+      ],
+      "output_sha256": "6af0a22d7f360a8580a640bf71ec1f05ce7c95404f372b13ed23dfe5562751f7",
+      "method": "single crop; white canvas; caption; at most one red rectangle; no text reconstruction"
+    }
+  ],
+  "editorial_comparisons": [
+    {
+      "file": "对照与标注/01-视觉方向前后对照.png",
+      "method": "explicitly labelled editorial comparison; separate from evidence",
+      "panels": [
+        {
+          "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\compare-desktop.png",
+          "source_sha256": "da14faaefcd1b3ffdcbe57ede1b1594a4253b7d4c6a4f06a85f7af298c71f6fc",
+          "crop_xyxy": [
+            16,
+            58,
+            716,
+            859
+          ],
+          "label": "调整前｜深色工作台"
+        },
+        {
+          "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\compare-desktop.png",
+          "source_sha256": "da14faaefcd1b3ffdcbe57ede1b1594a4253b7d4c6a4f06a85f7af298c71f6fc",
+          "crop_xyxy": [
+            732,
+            58,
+            1432,
+            859
+          ],
+          "label": "第一版｜日间预览"
+        }
+      ],
+      "sha256": "13c3302102889b12e337255d420c8f23793311bf5e8464c57185c63eab8aecde"
+    },
+    {
+      "file": "对照与标注/02-提问与纠偏对照.png",
+      "method": "explicitly labelled editorial comparison; separate from evidence",
+      "panels": [
+        {
+          "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\QQ20261030-220656.png",
+          "source_sha256": "d36d5f6b2853e0ddb7386a6814e2b8f87756c9dca74207f5c674e7d43e6c7ca6",
+          "crop_xyxy": [
+            512,
+            112,
+            1445,
+            330
+          ],
+          "label": "原始要求｜先看效果再改代码"
+        },
+        {
+          "source": "C:\\Users\\tan13\\Desktop\\训到位\\新建文件夹\\QQ20261030-233107.png",
+          "source_sha256": "e338bad6c95290f2c0ff3cb1e38d9a016326af3c5576ab934fd480e641364ba7",
+          "crop_xyxy": [
+            820,
+            110,
+            2080,
+            805
+          ],
+          "label": "纠偏要求｜按具体动作提供反馈"
+        }
+      ],
+      "sha256": "92c636644dcc0d1ce34bda31461e3e02a0f65f6bab491b76377b3a435c6c77cc"
+    },
+    {
+      "file": "对照与标注/03-空间选择控件前后对照.png",
+      "method": "explicitly labelled editorial comparison; separate from evidence",
+      "panels": [
+        {
+          "source": "D:\\校园设施巡检与复核\\.runtime\\ui-motion-review\\final\\mobile-refresh-busy.png",
+          "source_sha256": "c1bc4c0ab487f0dc5796535022e1d0d7f18758dfacb0a9f6443b3a74dab906cb",
+          "crop_xyxy": [
+            0,
+            0,
+            390,
+            844
+          ],
+          "label": "调整前｜原生下拉框"
+        },
+        {
+          "source": "D:\\校园设施巡检与复核\\docs\\evidence\\glass-ui-2026-10-29\\live-picker-390.png",
+          "source_sha256": "9ff0eeb7db66c2a3fa354985dcab7dc908592ec96f4ac2dd82791994f68dbba0",
+          "crop_xyxy": [
+            0,
+            0,
+            390,
+            844
+          ],
+          "label": "接入后｜可搜索、分组的浮层"
+        }
+      ],
+      "sha256": "60ef3b147595aa6e0f172a4e9e9135fb1f300c79d2b4a87ca7ff3cc9d6aa42d5"
+    }
+  ],
+  "historical_reports_and_video": [
+    {
+      "file": "补充证据/点击反馈-13项.json",
+      "source": "D:\\校园设施巡检与复核\\.runtime\\ui-motion-review\\final\\feedback-verification.json",
+      "source_sha256": "144f6a76df79ecd62f70ed820c8e2ea14cbf21072a1b63fea980f17c204c9611",
+      "copy_sha256": "144f6a76df79ecd62f70ed820c8e2ea14cbf21072a1b63fea980f17c204c9611"
+    },
+    {
+      "file": "补充证据/日间打磨-10项.json",
+      "source": "D:\\校园设施巡检与复核\\docs\\evidence\\web-polish-2026-10-28\\polish.json",
+      "source_sha256": "d0682915deba1947e085ab4544ca6d89fc7185fc136d9266355ad24f8908049a",
+      "copy_sha256": "d0682915deba1947e085ab4544ca6d89fc7185fc136d9266355ad24f8908049a"
+    },
+    {
+      "file": "补充证据/标题拖尾与生命周期-7项.json",
+      "source": "D:\\校园设施巡检与复核\\docs\\evidence\\web-polish-2026-10-28\\browser-advanced.json",
+      "source_sha256": "2ae09150d859be505cf136470fdf1417f91bd8bcf187a5ce3a79ab0680d43432",
+      "copy_sha256": "2ae09150d859be505cf136470fdf1417f91bd8bcf187a5ce3a79ab0680d43432"
+    },
+    {
+      "file": "补充证据/玻璃浮层-15项.json",
+      "source": "D:\\校园设施巡检与复核\\docs\\evidence\\glass-ui-2026-10-29\\glass-browser.json",
+      "source_sha256": "30d0db341f1299261852c9a90e9d4e551df6ffdb829cd0980f97c8b7d13ab39c",
+      "copy_sha256": "30d0db341f1299261852c9a90e9d4e551df6ffdb829cd0980f97c8b7d13ab39c"
+    },
+    {
+      "file": "补充证据/交互复现说明-历史原文.txt",
+      "source": "D:\\校园设施巡检与复核\\.runtime\\ui-motion-review\\final\\outputs\\交互复现说明.txt",
+      "source_sha256": "6901b5dbebb2551ab57eadddfcfa76223aecb6942aea45daf7904dbdd52f108e",
+      "copy_sha256": "6901b5dbebb2551ab57eadddfcfa76223aecb6942aea45daf7904dbdd52f108e"
+    },
+    {
+      "file": "补充证据/视频核验-历史.json",
+      "source": "D:\\校园设施巡检与复核\\.runtime\\ui-motion-review\\final\\outputs\\video-validation.json",
+      "source_sha256": "e07a55af886969b8e43521ac98b16fbbe5dd86e8c3c046fe67fb1ee533f448ad",
+      "copy_sha256": "e07a55af886969b8e43521ac98b16fbbe5dd86e8c3c046fe67fb1ee533f448ad"
+    },
+    {
+      "file": "补充证据/日间点击动效-历史录屏.mp4",
+      "source": "D:\\校园设施巡检与复核\\.runtime\\ui-motion-review\\final\\outputs\\InspectGo-最终点击动效.mp4",
+      "source_sha256": "06843ce1627c53190e50e7faf8cfd8eb0586915a5949edece143263f667eb3d2",
+      "copy_sha256": "06843ce1627c53190e50e7faf8cfd8eb0586915a5949edece143263f667eb3d2"
+    }
+  ],
+  "duplicate": {
+    "desktop.png": "final-1440.png",
+    "same_sha256": true
+  },
+  "exclusions": {
+    "QQ20261030-222955.png": "示例设计稿，不作本项目实际验收",
+    "01-desktop.png": "预览图，不冒充正式接入结果"
+  },
+  "gaps": [
+    "完整首轮实施方案正文",
+    "首轮日间正式改码授权消息",
+    "日间后续打磨完整对话",
+    "弹窗反馈故障修复前画面"
+  ],
+  "this_run": "整理文档与图片；未执行应用测试、代码修改或 Git 提交",
+  "video_metadata_correction": {
+    "mp4_movie_timescale": 1000,
+    "mp4_movie_duration_units": 28367,
+    "mp4_duration_seconds": 28.367,
+    "browser_duration_seconds": 28.366667,
+    "historical_report_duration_seconds": 20.34,
+    "reason": "原 encode-final.py 的报告用录屏采样末时刻估算时长，没有读取最终 MP4 时长；不是文件复制不一致。",
+    "scope": "本次只核对文件与浏览器元数据，没有重新编码视频或改写历史报告。"
+  }
+}

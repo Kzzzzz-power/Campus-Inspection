@@ -1,0 +1,51 @@
+InspectGo 日间信号台：点击对应动作的动态反馈复现
+完成时间：2026-10-28（本地运行与真实验证）
+
+结论
+保持原有日间界面，不换版式、不改业务。本轮修改 frontend/app.js、frontend/motion.js、frontend/styles.css。index.html 与 tests/browser.cjs 的 Git 差异是前轮遗留，本輪未新增修改。无新增前端依赖，未 commit/push。
+
+动作对应效果
+1. 触控/鼠标按压：0.97 缩放 + 一次性点击环，抬起/取消/离开窗口清除按压。键盘 Enter/Space 保留原生激活，并提供控件中心点击反馈。
+2. 待补检、搜索及筛选：先同步更新结果，再对结果区和计数做180–200ms透明度反馈；不改变搜索匹配规则，不延迟业务过滤。
+3. 视图切换：保留滑块及 transform/opacity 共享元素过渡；连点会跳过前一次过渡，最终模式按最后意图落地，临时 style 清理。
+4. 刷新/生成判断/提交记录/创建复核：忙碌指示与真实 aria-busy 状态绑定；保存和错误沿用服务端结果，不提前伪造成功。
+5. 查看详情：dialog.open/showModal仍同步。弹窗透明度进入；内部内容短位移与淡入。关闭仍立即执行，未延迟 Escape 或原有弃稿保护。
+6. 填写记录/处理复核：实际表单短进入效果；不会因背景暂停误禁弹窗控件动效。
+7. 照片预览/切换：真实图片 load 后透明度/轻位移反馈，使用原有图片数据。示例视频中的图来自隔离库测试附件，不是新拍摄的现场实物照片。
+8. 关闭界面动效/系统减少动态：即时取消一次性动画、点击环和过渡；保留原生焦点、文字、忙碌静态指示与全部业务功能。
+
+技术关键
+背景 data-motion 保持原有策略（弹窗打开暂停背景/title/ribbon）；新增独立 data-feedback 控制控件反馈，不被 overlay 暂停。WAAPI有完成/取消清理；关闭偏好时主动取消跟踪的动画。
+
+最终验证
+- JS语法与git diff --check通过。
+- 前端单元：3/3通过。
+- 业务浏览器：19项通过、0JS异常。
+- 高级动效/生命周期：7项通过、0JS异常。
+- 新点击专项：13项通过、0JS异常（包括触控、键盘、弹窗内点击、忙碌、快速连切、关闭动效、系统reduce、照片及Escape父层保留）。
+- 9个宽度1440/1250/1101/1100/1024/768/580/390/320均无横向溢出。
+- 24条视图过渡动画实际关键帧仅transform/opacity。
+- 最新静置2.5秒LayoutCount增量0；网格到列表450ms窗口增量16（前轮优化前84）。不是零布局或全平台FPS保证。
+
+视频
+InspectGo-最终点击动效.mp4：最终磁盘源码直接运行的真实Chrome录屏，无预览CSS/脚本注入；触控模拟390×844，1259帧按实际采集时间戳合成，约20.34秒，完整解码通过。
+刷新展示使用标注的1100ms GET延迟模拟；其他均真实读取与界面操作，录屏不提交表单、不创建运行判断。
+SHA256：06843ce1627c53190e50e7faf8cfd8eb0586915a5949edece143263f667eb3d2
+
+预览环境
+http://127.0.0.1:8001 为隔离测试库，不是正式8000。
+库：.runtime/daylight-validation/api/validation.db
+照片：.runtime/daylight-validation/api/uploads
+业务回归在此库写测试记录，真实backend数据库/照片未做写入验收。
+
+未纳入
+更换颜色语义、缩减首屏、调整状态筛选结构、搜索位置匹配修复、P4完整FLIP未纳入本轮。完整后端pytest、真机手感、Safari/Firefox、低端设备FPS及读屏全流程未验证。自动设计检测器不可用（启动文件Forbidden），没有虚构检测通过。
+
+复测脚本
+.runtime/ui-motion-review/final/validate-feedback.cjs
+.runtime/daylight-validation/validate-daylight.cjs
+.runtime/daylight-validation/inspect-vt.cjs
+tests/frontend.test.mjs
+tests/browser.cjs
+tests/browser-advanced.cjs
+证据已汇集到本说明同目录。

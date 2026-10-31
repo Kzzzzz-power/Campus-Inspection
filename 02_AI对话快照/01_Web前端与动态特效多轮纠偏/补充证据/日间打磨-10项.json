@@ -1,0 +1,96 @@
+{
+  "at": "2026-10-28T14:47:52.115Z",
+  "base": "http://127.0.0.1:8012/",
+  "status": "passed",
+  "checks": [
+    {
+      "name": "discrete_filter_has_synchronous_results_and_card_flip",
+      "status": "passed",
+      "count": 1
+    },
+    {
+      "name": "typing_keeps_results_steady",
+      "status": "passed"
+    },
+    {
+      "name": "search_matches_location_and_preserves_scope",
+      "status": "passed"
+    },
+    {
+      "name": "ambient_pause_preserves_current_position",
+      "status": "passed"
+    },
+    {
+      "name": "summary_avoids_backdrop_sampling",
+      "status": "passed"
+    },
+    {
+      "name": "saved_run_toast_visible_above_modal",
+      "status": "passed"
+    },
+    {
+      "name": "rapid_changes_keep_latest_view_and_filter",
+      "status": "passed"
+    },
+    {
+      "name": "reduced_motion_keeps_all_controls_without_animations",
+      "status": "passed"
+    },
+    {
+      "name": "view_transition_unavailable_falls_back_synchronously",
+      "status": "passed"
+    },
+    {
+      "name": "responsive_layout_and_mobile_primary_action",
+      "status": "passed",
+      "widths": [
+        {
+          "width": 1440,
+          "scroll": 1430,
+          "firstActionBottom": 888
+        },
+        {
+          "width": 1250,
+          "scroll": 1240,
+          "firstActionBottom": 888
+        },
+        {
+          "width": 1101,
+          "scroll": 1091,
+          "firstActionBottom": 888
+        },
+        {
+          "width": 1100,
+          "scroll": 1090,
+          "firstActionBottom": 880
+        },
+        {
+          "width": 1024,
+          "scroll": 1014,
+          "firstActionBottom": 880
+        },
+        {
+          "width": 768,
+          "scroll": 758,
+          "firstActionBottom": 930
+        },
+        {
+          "width": 580,
+          "scroll": 570,
+          "firstActionBottom": 840
+        },
+        {
+          "width": 390,
+          "scroll": 380,
+          "firstActionBottom": 840
+        },
+        {
+          "width": 320,
+          "scroll": 320,
+          "firstActionBottom": 925
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "real_frames": 1259,
+  "duration_seconds": 20.34,
+  "dimensions": [
+    390,
+    844
+  ],
+  "bytes": 1427788,
+  "sha256": "06843ce1627c53190e50e7faf8cfd8eb0586915a5949edece143263f667eb3d2",
+  "full_decode_errors": "",
+  "source": "final source real browser screencast; touch emulation; no CSS or app-script injection; GET delay annotated in recording-final.json"
+}

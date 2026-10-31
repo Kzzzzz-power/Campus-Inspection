@@ -1,0 +1,9 @@
+{
+  "mp4_movie_timescale": 1000,
+  "mp4_movie_duration_units": 28367,
+  "mp4_duration_seconds": 28.367,
+  "browser_duration_seconds": 28.366667,
+  "historical_report_duration_seconds": 20.34,
+  "reason": "原 encode-final.py 的报告用录屏采样末时刻估算时长，没有读取最终 MP4 时长；不是文件复制不一致。",
+  "scope": "本次只核对文件与浏览器元数据，没有重新编码视频或改写历史报告。"
+}
