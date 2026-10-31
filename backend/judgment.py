@@ -73,7 +73,7 @@ def evaluate(snapshot):
     config_ok=bool(configured) and {f['checkpoint_id'] for f in configured if f['critical']}=={
         p['checkpoint_id'] for p in coverage['points'] if p['required']}
     t1=[check('T1','configuration','satisfied' if config_ok else 'unknown','必检清单与覆盖输入核对',refs([config]) if config else [],'reality'),
-        check('T1','window','satisfied' if start<=cutoff<=end else 'unsatisfied','判断截止时间位于固定巡检窗口',cr),
+        check('T1','window','satisfied' if cutoff>=start and (cutoff<=end or not coverage['missing']) else 'unsatisfied','固定窗口内完成覆盖；窗口结束后缺口不可补记',cr),
         check('T1','coverage','satisfied' if cp and value(cp)==coverage and not coverage['missing'] else 'unknown',
               '全部必检点有现场记录' if not coverage['missing'] else '缺少有效记录：'+','.join(coverage['missing']),cr,'reality')]
     access_state='satisfied'; ar=list(cr); denied_zones=set()
@@ -116,15 +116,19 @@ def evaluate(snapshot):
                 good=good and valid
                 if basis:
                     confirmation_refs.append(eid)
-        # Later acquisition failures or conflicting current facts invalidate an earlier confirmation.
+        # Acquisition failure is not a contrary business fact; frozen confirmation TTL still applies.
         statuses=[p for p in evidence if p.get('checkpoint_id')==point and p['evidence_type'] in ('remote_status','facility_status')
                   and p.get('inspection_round_id')==rid and timestamp(p['observed_at'])<=cutoff]
         if statuses:
             newest=max(timestamp(p['observed_at']) for p in statuses)
             latest_statuses=[p for p in statuses if timestamp(p['observed_at'])==newest]
-            if any(p['status']!='ok' for p in latest_statuses) or (latest is not None and newest>latest):
+            confirmation_refs.extend(refs(latest_statuses))
+            conclusions={value(p).get('conclusion') for p in current}
+            conflicts=any(p['status']=='ok' and traceable(p) and (
+                conclusions=={'ruled_out'} and value(p).get('condition') in ('WARNING','FAULT') or
+                conclusions=={'confirmed_abnormal'} and value(p).get('condition')=='NORMAL') for p in latest_statuses)
+            if latest is not None and newest>=latest and conflicts:
                 good=False
-                confirmation_refs.extend(refs(latest_statuses))
         if not good:
             unresolved.append(point)
     confirmed=anomaly_ok and not unresolved
@@ -144,10 +148,14 @@ def evaluate(snapshot):
     results.append(task_result('T3',t3))
 
     reviews=[r for r in snapshot['reviews'] if timestamp(r['created_at']) and timestamp(r['created_at'])<=cutoff]
-    linked=[p for p in evidence if p['evidence_type'] in ('inspection_record','field_note') and usable(p)
+    linked=[p for p in evidence if p['evidence_type'] in ('inspection_record','field_note') and usable(p,True)
             and p['source_type'] in ('ON_SITE','SIMULATED') and any(r['review_id']==p.get('review_id')
             and r['point_id']==p.get('checkpoint_id') and timestamp(p['observed_at'])>=timestamp(r['created_at']) for r in reviews)]
-    missing=[r for r in reviews if r['review_id'] not in {p['review_id'] for p in linked}]
+    latest_requests={}
+    for r in reviews:
+        key=(r['point_id'],r.get('task_id') or 'T2')
+        if key not in latest_requests or timestamp(r['created_at'])>timestamp(latest_requests[key]['created_at']):latest_requests[key]=r
+    missing=[r for r in latest_requests.values() if r['review_id'] not in {p['review_id'] for p in linked}]
     pending=bool(missing) and all(r['status']=='pending' and (not r.get('expires_at') or timestamp(r['expires_at'])>=cutoff) for r in missing)
     channel=one('review_channel'); chrefs=refs([channel]) if channel else []
     t4=[check('T4','object','satisfied' if reviews else 'unknown','复核请求关联具体点位',refs(linked)+chrefs,'reality'),

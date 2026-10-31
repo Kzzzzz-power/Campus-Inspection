@@ -4,6 +4,7 @@ This is not the full B-B02 task engine. Coverage and device condition stay separ
 """
 from contextlib import asynccontextmanager
 import asyncio
+import logging
 import os
 from pathlib import Path
 import re
@@ -30,6 +31,8 @@ else:
     from configuration import FACILITIES
     from baseline import load_s1
     from realtime import FacilityFeed, MqttReceiver
+
+from backend import reviews as review_service
 
 FRONTEND = Path(__file__).resolve().parent.parent / 'frontend'
 
@@ -101,11 +104,26 @@ def create_app(db_path=None, uploads_dir=None, seed_demo=None, realtime_enabled=
     @asynccontextmanager
     async def lifespan(application):
         await run_in_threadpool(store.initialize,seed_demo)
+        async def review_lifecycle():
+            while True:
+                try:
+                    maintenance=os.environ.get('INSPECTGO_MAINTENANCE_FILE')
+                    if not maintenance or not Path(maintenance).exists():
+                        await run_in_threadpool(review_service.maintain,store)
+                except (sqlite3.Error,OSError,HTTPException):
+                    logging.getLogger(__name__).exception('Review lifecycle maintenance failed; retry in 30 seconds')
+                await asyncio.sleep(30)
+        review_worker=asyncio.create_task(review_lifecycle())
         if receiver:
             receiver.start()
         try:
             yield
         finally:
+            review_worker.cancel()
+            try:
+                await review_worker
+            except asyncio.CancelledError:
+                pass
             if receiver:
                 await run_in_threadpool(receiver.stop)
 
@@ -266,12 +284,36 @@ def create_app(db_path=None, uploads_dir=None, seed_demo=None, realtime_enabled=
 
     @application.post('/api/reviews')
     def review(payload: dict = Body(...)):
-        return service.create_review(store,payload)
+        review_service.expire(store)
+        return review_service.create(store,payload)
+
+    @application.get('/api/reviews')
+    def review_list(status: str | None = None):
+        return review_service.listing(store,status)
+
+    @application.post('/api/reviews/expire')
+    def expire_reviews():
+        return review_service.expire(store)
+
+    @application.get('/api/reviews/{review_id}')
+    def review_detail(review_id: str):
+        return review_service.detail(store,review_id)
+
+    @application.post('/api/reviews/{review_id}/transition')
+    def review_transition(review_id: str,payload: dict = Body(...)):
+        return review_service.transition(store,review_id,payload)
+
+    @application.post('/api/reviews/{review_id}/rerun')
+    def review_rerun(review_id: str,payload: dict = Body(...)):
+        if set(payload)!={'version'} or type(payload['version']) is not int:
+            raise HTTPException(422,'需要复核版本。')
+        return {'rerun':review_service.rerun(store,review_id,payload['version'])}
 
     @application.post('/api/reviews/{review_id}/evidence')
     async def review_evidence(review_id: str, request: Request):
         fields,photos = await inspection_form(request,review=True)
-        return await run_in_threadpool(service.save_inspection,store,fields,photos,review_id)
+        response=await run_in_threadpool(service.save_inspection,store,fields,photos,review_id)
+        return await run_in_threadpool(review_service.finish,store,response)
 
     @application.get('/api/evidence/images/{image_id}')
     def image(image_id: str):
@@ -289,6 +331,7 @@ def create_app(db_path=None, uploads_dir=None, seed_demo=None, realtime_enabled=
 
     @application.post('/api/runs')
     def new_run(payload: dict | None = Body(default=None)):
+        review_service.expire(store)
         return service.create_run(store,payload)
 
     @application.get('/api/runs')

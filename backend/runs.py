@@ -74,7 +74,7 @@ def round_facts(conn,rid,cutoff):
         'history_query','aggregation','review_channel','basic_statistics') and not p['provenance_json'].get('run_id')]
     reviews=[dict(r) for r in conn.execute('''SELECT DISTINCT r.* FROM reviews r
         LEFT JOIN evidence e ON e.review_id=r.review_id LEFT JOIN runs run ON run.run_id=r.trigger_run_id
-        WHERE (e.inspection_round_id=? OR run.inspection_round_id=?) AND r.created_at<=?''',(rid,rid,cutoff))]
+        WHERE (e.inspection_round_id=? OR run.inspection_round_id=? OR r.inspection_round_id=?) AND r.created_at<=?''',(rid,rid,rid,cutoff))]
     return round_value,records,proofs,reviews
 
 
@@ -83,7 +83,9 @@ def basic_statistics(coverage,records,proofs,reviews):
     valid=[r for r in records if r['inspection_id'] in selected]
     durations=[r['duration_seconds'] for r in valid if r.get('duration_seconds') is not None]
     anomaly_points=sorted({p['checkpoint_id'] for p in proofs if p.get('checkpoint_id') and p['status']=='ok'
-                           and (p.get('value_json') or {}).get('condition') in ('WARNING','FAULT')}
+                           and ((p.get('value_json') or {}).get('condition') in ('WARNING','FAULT')
+                                or p['evidence_type']=='inspection_record' and (p.get('value_json') or {}).get('result') in ('WARNING','FAULT')
+                                or p['evidence_type']=='review_confirmation' and (p.get('value_json') or {}).get('conclusion')=='confirmed_abnormal')}
                          | {r['checkpoint_id'] for r in valid if r['result'] in ('WARNING','FAULT')})
     average=sum(durations)/len(durations) if durations else None
     limitations=[]
@@ -98,7 +100,7 @@ def basic_statistics(coverage,records,proofs,reviews):
             'pending_review_count':sum(r['status']=='pending' for r in reviews),'limitations':limitations}
 
 
-def create(store,payload):
+def create(store,payload,frozen=None):
     value=inputs(payload)
     key=value['request_id']; digest=service.fingerprint(value)
     with store.transaction() as conn:
@@ -119,6 +121,8 @@ def create(store,payload):
             return prior
         rid=value['inspection_round_id']; cutoff=value['as_of']
         round_value,records,proofs,reviews=round_facts(conn,rid,cutoff)
+        if frozen is not None:
+            records=frozen['records'];proofs=frozen['proofs'];reviews=frozen['reviews']
         overrides=value['input_overrides']
         coverage=calculate_coverage(FACILITIES,records,round_value,cutoff,overrides['exclude_inspection_points'])
         excluded=set(overrides['exclude_inspection_points'])
@@ -165,8 +169,8 @@ def create(store,payload):
         derived('aggregation',{'lag_seconds':max(lag_samples) if lag_samples else None,'local_durable':True,
                               'limit_seconds':120,'sample_count':len(lag_samples),
                               'semantics':'SIMULATED uses original source acquisition times; ON_SITE uses actual acquisition.'})
-        manual_proofs=[p for p in proofs if p['status']=='ok' and p['evidence_type']=='field_note'
-            and p['provenance_json'].get('port')=='/api/evidence/manual'
+        manual_proofs=[p for p in proofs if p['status']=='ok' and (p['evidence_type']=='inspection_record' and p['source_type']=='ON_SITE'
+            or p['evidence_type']=='field_note' and p['provenance_json'].get('port')=='/api/evidence/manual')
             and any(r['review_id']==p['review_id'] and r['point_id']==p['checkpoint_id'] for r in reviews)]
         derived('review_channel',{'saved':bool(manual_proofs),'linked':bool(manual_proofs),
             'readback_matched':bool(manual_proofs),'basis_evidence_ids':[p['evidence_id'] for p in manual_proofs],
@@ -203,7 +207,7 @@ def create(store,payload):
             scenario_id=value['scenario_id'],inspection_round_id=rid,run_type='reality',parent_run_id=None,
             rule_version=RULE_VERSION,as_of=cutoff,created_at=created,completed_at=ev.now(),input_snapshot=snapshot,
             source_watermark=source_watermark,coverage=coverage,statistics=stats,task_results=tasks,evidence=proofs,summary=summary,
-            implementation_stage=4,plan_results=plans,blockers=blockers)
+            implementation_stage=5,plan_results=plans,blockers=blockers)
         conn.execute('UPDATE runs SET status=?,completed_at=?,summary=?,result_json=? WHERE run_id=?',
                      ('completed',result['completed_at'],summary,service.json_text(result),run_id))
         service.save_receipt(conn,key,'formal-run',digest,result)

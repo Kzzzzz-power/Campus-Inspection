@@ -1,6 +1,6 @@
 """Stage03 migrations preserve legacy history and freeze completed judgments."""
 
-RULE_VERSION = 'b02-stage04-v1'
+RULE_VERSION = 'b02-stage05-v1'
 TASKS = {
     'T1':'关键设施巡检覆盖', 'T2':'异常项复核与确认',
     'T3':'巡检记录可靠留存与汇聚', 'T4':'现场复核与证据补充',

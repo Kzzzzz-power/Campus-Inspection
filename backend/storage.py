@@ -75,6 +75,8 @@ class Store:
             else:
                 import run_schema
             run_schema.initialize(conn)
+            from backend import reviews
+            reviews.initialize(conn)
             if seed_demo and fresh_database:
                 now = datetime.now(timezone.utc)
                 demo = [

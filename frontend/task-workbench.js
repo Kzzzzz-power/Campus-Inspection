@@ -3,7 +3,7 @@ import {allRounds} from './evidence-browser.js';
 const $=id=>document.getElementById(id);
 const states={established:['成立','good'],blocked:['受阻','danger'],pending_verification:['待验证','warn'],unknown:['状态未知','muted']};
 const depStates={satisfied:'已满足',unsatisfied:'未满足',unknown:'证据不足'};
-export function initTaskWorkbench({el,button,api,postJSON,showDialog,toast,onSelection,overlayChanged}){
+export function initTaskWorkbench({el,button,api,postJSON,showDialog,toast,onSelection,overlayChanged,onReview}){
   let rounds=[],selectedRun=null,runRequest=null,prepareRequest=null,manualRequest=null,dirty=false,saving=false,manualRound=null,baselineRun=null;
   const panel=el('section',{class:'task-workbench','aria-labelledby':'task-heading'});
   const round=el('select',{id:'judgment-round'}),at=el('input',{id:'judgment-asof',type:'datetime-local',step:1});
@@ -98,6 +98,7 @@ export function initTaskWorkbench({el,button,api,postJSON,showDialog,toast,onSel
       details.append(el('summary',{},el('strong',{},task.task_id+' · '+task.name),el('span',{class:'status-badge is-'+tone},label)),el('p',{},task.reason));
       for(const dep of task.checks){const row=el('section',{class:'dependency-row'},el('h4',{},`${dep.dependency_id} · ${depStates[dep.status]}`),el('p',{},dep.reason));
         row.append(el('div',{class:'evidence-links'},...dep.evidence_refs.map(id=>button(id,()=>proof(run,id),'btn btn-ghost btn-small'))));details.append(row);}
+      details.append(button('发起现场复核',()=>onReview(run,task.task_id),'btn btn-secondary'));
       if(task.limitations?.length)details.append(el('p',{class:'field-hint'},task.limitations.join('；')));
       return details;
     }));}

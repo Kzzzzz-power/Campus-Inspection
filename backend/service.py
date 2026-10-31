@@ -266,6 +266,7 @@ def save_inspection(store, fields, photos, review_id=None, canonical=False):
                 return prior
             review = None
             if review_id is not None:
+                from backend import reviews as review_service
                 row = conn.execute('SELECT * FROM reviews WHERE review_id=?',(review_id,)).fetchone()
                 if row is None:
                     raise HTTPException(404,'复核请求不存在。')
@@ -276,6 +277,10 @@ def save_inspection(store, fields, photos, review_id=None, canonical=False):
                     raise HTTPException(422,'补证轮次与复核请求所属轮次不一致。')
                 if bound_round:
                     value['inspection_round_id']=bound_round
+                if review.get('task_id') and value['inspected_at'] < review['created_at']:
+                    raise HTTPException(422,'补证现场时间不能早于复核请求。')
+                if review.get('expires_at') and review['expires_at'] <= utcnow().isoformat():
+                    raise HTTPException(409,'复核已到期，请先处理超时并重新发起。')
                 if review['point_id'] != value['point_id']:
                     raise HTTPException(422,'现场记录的点位与复核请求不一致。')
                 if review['version'] != value['version'] or review['status'] != 'pending':
@@ -315,6 +320,21 @@ def save_inspection(store, fields, photos, review_id=None, canonical=False):
             else:
                 import evidence
             response.update(evidence.save_inspection(conn,value,record_id,review_id,saved_photos))
+            if review is not None and review.get('task_id'):
+                from backend import reviews as review_service
+                completed=now if review['status']=='completed' else None
+                conn.execute('UPDATE reviews SET completed_at=? WHERE review_id=?',(completed,review_id))
+                review['completed_at']=completed
+                validity=(timestamp(value['inspected_at'])+timedelta(minutes=review_service.CONFIRMATION_MINUTES)).isoformat()
+                proof=evidence.add(conn,'review_confirmation','ON_SITE',response['inspection_id'],value['inspected_at'],
+                    {'conclusion':{'normal':'ruled_out','fault':'confirmed_abnormal','unknown':'unable_to_confirm'}[value['conclusion']],
+                     'basis_evidence_ids':[response['evidence_id']],'validity_policy':'onsite-confirmation-60m-v1'},
+                    review_id=review_id,inspection_round_id=value['inspection_round_id'],checkpoint_id=value['point_id'],
+                    facility_id=review['facility_id'],zone_id=review['zone_id'],valid_until=validity,
+                    provenance={'port':'/api/reviews/{review_id}/evidence','request_id':key,'inspector_id':value['inspector_id'],
+                                'validity_policy':'onsite-confirmation-60m-v1','validity_minutes':review_service.CONFIRMATION_MINUTES})
+                response['confirmation_evidence_id']=proof['evidence_id']
+                review_service.schedule(conn,review)
             save_receipt(conn,key,action,digest,response)
         return response
     except BaseException:

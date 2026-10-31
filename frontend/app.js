@@ -1,3 +1,4 @@
+import {initReviewWorkbench} from './review-workbench.js';
 import {initTaskWorkbench} from './task-workbench.js';
 import {attachRoundSelector,initEvidenceBrowser} from './evidence-browser.js';
 import {matchesPoint,facilityState,coverageState} from './model.js';
@@ -10,7 +11,7 @@ const $ = id => document.getElementById(id);
 const state = {queueButtons:new Map(),runButtons:new Map(),mapButtons:new Map(),runToken:0,refreshPromise:null,detailTrigger:null,data:null, runs:[], filters:{query:'',scope:'all',required:'all',status:'all'}, cards:new Map(), groups:new Map(), refreshing:false, detail:null, detailToken:0, dirty:false, saving:false, gallery:[], photoIndex:0, runRequest:null};
 const motionEffects = new WeakMap(), activeEffects = new Set();
 let activeViewTransition = null, photoDirection = 0;
-let filterPickers = null, roomStage = null, taskWorkbench = null;
+let filterPickers = null, roomStage = null, taskWorkbench = null, reviewWorkbench = null;
 function presentationMotionAllowed(){return !document.hidden&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&document.documentElement.dataset.feedback==='on';}
 function animateFeedback(target,frames,duration=180){
   if(!target)return;
@@ -89,7 +90,7 @@ function updateRealtime(){
     if($('detail-realtime-meta'))$('detail-realtime-meta').textContent=remoteMetadata(point);
   }
 }
-function reviewState(review) { if(!review) return ['尚未发起','muted'];if(review.status==='pending') return ['待复核','warn'];return review.conclusion==='fault'?['已复核 · 确认异常','danger']:['已复核 · 确认正常','good']; }
+function reviewState(review) { if(!review) return ['尚未发起','muted'];const status=review.effective_status||review.status;if(status==='pending')return ['待复核','warn'];if(status==='timeout')return ['已超时','muted'];if(status==='cancelled')return ['已取消','muted'];return review.conclusion==='fault'?['已复核 · 确认异常','danger']:review.conclusion==='normal'?['已复核 · 确认正常','good']:['已处理 · 仍无法确认','muted']; }
 function statusRow(label, status) { return el('div',{class:'status-row'},el('span',{class:'status-label'},label),statusBadge(...status)); }
 function errorText(error) { if(error.status===403) return '没有执行此操作的权限，请核对访问权限。';if(error.status===409) return error.message+' 请重新打开详情核对，已填写内容仍保留。';return error.message||'请求失败，请稍后重试。'; }
 async function api(url, options={}) {
@@ -200,7 +201,7 @@ function chooseDetailMode(mode){if(state.saving){toast('正在保存，请等待
 function renderDetail(mode=null){
   const detail=state.detail,p=detail.point;$('detail-title').textContent=`${p.point_id} · ${p.device}`;$('detail-subtitle').textContent=`${p.building} · ${p.floor} / ${p.required?'必检点':'普通点'}`;
   const activeReview=detail.reviews.find(r=>r.status==='pending');
-  const actions=el('div',{class:'point-actions'},button('填写现场记录',()=>chooseDetailMode('inspect'),'btn btn-primary','plus'),button(activeReview?'处理复核':'发起复核',()=>chooseDetailMode('review'),'btn btn-secondary','file'));
+  const actions=el('div',{class:'point-actions'},button('填写现场记录',()=>chooseDetailMode('inspect'),'btn btn-primary','plus'),button(activeReview?'处理复核':'发起复核',()=>activeReview?reviewWorkbench.detail(activeReview.review_id):reviewWorkbench.create(p),'btn btn-secondary','file'));
   const remotePoint=displayedPoint(p),remoteRow=statusRow('设施状态',facilityState(remotePoint));remoteRow.id='detail-facility-status';
   const content=[detailSection('当前情况',el('div',{class:'detail-status'},statusRow('现场覆盖',coverageState(p)),remoteRow,statusRow('复核处理',reviewState(p.review))),el('p',{id:'detail-realtime-meta',class:'field-hint'},remoteMetadata(remotePoint)),el('p',{class:'field-hint'},'现场记录有效不代表设施正常；复核确认异常也属于已完成确认。'),actions)];
   if(mode==='inspect')content.push(detailSection('提交现场记录',inspectionForm(p)));
@@ -351,7 +352,8 @@ roomStage=initRoomStage({
   onSelect:point=>setFilters({query:point.point_id,scope:'all',required:'all',status:'all'}),
   onEnter:point=>openDetail(point.point_id,'inspect')
 });
-taskWorkbench=initTaskWorkbench({el,button,api,postJSON,showDialog,toast,overlayChanged,onSelection:()=>refresh(false,true)});
+taskWorkbench=initTaskWorkbench({el,button,api,postJSON,showDialog,toast,overlayChanged,onSelection:()=>refresh(false,true),onReview:(run,task)=>reviewWorkbench.create(null,run,task)});
+reviewWorkbench=initReviewWorkbench({el,button,api,postJSON,showDialog,overlayChanged,getRun:()=>taskWorkbench?.selectedRun,openRun,refresh:()=>refresh(false,true)});
 realtime.start();
 refresh();
 
