@@ -1,0 +1,22 @@
+{
+  "basis": "原创建筑设计示意；非测绘；不作为巡检证据",
+  "generator": "scripts/build-campus-assets.mjs",
+  "tools": {
+    "three": "r180",
+    "gltfTransform": "4.2.1",
+    "meshoptimizer": "0.25.0"
+  },
+  "files": [
+    {
+      "name": "campus-design-editable.glb",
+      "bytes": 10129668,
+      "sha256": "12122fcf5fe1f13b1be5011f298fe2f69067ee45560a3b7fe9ba8883e79e92a5"
+    },
+    {
+      "name": "campus-design.meshopt.glb",
+      "bytes": 4707564,
+      "sha256": "f3ef9b413d7c09b475503cb19e69de5569ae512886455bd07dca0d2d331e819d"
+    }
+  ],
+  "sourceHash": "62d3d30747cb571599ff24662013bc7571a628ee992eab42d7bb8fb0cefee5ae"
+}

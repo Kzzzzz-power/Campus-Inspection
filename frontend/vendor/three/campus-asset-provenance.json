@@ -1,0 +1,16 @@
+[
+  {
+    "file": "GLTFLoader.js",
+    "source": "https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/jsm/loaders/GLTFLoader.js",
+    "license": "MIT",
+    "notes": "Three.js r180; import paths localized",
+    "sha256": "2904f2823e23d5bc1d64512bf4c0d777ac44d728d47c34a9e3d48ce8ef6b761d"
+  },
+  {
+    "file": "meshopt_decoder.module.js",
+    "source": "https://www.npmjs.com/package/meshoptimizer/v/0.25.0",
+    "license": "MIT",
+    "notes": "meshoptimizer 0.25.0 official npm package",
+    "sha256": "4ac97b2c44347dacb9a0ca9c3740c8678d166fdcf02bc1612f371e27418e70a7"
+  }
+]

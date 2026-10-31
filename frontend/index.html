@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="/static/styles.css">
   <link rel="stylesheet" href="/static/motion.css">
   <link rel="stylesheet" href="/static/glass.css">
-  <link rel="stylesheet" href="/static/room-stage.css">
+  <link rel="stylesheet" href="/static/twin/campus-stage.css">
   <link rel="stylesheet" href="/static/tasks.css">
 </head>
 <body>
@@ -27,37 +27,19 @@
     </div>
   </header>
 
-  <section id="room-stage" class="room-stage" aria-labelledby="room-stage-title">
-    <div class="room-heading">
-      <div>
-        <span class="eyebrow">CHOOSE YOUR SPACE</span>
-        <h2 id="room-stage-title">选择巡查空间</h2>
-        <p>挑选一个点位，开始今天的巡检工作。</p>
-      </div>
-      <div class="carousel-count" aria-hidden="true"><span id="room-active-count">01</span><i>/</i><span id="room-count">08</span></div>
-    </div>
-    <div class="room-controls">
-      <span class="drag-hint"><span class="drag-arrows">↔</span> 拖动或使用方向键浏览</span>
-      <div class="room-arrows">
-        <button type="button" class="room-arrow" data-dir="-1" aria-label="上一个点位">←</button>
-        <button type="button" class="room-arrow" data-dir="1" aria-label="下一个点位">→</button>
-      </div>
-    </div>
-    <div class="room-viewport" id="room-carousel" role="region" aria-roledescription="carousel" aria-label="巡查点位" tabindex="0" hidden>
-      <div class="room-ring" id="room-ring"></div>
-    </div>
-    <p class="room-placeholder" id="room-placeholder">正在读取点位…</p>
-    <div class="room-stage__footer">
-      <div class="room-selection" aria-live="polite">
-        <span class="selection-spark" aria-hidden="true">✳</span>
-        <span>
-          <b id="room-selected-name">正在读取点位</b>
-          <small id="room-selected-location">等待巡检数据</small>
-          <small id="room-selected-status"></small>
-        </span>
-      </div>
-      <button class="btn btn-primary enter-button" id="room-enter" type="button" disabled>进入巡查 <span aria-hidden="true">↗</span></button>
-    </div>
+  <section id="campus-stage" class="campus-stage" data-mode="campus" data-layer="remote" data-renderer="loading" data-selected="" aria-labelledby="twin-scene-title">
+    <div class="twin-heading"><div><h2 id="twin-scene-title">校园设施空间总览</h2><p>从空间定位设施，从现场记录追溯每一次巡检。</p></div><div class="twin-heading-side"><b>3 个示意建筑 / 3 个区域</b><span>空间示意 · 现场覆盖与远程状态独立</span></div></div>
+    <div class="twin-toolbar"><div class="twin-layers" role="group" aria-label="信标显示图层"><button type="button" data-twin-layer="remote" aria-pressed="true">远程状态</button><button type="button" data-twin-layer="coverage" aria-pressed="false">现场覆盖</button><button type="button" data-twin-layer="review" aria-pressed="false">复核处理</button></div><p id="twin-hud" class="twin-hud">正在读取点位与远程观察…</p></div>
+    <div class="twin-stage-body"><div class="twin-viewport" aria-label="校园空间展示">
+      <div class="twin-fallback" aria-hidden="true"><div class="twin-fallback-building">教学楼<span>Z1 · 二层</span></div><div class="twin-fallback-building">实验空间<span>Z2 · 实训楼一层</span></div><div class="twin-fallback-building">实训空间<span>Z3 · 实训楼二层</span></div><img class="twin-fallback-device" alt="设备概念示意"></div>
+      <div class="twin-markers" role="group" aria-label="巡检点位信标"></div>
+      <p id="twin-empty" class="twin-empty">正在读取点位；尚未建立资产映射。</p>
+      <div class="twin-map-label"><b>空间分组示意</b><span>非真实平面图 · 不表示测绘尺寸</span></div><div class="twin-orientation" aria-hidden="true">3D</div>
+      <button id="twin-enable-3d" class="btn btn-secondary twin-enable" type="button" hidden>开启 3D</button>
+    </div><aside id="twin-inspector" class="twin-inspector" aria-label="当前点位数据" hidden><h3>点位与判断依据</h3><dl></dl><p class="twin-inspector-note">远程状态不单独算现场覆盖。此处设备外形与空间为概念示意，不替代正式安全检查。</p></aside></div>
+    <p id="twin-legend" class="twin-legend">实线：新鲜观察 · 虚线：过期 · 空心：未知 · 红褐：当前告警</p>
+    <div class="twin-footer"><div class="twin-status-copy"><p id="twin-quality">正在连接数据链路</p><p id="twin-updated">快照时间未提供</p><p id="twin-render-message" class="twin-render-message">正在准备三维场景…</p></div><div class="twin-actions"><button id="twin-back" type="button" class="btn btn-secondary" hidden>返回校园</button><button id="twin-enter" type="button" class="btn btn-primary" disabled>进入巡查 →</button></div></div>
+    <div class="twin-filmstrip" role="group" aria-label="八个点位概念示意"></div><p id="twin-announcement" class="sr-only" aria-live="polite"></p>
   </section>
 
   <div class="app-shell">

@@ -88,7 +88,7 @@ class CDP {
     assert.equal(await cdp.eval("document.querySelector('#review-asr').disabled"),true);assert(await cdp.eval("document.querySelector('#review-body').textContent.includes('请手写现场说明')"));
     for(const width of [390,768,1440]){await cdp.send('Emulation.setDeviceMetricsOverride',{width,height:1000,deviceScaleFactor:1,mobile:false});await sleep(150);assert(await cdp.eval('document.documentElement.scrollWidth<=innerWidth+1'));assert(await cdp.eval("document.querySelector('#review-body').scrollWidth<=document.querySelector('#review-body').clientWidth+1"));const shot=await cdp.send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(OUT,`stage05-review-${width}.png`),Buffer.from(shot.data,'base64'));}
     await cdp.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});await key('Tab');assert(await cdp.eval("document.querySelector('#review-dialog').contains(document.activeElement)"));await key('Escape');
-    assert(await cdp.eval("document.querySelector('#room-carousel')!==null && document.querySelectorAll('.point-card[data-point]').length===8"));
+    assert(await cdp.eval("document.querySelector('#campus-stage')!==null && document.querySelectorAll('.point-card[data-point]').length===8"));
   });
   assert.equal(report.errors.length,0,JSON.stringify(report.errors));report.status='passed';
  }catch(error){try{report.visible=await cdp.eval("document.querySelector('#review-body')?.innerText");console.error(report.visible);}catch{}report.error=error.stack;console.error(error.stack);process.exitCode=1;}

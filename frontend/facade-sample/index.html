@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f5f4ef"><title>外立面样板 · 校园设施巡检与复核</title>
+<link rel="stylesheet" href="./sample.css">
+</head>
+<body>
+<header class="masthead"><a class="brand" href="/"><svg viewBox="0 0 28 28" aria-hidden="true"><path d="M4 24V8l10-4 10 4v16M9 24V12m5 12V9m5 15V12M2 24h24"/></svg>校园设施巡检与复核</a><span class="header-note">建筑外立面 · 局部样板</span><a class="back" href="/">返回巡检工作台 <span aria-hidden="true">↗</span></a></header>
+<main>
+<div class="intro"><div><h1>外立面材料与构造样板</h1><p>从参考照片中的一个窗格开间开始，检查构造、材料与日光。</p></div><span class="scope-note">照片参考样板<br><strong>尺寸暂估 · 非测绘</strong></span></div>
+<div class="workspace">
+<section class="viewer-panel" aria-label="可交互的外立面样板">
+<div class="viewer" id="viewer">
+<canvas id="sample-canvas" tabindex="0" aria-label="外立面三维样板。方向键旋转，加减键缩放，Escape 清除选择；也可使用视角和构件按钮。"></canvas>
+<div class="viewer-top"><span class="viewer-caption">独立窗格开间 <small>墙体／窗框／玻璃</small></span><button id="reset-camera" class="quiet" type="button">复位视角</button></div>
+<div class="loading" id="loading" role="status">正在加载建筑样板…</div>
+<div class="viewport-status" id="viewport-status" role="status" aria-live="polite"></div>
+<div class="annotation" id="selected-label" hidden></div>
+<div class="measurements" id="measurements"><span id="width-note">开间约 3.60 m · 暂估</span><span id="height-note">截取高度约 3.80 m · 暂估</span></div>
+<div class="viewer-bottom"><span>拖动旋转 · 右键平移 · 滚轮缩放 · 点选构件</span><span>局部构造参考，非完整建筑</span></div>
+</div>
+<div class="toolbar">
+<div class="view-buttons" role="group" aria-label="观察视角">
+<button type="button" data-view="perspective" aria-pressed="true">斜视</button>
+<button type="button" data-view="front" aria-pressed="false">正视图</button>
+<button type="button" data-view="detail" aria-pressed="false">窗框近景</button>
+<button type="button" data-view="side" aria-pressed="false">洞口进深</button>
+</div>
+<div class="secondary-tools"><button type="button" id="lighting" aria-pressed="false">日光：侧光</button><button type="button" id="dimensions" aria-pressed="true">尺寸标注</button></div>
+</div>
+<div class="selection-strip"><span id="selection-title">选择一个构件，检查材料与依据</span><span id="render-status">Three.js · 正在准备</span></div>
+</section>
+<aside class="reference-panel" aria-label="参考与构件信息">
+<section class="reference-block">
+<div class="section-title"><h2>照片依据</h2><button type="button" class="text-button" id="show-reference">查看原图 ↗</button></div>
+<button class="reference-image" type="button" id="reference-zoom" aria-label="放大原始参考截图">
+<img src="./assets/reference-original.png" alt="用户提供的校园照片截图：中部建筑具有重复框架和窗格，前方有连廊与水面">
+<span class="reference-target" aria-hidden="true"></span><span class="image-caption">取中部建筑窗格为参考</span>
+</button>
+<p class="source-caption">QQ20261031-211246.png · 原始截图保留<br>原图不是本次三维渲染结果。</p>
+</section>
+<section class="component-block">
+<div class="section-title"><h2>构件检查</h2><span id="component-count"></span></div>
+<label class="sr-only" for="component-select">选择构件</label><select id="component-select"><option value="">选择构件…</option></select>
+<div class="material-preview" id="material-preview"><span class="material-disc"></span><div><strong id="part-name">外立面开间样板</strong><span id="part-material">请选择模型或下拉列表中的构件</span></div></div>
+<dl class="part-facts"><div><dt>构件编号</dt><dd id="part-id">未选择</dd></div><div><dt>依据</dt><dd id="part-evidence">可见立面轮廓</dd></div><div><dt>建模范围</dt><dd id="part-simplification">一个窗格开间，背面不作为实景还原</dd></div></dl>
+<button type="button" class="focus-button" id="focus-part" disabled>靠近所选构件 <span aria-hidden="true">↗</span></button>
+</section>
+<section class="boundary-block"><h2>看得见的，和待核实的</h2><p><span class="evidence-mark observed">照片可见</span>重复框架、深色窗格、外墙与窗面进退关系。</p><p><span class="evidence-mark assumed">暂估表达</span>开间和层高、窗框截面、洞口深度、玻璃参数、缝宽与倒角。</p><p class="boundary-note">未建立真实建筑尺寸、楼栋归属或点位定位；此样板不产生巡检状态。天空光照仅用于材质观察，并非照片现场环境。</p><p id="lighting-source">正在准备本地天空光照…</p><p><a href="https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky" target="_blank" rel="noopener">天空来源：Poly Haven · CC0</a></p></section>
+<a id="download-model" class="download" href="./assets/facade-bay.glb" download="facade-bay-estimated.glb">下载可编辑 GLB <span aria-hidden="true">↓</span></a>
+</aside>
+</div>
+<footer class="sample-footer"><span>本轮：照片局部样板</span><span>连续推进整体设计 · 完成后统一验收</span></footer>
+</main>
+<dialog id="reference-dialog" aria-labelledby="reference-title"><div class="dialog-heading"><h2 id="reference-title">原始参考截图</h2><button id="close-reference" type="button">关闭</button></div><img src="./assets/reference-original.png" alt="未经修改的原始校园照片截图"><p>参考范围为中部建筑立面。截图中的学校标识和景观未作为已核实的项目资产。</p></dialog>
+<script type="module" src="./sample.js"></script>
+</body></html>

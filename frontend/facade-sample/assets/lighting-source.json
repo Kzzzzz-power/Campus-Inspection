@@ -1,0 +1,15 @@
+{
+  "usage": "Lighting reference only. Not photographed at the project campus. Original HDR file unchanged.",
+  "license_url": "https://polyhaven.com/license",
+  "license": "CC0",
+  "source": "https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky",
+  "acquired_on": "2026-10-31",
+  "sha256": "fd94c84997b8a3c353b62c2125a9b44e19509956986a126e472684432a02d798",
+  "bytes": 1435119,
+  "authors": [
+    "Greg Zaal",
+    "Jarod Guest"
+  ],
+  "file": "kloofendal-sky-1k.hdr",
+  "asset": "Kloofendal 48d Partly Cloudy (Pure Sky)"
+}

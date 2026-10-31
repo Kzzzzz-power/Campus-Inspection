@@ -1,0 +1,23 @@
+[
+  {
+    "url": "https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/jsm/geometries/RoundedBoxGeometry.js",
+    "file": "RoundedBoxGeometry.js",
+    "license": "MIT",
+    "local_changes": "Bare three import changed to local three.module.js",
+    "sha256": "c13ec51ca1dfa2a584e6e6898e5f45e754d7b8093314b3db89b726c044259531"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/jsm/exporters/GLTFExporter.js",
+    "file": "GLTFExporter.js",
+    "license": "MIT",
+    "local_changes": "Bare three import changed to local three.module.js",
+    "sha256": "0931aaceb6a2489b2ae08d59edd3accb17a5afb5dd88ead316005f7adf955467"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/jsm/loaders/HDRLoader.js",
+    "local_changes": "Bare three import changed to local three.module.js",
+    "file": "HDRLoader.js",
+    "sha256": "d3a9522cd17b988a4fe93e1be799e59f06c8e9bd0d811665a917df140350eef4",
+    "license": "MIT"
+  }
+]

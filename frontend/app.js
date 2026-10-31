@@ -5,7 +5,7 @@ import {matchesPoint,facilityState,coverageState} from './model.js';
 import {createRealtimeClient,projectPoint} from './realtime.js';
 import {initMotion} from './motion.js';
 import {createFilterPickers} from './filter-pickers.js';
-import {initRoomStage} from './room-stage.js';
+import {initCampusStage} from './twin/campus-stage.js';
 
 const $ = id => document.getElementById(id);
 const state = {queueButtons:new Map(),runButtons:new Map(),mapButtons:new Map(),runToken:0,refreshPromise:null,detailTrigger:null,data:null, runs:[], filters:{query:'',scope:'all',required:'all',status:'all'}, cards:new Map(), groups:new Map(), refreshing:false, detail:null, detailToken:0, dirty:false, saving:false, gallery:[], photoIndex:0, runRequest:null};
@@ -68,8 +68,8 @@ function statusBadge(text,tone='muted') { return el('span',{class:`status-badge 
 function remoteMetadata(p){
   const remote=p.realtime,observation=remote?.facility?.observation;
   if(remote?.reason==='disabled')return '实时接入未启用 · 当前显示既有记录状态';
-  const reasons={connecting:'等待实时数据',disconnected:'实时连接断开',broker:'消息代理未连接',missing:'尚无远程观测',stale:'数据已过期'};
-  const context=remote?.reason?reasons[remote.reason]+' · ':'';
+  const reasons={connecting:'等待实时数据',disconnected:'实时连接断开',broker:'消息代理未连接',missing:'尚无远程观测',stale:'数据已过期',identity:'资产映射不一致'};
+  const context=remote?.reason?(reasons[remote.reason]||'远程状态待确认')+' · ':'';
   if(!observation)return context+'远程观测：尚未收到';
   const source=observation.source_type==='SIMULATED'?'模拟源':'设备源';
   const latency=Object.hasOwn(observation.metrics,'latency_ms')?`${observation.metrics.latency_ms} ms`:'未提供';
@@ -119,7 +119,7 @@ function setFilters(values,{animate=true}={}) {
   Object.assign(state.filters,values);
   $('search').value=state.filters.query;$('required-filter').value=state.filters.required;$('status-filter').value=state.filters.status;$('mobile-scope').value=state.filters.scope;
   filterPickers?.sync();
-  renderFacilities();renderNavSelection();
+  renderFacilities();renderNavSelection();roomStage?.filter(state.filters);
   if(before)filterFeedback(before);
 }
 function resetFilters(){setFilters({query:'',scope:'all',required:'all',status:'all'});}
@@ -165,7 +165,7 @@ function renderRuns(){
   syncChildren($('recent-runs'),state.runs.length?state.runs.slice(0,5).map(r=>{let b=state.runButtons.get(r.run_id);if(!b){b=button('',()=>openRun(r.run_id),'run-item');state.runButtons.set(r.run_id,b);}b.replaceChildren(el('time',{},date(r.created_at)),el('strong',{},r.summary||'覆盖判断'),el('code',{},r.run_id));return b;}):[el('p',{class:'empty-state'},'还没有运行记录。生成一次判断，保留当前覆盖结果。')]);
   $('all-runs-btn').disabled=!state.runs.length;
 }
-function syncRoomStage(){roomStage?.sync((state.data?.points||[]).map(displayedPoint));}
+function syncRoomStage(){roomStage?.sync();}
 function renderDashboard(){
   const d=state.data;$('covered-count').textContent=d.covered??'—';$('missing-count').textContent=d.round_state==='no_round'?'—':d.missing.length;$('missing-shortcut').disabled=d.round_state==='no_round';$('required-count').textContent=d.required_total;
   $('window-label').textContent=d.round_state==='no_round'?'未选择轮次；覆盖尚未判断':`${d.inspection_round_id} · 固定窗口 ${date(d.window_start,true)}—${date(d.window_end,true)}${d.run_id?' · 已冻结运行':''}`;$('updated-at').textContent='刷新成功 '+date(new Date().toISOString(),true);
@@ -347,9 +347,11 @@ $('all-runs-btn').addEventListener('click',()=>{state.runToken++;$('run-title').
 window.addEventListener('beforeunload',e=>{if(state.dirty||state.saving){e.preventDefault();e.returnValue='';}});
 let disposeMotion=initMotion();let poll=setInterval(()=>{if(!document.hidden)refresh();},30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});window.addEventListener('pagehide',()=>{clearInterval(poll);disposeMotion();realtime.stop();});window.addEventListener('pageshow',event=>{realtime.start();if(event.persisted){disposeMotion=initMotion({replayIntro:false});clearInterval(poll);poll=setInterval(()=>{if(!document.hidden)refresh();},30000);refresh();}});
 const realtime=createRealtimeClient({url:`${location.protocol==='https:'?'wss:':'ws:'}//${location.host}/ws/facilities`,onChange:updateRealtime});
-roomStage=initRoomStage({
-  getPoints:()=>(state.data?.points||[]).map(displayedPoint),
-  onSelect:point=>setFilters({query:point.point_id,scope:'all',required:'all',status:'all'}),
+let twinPreviousFilters=null;
+roomStage=initCampusStage({
+  getPoints:()=>state.data?.points||[], getRealtime:()=>realtime.state,
+  onSelect:point=>{twinPreviousFilters??={...state.filters};setFilters({query:point.point_id,scope:'all',required:'all',status:'all'});},
+  onReturn:()=>{if(twinPreviousFilters){const previous=twinPreviousFilters;twinPreviousFilters=null;setFilters(previous);}},
   onEnter:point=>openDetail(point.point_id,'inspect')
 });
 taskWorkbench=initTaskWorkbench({el,button,api,postJSON,showDialog,toast,overlayChanged,onSelection:()=>refresh(false,true),onReview:(run,task)=>reviewWorkbench.create(null,run,task)});
