@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "algorithm": "sha256-utf8-lf",
+  "scope": "Frozen Stage08 S1-S5 and all config JSON; UTF-8 LF-normalized hashes only; runtime compares original bytes separately",
+  "files": {
+    "config/facilities.json": "c3e76304285230ca9be53725aaa47978e09d35257c251818d6ae49d6a8bad84d",
+    "config/knowledge/sources.json": "f9767d95d5b231fd619906b866898012d60f981b8a371068ec7f3f6324b8bf4f",
+    "config/ml/inspection_history.json": "8d8bca0a8eb735cd3ca45fcf4fcb83f2706c128153b919a1b2c013cc610e93bd",
+    "config/ml/inspection_tree.json": "e63c7bbe946723b894885696bd860efcb582c1d180b25627f4a4165fb5330580",
+    "config/plans.json": "f7b5d9fce2e3a1871a0a5f183efd2de753f52f43ef865c2e6e1a0cbfcad23e11",
+    "config/scenarios/S1.json": "a1d162fdc316766642da69d2d272243479281fdfa4bad461ecefee4467ca2359",
+    "config/scenarios/S2.json": "e85ce0ab2fa5944f832f4f0ae2bf5fb4b9123e165f9da23e8e99079facd7ccc9",
+    "config/scenarios/S3.json": "7a2bece8130f7887b630de311899a2314cecab732b1085530db2790e358a7d17",
+    "config/scenarios/S4.json": "aa0384005286167ac80f4a58c023539ed41793896c92740bc8654d02baedc086",
+    "config/scenarios/S5.json": "1475cf4824328148ee3e7281e274a592cc203c2cf261c4e271b7e5f9ac0e8fbb",
+    "config/zones.json": "db5cff4bb0b1960972e60ebd62a3c5403f1f9cea7c5b4ed49a3c801984ef3184"
+  }
+}

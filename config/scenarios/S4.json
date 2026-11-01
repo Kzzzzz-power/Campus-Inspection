@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "scenario_id": "S4",
+  "source_type": "SIMULATED",
+  "parent_scenario": "S3",
+  "run_type": "what_if",
+  "presets": [
+    {
+      "id": "A",
+      "label": "P2 可用且获 Z3 访问权限",
+      "assumptions": {
+        "resources": {
+          "P2": "AVAILABLE"
+        },
+        "p2_z3_access": "ALLOWED"
+      }
+    },
+    {
+      "id": "B",
+      "label": "剩余 60 分钟且协调人员可用",
+      "assumptions": {
+        "remaining_minutes": 60,
+        "resources": {
+          "access_coordinator": "AVAILABLE"
+        }
+      }
+    },
+    {
+      "id": "C",
+      "label": "访问协调人员不可用",
+      "assumptions": {
+        "resources": {
+          "access_coordinator": "UNAVAILABLE"
+        }
+      }
+    }
+  ]
+}

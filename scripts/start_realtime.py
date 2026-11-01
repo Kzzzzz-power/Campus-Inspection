@@ -102,8 +102,8 @@ def main():
         parser.error('Web and MQTT ports must differ')
     if bool(args.db) != bool(args.uploads):
         parser.error('--db and --uploads must be provided together')
-    python = ROOT / '.venv/Scripts/python.exe'
-    broker_python = RUNTIME / 'broker-venv/Scripts/python.exe'
+    python = Path(os.environ.get('INSPECTGO_PYTHON', ROOT / '.venv/Scripts/python.exe')).resolve()
+    broker_python = Path(os.environ.get('INSPECTGO_BROKER_PYTHON', RUNTIME / 'broker-venv/Scripts/python.exe')).resolve()
     env = os.environ.copy()
     for directory in ('tmp', 'pip-cache'):
         (RUNTIME / directory).mkdir(parents=True, exist_ok=True)

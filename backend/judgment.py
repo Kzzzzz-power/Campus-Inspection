@@ -111,13 +111,13 @@ def evaluate(snapshot):
             for eid in basis_ids:
                 basis=by_id.get(eid)
                 valid=(basis is not None and usable(basis,True) and basis.get('checkpoint_id')==point
-                       and basis['evidence_type'] in ('inspection_record','field_note','historical_observation','remote_status','facility_status')
+                       and basis['evidence_type'] in ('inspection_record','field_note','historical_observation','remote_status','facility_status','current_status')
                        and timestamp(basis['observed_at'])<=timestamp(p['observed_at']))
                 good=good and valid
                 if basis:
                     confirmation_refs.append(eid)
         # Acquisition failure is not a contrary business fact; frozen confirmation TTL still applies.
-        statuses=[p for p in evidence if p.get('checkpoint_id')==point and p['evidence_type'] in ('remote_status','facility_status')
+        statuses=[p for p in evidence if p.get('checkpoint_id')==point and p['evidence_type'] in ('remote_status','facility_status','current_status')
                   and p.get('inspection_round_id')==rid and timestamp(p['observed_at'])<=cutoff]
         if statuses:
             newest=max(timestamp(p['observed_at']) for p in statuses)
@@ -134,7 +134,9 @@ def evaluate(snapshot):
     confirmed=anomaly_ok and not unresolved
     t2.append(check('T2','confirmation','satisfied' if confirmed else 'unknown',
         '异常确认已完成；不代表设施均正常' if confirmed else '当前确认不足、冲突或无法取得：'+','.join(unresolved),confirmation_refs,'reality'))
-    results.append(task_result('T2',t2))
+    t2_result=task_result('T2',t2)
+    t2_result['unresolved_checkpoint_ids']=unresolved
+    results.append(t2_result)
 
     write,query=one('sqlite_write'),one('history_query')
     business=[p for p in evidence if p.get('inspection_round_id')==rid and p['evidence_type'] not in SYSTEM_TYPES]

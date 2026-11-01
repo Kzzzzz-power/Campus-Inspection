@@ -2,7 +2,7 @@
 import json
 import subprocess
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 from fastapi import HTTPException
 from . import evidence as ev, service
@@ -21,11 +21,13 @@ def inputs(payload):
     cutoff=ev.stamp(payload.get('as_of'))
     if cutoff>ev.now():
         raise HTTPException(422,'运行截止时间不能晚于当前时间。')
-    if payload.get('run_type','reality')!='reality' or payload.get('scenario_id') not in (None,'S1','S2','S3'):
-        raise HTTPException(422,'阶段 04 只支持现实运行和 S1–S3；条件推演尚未接入。')
+    if payload.get('run_type','reality')!='reality' or payload.get('scenario_id') not in (None,'S1','S2','S3','S5'):
+        raise HTTPException(422,'现实运行支持 S1、S2、S3、S5；S4 需指定 what_if 和已完成的 S3 父运行。')
     overrides=payload.get('input_overrides',{})
-    if not isinstance(overrides,dict) or set(overrides)-{'exclude_inspection_points','zone_access','remaining_minutes','resources','p2_z3_access'}:
+    if not isinstance(overrides,dict) or set(overrides)-{'exclude_inspection_points','zone_access','remaining_minutes','resources','p2_z3_access','current_status_available'}:
         raise HTTPException(422,'输入覆盖字段无效。')
+    if 'current_status_available' in overrides and (payload.get('scenario_id')!='S5' or type(overrides['current_status_available']) is not bool):
+        raise HTTPException(422,'current_status_available 仅接受 S5 教学轮次布尔值。')
     excluded=overrides.get('exclude_inspection_points',[])
     if not isinstance(excluded,list) or len(excluded)>8 or any(not isinstance(p,str) or p not in service.POINTS for p in excluded):
         raise HTTPException(422,'排除点位无效。')
@@ -40,7 +42,7 @@ def inputs(payload):
         seen.add(item['zone_id'])
     return {'request_id':key,'inspection_round_id':rid,'as_of':cutoff,'scenario_id':payload.get('scenario_id'),
             'run_type':'reality','input_overrides':{'exclude_inspection_points':sorted(set(excluded)),
-            'zone_access':sorted(accesses,key=lambda x:x['zone_id']),**planning.validate(overrides)}}
+            'zone_access':sorted(accesses,key=lambda x:x['zone_id']),**planning.validate(overrides),**({'current_status_available':overrides['current_status_available']} if 'current_status_available' in overrides else {})}}
 
 
 def storage_proof(store, rid):
@@ -71,7 +73,10 @@ def round_facts(conn,rid,cutoff):
         (inspection_round_id=? OR (inspection_round_id IS NULL AND evidence_type IN ('facility_status','remote_status','historical_observation')))
         AND observed_at<=? ORDER BY observed_at,evidence_id''',(rid,cutoff))]
     proofs=[p for p in proofs if p['evidence_type'] not in ('configuration','coverage_check','anomaly_list','sqlite_write',
-        'history_query','aggregation','review_channel','basic_statistics') and not p['provenance_json'].get('run_id')]
+        'history_query','aggregation','review_channel','basic_statistics')
+        # Enrichment remains independently queryable, outside core judgment facts.
+        and p['source_type'] not in ('MODEL_OUTPUT','LLM_OUTPUT','RAG','TOOL_OUTPUT','WEB_API')
+        and not p['provenance_json'].get('run_id')]
     reviews=[dict(r) for r in conn.execute('''SELECT DISTINCT r.* FROM reviews r
         LEFT JOIN evidence e ON e.review_id=r.review_id LEFT JOIN runs run ON run.run_id=r.trigger_run_id
         WHERE (e.inspection_round_id=? OR run.inspection_round_id=? OR r.inspection_round_id=?) AND r.created_at<=?''',(rid,rid,rid,cutoff))]
@@ -89,6 +94,8 @@ def basic_statistics(coverage,records,proofs,reviews):
                          | {r['checkpoint_id'] for r in valid if r['result'] in ('WARNING','FAULT')})
     average=sum(durations)/len(durations) if durations else None
     limitations=[]
+    if not durations:
+        limitations.append('无可追溯的有效巡检耗时样本，平均耗时不推算。')
     if len(durations)!=len(valid):
         limitations.append(f'耗时仅有 {len(durations)}/{len(valid)} 条可追溯样本；未记录的耗时不推算。')
     limitations.append('当前仅提供基础统计，AI 增强尚未接入。')
@@ -100,13 +107,25 @@ def basic_statistics(coverage,records,proofs,reviews):
             'pending_review_count':sum(r['status']=='pending' for r in reviews),'limitations':limitations}
 
 
-def create(store,payload,frozen=None):
+def create(store,payload,frozen=None,analysis_context=None):
+    if not isinstance(payload,dict):
+        raise HTTPException(422,'请提供包含轮次或父运行的 JSON 请求对象。')
+    if payload.get('run_type')=='what_if':
+        if analysis_context is not None:raise HTTPException(422,'条件推演不能提交现实分析。')
+        from .what_if import create as branch
+        return branch(store,payload)
     value=inputs(payload)
+    if analysis_context is not None:
+        value['analysis_context']=analysis_context
     key=value['request_id']; digest=service.fingerprint(value)
     with store.transaction() as conn:
         prior=service.receipt(conn,key,'formal-run',digest)
         if prior is not None:
             return prior
+        existing=conn.execute('SELECT content_hash,result_json FROM runs WHERE request_id=?',(key,)).fetchone()
+        if existing:
+            if existing['content_hash']!=digest:raise HTTPException(409,'该请求标识已用于不同输入。')
+            return json.loads(existing['result_json'])
         round_value=dict(ev.round_row(conn,value['inspection_round_id']))
         if (value['scenario_id'] is not None or any(value['input_overrides'].values())
             or any(k in value['input_overrides'] for k in ('remaining_minutes','resources','p2_z3_access'))) and not round_value['scenario_instance_id']:
@@ -119,7 +138,21 @@ def create(store,payload,frozen=None):
         prior=service.receipt(conn,key,'formal-run',digest)
         if prior is not None:
             return prior
+        existing=conn.execute('SELECT content_hash,result_json FROM runs WHERE request_id=?',(key,)).fetchone()
+        if existing:
+            if existing['content_hash']!=digest:raise HTTPException(409,'该请求标识已用于不同输入。')
+            return json.loads(existing['result_json'])
+        if analysis_context is not None:
+            from datetime import timedelta
+            recent=(datetime.now(timezone.utc)-timedelta(minutes=1)).isoformat()
+            if conn.execute('SELECT COUNT(*) FROM analysis_jobs WHERE created_at>?',(recent,)).fetchone()[0]>=10:
+                raise HTTPException(429,'分析请求过于频繁，请一分钟后重试。')
+            if conn.execute("SELECT COUNT(*) FROM analysis_jobs WHERE status='queued' OR (status='running' AND lease_until>?)",(ev.now(),)).fetchone()[0]>=2:
+                raise HTTPException(429,'已有分析正在执行，请稍后重试。')
         rid=value['inspection_round_id']; cutoff=value['as_of']
+        if value['scenario_id']=='S5' and frozen is None:
+            value['requested_as_of']=cutoff
+            cutoff=ev.now();value['as_of']=cutoff
         round_value,records,proofs,reviews=round_facts(conn,rid,cutoff)
         if frozen is not None:
             records=frozen['records'];proofs=frozen['proofs'];reviews=frozen['reviews']
@@ -137,6 +170,9 @@ def create(store,payload,frozen=None):
             else:
                 scoped.append(p)
         proofs=planning.apply_overrides(conn,scoped,overrides,rid,cutoff,round_value['window_end'],run_id)
+        if value['scenario_id']=='S5' and frozen is None and 'current_status_available' in overrides:
+            from .degradation import status_evidence
+            proofs.append(status_evidence(conn,rid,cutoff,overrides['current_status_available'],run_id=run_id,input_override=True))
         source_watermark={'captured_at':ev.now(),'inspection_ids':[r['inspection_id'] for r in records],
                           'evidence_ids':[p['evidence_id'] for p in proofs]}
         snapshot={**value,'round':round_value,'facilities':FACILITIES,'rule_version':RULE_VERSION,
@@ -177,10 +213,25 @@ def create(store,payload,frozen=None):
             'inspection_round_id':rid,'port':'/api/evidence/manual','verification':'committed entry read in new run transaction'},
             status='ok' if manual_proofs else 'unavailable')
         stats=basic_statistics(coverage,records,proofs,reviews)
+        if value['scenario_id']=='S5':
+            stats['limitations'].append('C03｜ap-2f 当前状态须有有效的新确认；查询恢复不能替代人工确认。')
+        if analysis_context is not None:
+            stats['limitations']=[s for s in stats['limitations'] if s!='当前仅提供基础统计，AI 增强尚未接入。']
         derived('anomaly_list',{'checkpoint_ids':stats['anomaly_points'],'complete':True,
                               'scope':'recorded anomalies visible in selected evidence snapshot'})
-        derived('basic_statistics',stats)
         from .judgment import evaluate
+        if value['scenario_id']=='S5' and frozen is None:
+            preliminary=evaluate({'coverage':coverage,'evidence':proofs,'reviews':reviews,'inspection_records':records,'as_of':cutoff})
+            confirmation=next(t for t in preliminary if t['task_id']=='T2')
+            if 'C03' in confirmation['unresolved_checkpoint_ids']:
+                from .degradation import ensure_review
+                ensure_review(conn,rid,run_id,cutoff)
+                _,_,_,reviews=round_facts(conn,rid,cutoff)
+                stats['pending_review_count']=sum(r['status']=='pending' for r in reviews)
+                snapshot['review_snapshot']=reviews
+                conn.execute('UPDATE runs SET input_snapshot=? WHERE run_id=?',(service.json_text(snapshot),run_id))
+        derived('basic_statistics',stats)
+
         tasks=evaluate({'coverage':coverage,'evidence':proofs,'reviews':reviews,'inspection_records':records,'as_of':cutoff})
         plans=evaluate_plans(planning.DEFINITIONS,proofs,rid,cutoff) if (rid.startswith('S3.') or any(p['evidence_type'] in ('time_budget','resource_availability','access_permission') for p in proofs)) else []
         blockers=derive_blockers(tasks)
@@ -207,9 +258,14 @@ def create(store,payload,frozen=None):
             scenario_id=value['scenario_id'],inspection_round_id=rid,run_type='reality',parent_run_id=None,
             rule_version=RULE_VERSION,as_of=cutoff,created_at=created,completed_at=ev.now(),input_snapshot=snapshot,
             source_watermark=source_watermark,coverage=coverage,statistics=stats,task_results=tasks,evidence=proofs,summary=summary,
-            implementation_stage=5,plan_results=plans,blockers=blockers)
+            implementation_stage=7 if value['scenario_id']=='S5' else 5,plan_results=plans,blockers=blockers)
+        if analysis_context is not None:
+            # Commit the frozen core before any external I/O; terminal runs are never reopened.
+            result.update(status='running',run_status='running',completed_at=None,implementation_stage=6)
+            ev.insert(conn,'analysis_jobs',dict(run_id=run_id,request_id=key,options_json=service.json_text(analysis_context),
+                status='queued',lease_until=None,worker_id=None,error=None,created_at=created,updated_at=created))
         conn.execute('UPDATE runs SET status=?,completed_at=?,summary=?,result_json=? WHERE run_id=?',
-                     ('completed',result['completed_at'],summary,service.json_text(result),run_id))
+                     (result['status'],result['completed_at'],summary,service.json_text(result),run_id))
         service.save_receipt(conn,key,'formal-run',digest,result)
     return result
 
@@ -239,6 +295,7 @@ def dashboard(conn,inspection_round_id=None,as_of=None,run_id=None):
         run=detail(conn,run_id)
         if run['legacy']:
             raise HTTPException(422,'旧运行仅提供原始快照，不能转换成正式轮次。')
+        if run.get('run_type')=='what_if':raise HTTPException(422,'条件推演不能用作现实覆盖。')
         coverage=run['coverage']; cutoff=run['as_of']; inspection_round_id=run['inspection_round_id']
     elif inspection_round_id:
         round_value,records,_,_=round_facts(conn,inspection_round_id,cutoff)

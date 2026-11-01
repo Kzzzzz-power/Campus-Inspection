@@ -10,7 +10,7 @@ from pathlib import Path
 import re
 import sqlite3
 
-from fastapi import Body, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import BackgroundTasks, Body, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
@@ -33,6 +33,8 @@ else:
     from realtime import FacilityFeed, MqttReceiver
 
 from backend import reviews as review_service
+from backend import analysis
+from backend.speech import LocalSpeech, MAX_BYTES as SPEECH_MAX_BYTES
 
 FRONTEND = Path(__file__).resolve().parent.parent / 'frontend'
 
@@ -47,7 +49,7 @@ class BodySizeLimit:
             await self.app(scope,receive,send)
             return
         total = 0
-        maximum = 5*service.PHOTO_LIMIT+65536
+        maximum = SPEECH_MAX_BYTES if scope['path'] == '/api/speech/transcribe' else 5*service.PHOTO_LIMIT+65536
 
         async def bounded_receive():
             nonlocal total
@@ -104,32 +106,35 @@ def create_app(db_path=None, uploads_dir=None, seed_demo=None, realtime_enabled=
     @asynccontextmanager
     async def lifespan(application):
         await run_in_threadpool(store.initialize,seed_demo)
+        stop = asyncio.Event()
         async def review_lifecycle():
-            while True:
+            while not stop.is_set():
                 try:
                     maintenance=os.environ.get('INSPECTGO_MAINTENANCE_FILE')
                     if not maintenance or not Path(maintenance).exists():
                         await run_in_threadpool(review_service.maintain,store)
                 except (sqlite3.Error,OSError,HTTPException):
                     logging.getLogger(__name__).exception('Review lifecycle maintenance failed; retry in 30 seconds')
-                await asyncio.sleep(30)
+                try:
+                    await asyncio.wait_for(stop.wait(), timeout=30)
+                except asyncio.TimeoutError:
+                    pass
         review_worker=asyncio.create_task(review_lifecycle())
         if receiver:
             receiver.start()
         try:
             yield
         finally:
-            review_worker.cancel()
-            try:
-                await review_worker
-            except asyncio.CancelledError:
-                pass
+            stop.set()
+            # Drain any in-flight threadpool transaction before releasing the app.
+            await review_worker
             if receiver:
                 await run_in_threadpool(receiver.stop)
 
     application = FastAPI(title='巡到位 InspectGo',version='0.2.0',lifespan=lifespan)
     application.state.store = store
     application.state.facilities = feed
+    application.state.speech = LocalSpeech()
     application.add_middleware(BodySizeLimit)
 
     @application.middleware('http')
@@ -156,6 +161,10 @@ def create_app(db_path=None, uploads_dir=None, seed_demo=None, realtime_enabled=
         response = await call_next(request)
         if request.url.path.startswith('/api/') and not request.url.path.startswith('/api/evidence/images/'):
             response.headers['Cache-Control'] = 'no-store'
+        # Revalidate code/HTML together; keep model, texture and photo caching unchanged.
+        path = request.url.path
+        if path == '/' or (path.startswith('/static/') and Path(path).suffix.lower() in {'.html', '.js', '.mjs', '.css'}):
+            response.headers['Cache-Control'] = 'no-cache, must-revalidate'
         response.headers['X-Content-Type-Options'] = 'nosniff'
         return response
 
@@ -169,6 +178,21 @@ def create_app(db_path=None, uploads_dir=None, seed_demo=None, realtime_enabled=
         with store.transaction() as conn:
             conn.execute('SELECT 1 FROM records LIMIT 1').fetchone()
         return {'status':'ok','version':'0.2.0','mqtt':feed.snapshot()['broker']}
+
+    @application.get('/api/speech/status')
+    def speech_status():
+        return application.state.speech.status()
+
+    @application.post('/api/speech/transcribe')
+    async def transcribe_speech(request: Request):
+        if request.headers.get('content-type', '').split(';')[0].strip().lower() not in ('audio/wav', 'audio/x-wav'):
+            raise HTTPException(415, '请发送 WAV 录音。')
+        data=bytearray()
+        async for chunk in request.stream():
+            if len(data)+len(chunk)>SPEECH_MAX_BYTES:
+                raise HTTPException(413, '录音超过 2MB，请缩短后重录。')
+            data.extend(chunk)
+        return await run_in_threadpool(application.state.speech.transcribe, bytes(data))
 
     @application.get('/api/current')
     def current_facilities():
@@ -204,9 +228,10 @@ def create_app(db_path=None, uploads_dir=None, seed_demo=None, realtime_enabled=
 
     @application.get('/api/scenarios/{scenario_id}')
     def scenario(scenario_id: str):
-        if scenario_id != 'S1':
-            raise HTTPException(404, '此场景输入尚未建立。')
-        return s1_input
+        if scenario_id=='S4':
+            from backend.configuration import CONFIG,read_json
+            return read_json(CONFIG/'scenarios'/'S4.json')
+        return scenario_input.load_scenario(scenario_id)
 
     @application.post('/api/scenarios/S1/prepare')
     def prepare_s1(payload: dict = Body(...)):
@@ -219,6 +244,12 @@ def create_app(db_path=None, uploads_dir=None, seed_demo=None, realtime_enabled=
     @application.post('/api/evidence/manual')
     def manual_evidence(payload: dict = Body(...)):
         return scenario_input.manual(store,payload)
+
+    @application.get('/api/task-definitions')
+    def task_definitions():
+        # Definitions are navigation, not unobserved or fabricated task results.
+        return {'rule_version': formal_runs.RULE_VERSION,
+                'items': [{'task_id': key, 'name': name} for key, name in formal_runs.TASKS.items()]}
 
     @application.get('/api/tasks')
     def tasks(run_id: str):
@@ -329,9 +360,64 @@ def create_app(db_path=None, uploads_dir=None, seed_demo=None, realtime_enabled=
         return FileResponse(path,media_type=row['media_type'],
             headers={'Cache-Control':'private, max-age=86400','Content-Security-Policy':"default-src 'none'"})
 
+    @application.get('/api/photo-descriptions/config')
+    def photo_description_config():
+        from backend.photo_description import public_status
+        return public_status()
+
+    @application.get('/api/evidence/images/{image_id}/descriptions')
+    def photo_descriptions(image_id: str):
+        from backend import photo_description
+        return photo_description.listing(store,image_id)
+
+    @application.post('/api/evidence/images/{image_id}/descriptions',status_code=202)
+    def start_photo_description(image_id: str,background_tasks: BackgroundTasks,payload: dict = Body(...)):
+        from backend import photo_description
+        job=photo_description.prepare(store,image_id,payload)
+        if job['status'] in ('queued','interrupted'):
+            background_tasks.add_task(photo_description.execute,store,job['description_id'])
+        return job
+
+    @application.get('/api/photo-descriptions/{description_id}')
+    def photo_description_status(description_id: str):
+        from backend import photo_description
+        return photo_description.status(store,description_id)
+
+    @application.post('/api/photo-descriptions/{description_id}/retry',status_code=202)
+    def retry_photo_description(description_id: str,background_tasks: BackgroundTasks):
+        from backend import photo_description
+        job=photo_description.status(store,description_id)
+        if job['status'] in ('queued','interrupted'):
+            background_tasks.add_task(photo_description.execute,store,description_id)
+        return job
+
+    @application.get('/api/analyses/config')
+    def analysis_config():
+        from backend.analysis_llm import public_status
+        return public_status()
+
+    @application.post('/api/analyses',status_code=202)
+    async def start_analysis(background_tasks: BackgroundTasks,payload: dict = Body(...)):
+        job=await run_in_threadpool(analysis.prepare,store,payload)
+        if job['status'] in ('queued','interrupted'):
+            background_tasks.add_task(analysis.execute,store,job['run_id'])
+        return job
+
+    @application.get('/api/analyses/{run_id}')
+    def analysis_status(run_id: str):
+        return analysis.status(store,run_id)
+
+    @application.post('/api/analyses/{run_id}/retry',status_code=202)
+    def retry_analysis(run_id: str,background_tasks: BackgroundTasks):
+        job=analysis.status(store,run_id)
+        if job['status'] in ('queued','interrupted'):
+            background_tasks.add_task(analysis.execute,store,run_id)
+        return job
+
     @application.post('/api/runs')
     def new_run(payload: dict | None = Body(default=None)):
-        review_service.expire(store)
+        if isinstance(payload,dict) and payload.get('run_type','reality')=='reality' and payload.get('scenario_id')!='S4':
+            review_service.expire(store)
         return service.create_run(store,payload)
 
     @application.get('/api/runs')

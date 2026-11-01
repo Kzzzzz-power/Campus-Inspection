@@ -17,7 +17,7 @@ $env:TEMP = Join-Path $runtimeRoot 'tmp'
 $env:TMP = $env:TEMP
 $env:PIP_CACHE_DIR = Join-Path $runtimeRoot 'pip-cache'
 $env:PYTHONDONTWRITEBYTECODE = '1'
-$pythonExecutable = Join-Path $PSScriptRoot '.venv\Scripts\python.exe'
+$pythonExecutable = if ($env:INSPECTGO_PYTHON) { $env:INSPECTGO_PYTHON } else { Join-Path $PSScriptRoot '.venv\Scripts\python.exe' }
 if (-not (Test-Path -LiteralPath $pythonExecutable)) {
     throw '请先按 README 创建 .venv，再运行 Setup-Realtime.ps1。'
 }

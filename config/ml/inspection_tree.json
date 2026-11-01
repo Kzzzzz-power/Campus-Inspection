@@ -1,0 +1,614 @@
+{
+  "schema_version": 1,
+  "model_id": "b02-revisit-priority-cart",
+  "model_version": "cart-v1-c14230dd74e7469e",
+  "trained_at": "2026-11-01T06:05:13.889917+00:00",
+  "algorithm": "CART binary classification (stdlib implementation)",
+  "training_config": {
+    "max_depth": 4,
+    "min_samples_leaf": 6,
+    "criterion": "gini"
+  },
+  "feature_order": [
+    "coverage_rate",
+    "inspection_count",
+    "anomaly_count",
+    "pending_review_count"
+  ],
+  "class_order": [
+    "ROUTINE",
+    "PRIORITY"
+  ],
+  "dataset": {
+    "dataset_id": "b02-teaching-inspection-history-v1",
+    "source_type": "SIMULATED",
+    "label_source": "DERIVED_LABEL",
+    "sha256": "91ec4e75d5ec0cc37f3344c46b8120cb4871b5510a9289fcec5966dc5ce0842f",
+    "sample_count": 240,
+    "provenance": {
+      "creator": "project synthetic teaching generator",
+      "seed": 601,
+      "generator": "scripts/train_inspection_model.py:generate_dataset",
+      "time_semantics": "simulated_at 为虚构顺序坐标，不是真实巡检记录时间；未读取真实库、人员或照片。",
+      "feature_generation": "6 required points; covered=randint(0,6); inspections=covered+randint(0,2); anomalies,pending=randint(0,3)",
+      "label_rule": "PRIORITY iff 2*(1-coverage_rate)+0.8*pending_review_count+0.45*anomaly_count+U(-0.7,0.7)>=2.9; otherwise ROUTINE",
+      "label_meaning": "虚构的人工复访工作优先级教学标签，非故障、非风险或未来事件标签；随机项模拟未建模的安排差异。",
+      "reuse": "GreenMate ml_pipeline.py 的固定切分、基线、摘要和限制说明方式；未使用农业数据或模型。"
+    }
+  },
+  "split": {
+    "method": "chronological_first_75_percent_train_last_25_percent_test",
+    "test_used_for_tuning": false,
+    "train": {
+      "count": 180,
+      "start": "2026-01-01T08:00:00+08:00",
+      "end": "2026-01-31T04:00:00+08:00",
+      "sample_ids": [
+        "SIM-0001",
+        "SIM-0002",
+        "SIM-0003",
+        "SIM-0004",
+        "SIM-0005",
+        "SIM-0006",
+        "SIM-0007",
+        "SIM-0008",
+        "SIM-0009",
+        "SIM-0010",
+        "SIM-0011",
+        "SIM-0012",
+        "SIM-0013",
+        "SIM-0014",
+        "SIM-0015",
+        "SIM-0016",
+        "SIM-0017",
+        "SIM-0018",
+        "SIM-0019",
+        "SIM-0020",
+        "SIM-0021",
+        "SIM-0022",
+        "SIM-0023",
+        "SIM-0024",
+        "SIM-0025",
+        "SIM-0026",
+        "SIM-0027",
+        "SIM-0028",
+        "SIM-0029",
+        "SIM-0030",
+        "SIM-0031",
+        "SIM-0032",
+        "SIM-0033",
+        "SIM-0034",
+        "SIM-0035",
+        "SIM-0036",
+        "SIM-0037",
+        "SIM-0038",
+        "SIM-0039",
+        "SIM-0040",
+        "SIM-0041",
+        "SIM-0042",
+        "SIM-0043",
+        "SIM-0044",
+        "SIM-0045",
+        "SIM-0046",
+        "SIM-0047",
+        "SIM-0048",
+        "SIM-0049",
+        "SIM-0050",
+        "SIM-0051",
+        "SIM-0052",
+        "SIM-0053",
+        "SIM-0054",
+        "SIM-0055",
+        "SIM-0056",
+        "SIM-0057",
+        "SIM-0058",
+        "SIM-0059",
+        "SIM-0060",
+        "SIM-0061",
+        "SIM-0062",
+        "SIM-0063",
+        "SIM-0064",
+        "SIM-0065",
+        "SIM-0066",
+        "SIM-0067",
+        "SIM-0068",
+        "SIM-0069",
+        "SIM-0070",
+        "SIM-0071",
+        "SIM-0072",
+        "SIM-0073",
+        "SIM-0074",
+        "SIM-0075",
+        "SIM-0076",
+        "SIM-0077",
+        "SIM-0078",
+        "SIM-0079",
+        "SIM-0080",
+        "SIM-0081",
+        "SIM-0082",
+        "SIM-0083",
+        "SIM-0084",
+        "SIM-0085",
+        "SIM-0086",
+        "SIM-0087",
+        "SIM-0088",
+        "SIM-0089",
+        "SIM-0090",
+        "SIM-0091",
+        "SIM-0092",
+        "SIM-0093",
+        "SIM-0094",
+        "SIM-0095",
+        "SIM-0096",
+        "SIM-0097",
+        "SIM-0098",
+        "SIM-0099",
+        "SIM-0100",
+        "SIM-0101",
+        "SIM-0102",
+        "SIM-0103",
+        "SIM-0104",
+        "SIM-0105",
+        "SIM-0106",
+        "SIM-0107",
+        "SIM-0108",
+        "SIM-0109",
+        "SIM-0110",
+        "SIM-0111",
+        "SIM-0112",
+        "SIM-0113",
+        "SIM-0114",
+        "SIM-0115",
+        "SIM-0116",
+        "SIM-0117",
+        "SIM-0118",
+        "SIM-0119",
+        "SIM-0120",
+        "SIM-0121",
+        "SIM-0122",
+        "SIM-0123",
+        "SIM-0124",
+        "SIM-0125",
+        "SIM-0126",
+        "SIM-0127",
+        "SIM-0128",
+        "SIM-0129",
+        "SIM-0130",
+        "SIM-0131",
+        "SIM-0132",
+        "SIM-0133",
+        "SIM-0134",
+        "SIM-0135",
+        "SIM-0136",
+        "SIM-0137",
+        "SIM-0138",
+        "SIM-0139",
+        "SIM-0140",
+        "SIM-0141",
+        "SIM-0142",
+        "SIM-0143",
+        "SIM-0144",
+        "SIM-0145",
+        "SIM-0146",
+        "SIM-0147",
+        "SIM-0148",
+        "SIM-0149",
+        "SIM-0150",
+        "SIM-0151",
+        "SIM-0152",
+        "SIM-0153",
+        "SIM-0154",
+        "SIM-0155",
+        "SIM-0156",
+        "SIM-0157",
+        "SIM-0158",
+        "SIM-0159",
+        "SIM-0160",
+        "SIM-0161",
+        "SIM-0162",
+        "SIM-0163",
+        "SIM-0164",
+        "SIM-0165",
+        "SIM-0166",
+        "SIM-0167",
+        "SIM-0168",
+        "SIM-0169",
+        "SIM-0170",
+        "SIM-0171",
+        "SIM-0172",
+        "SIM-0173",
+        "SIM-0174",
+        "SIM-0175",
+        "SIM-0176",
+        "SIM-0177",
+        "SIM-0178",
+        "SIM-0179",
+        "SIM-0180"
+      ],
+      "class_counts": {
+        "ROUTINE": 104,
+        "PRIORITY": 76
+      }
+    },
+    "test": {
+      "count": 60,
+      "start": "2026-01-31T08:00:00+08:00",
+      "end": "2026-02-10T04:00:00+08:00",
+      "sample_ids": [
+        "SIM-0181",
+        "SIM-0182",
+        "SIM-0183",
+        "SIM-0184",
+        "SIM-0185",
+        "SIM-0186",
+        "SIM-0187",
+        "SIM-0188",
+        "SIM-0189",
+        "SIM-0190",
+        "SIM-0191",
+        "SIM-0192",
+        "SIM-0193",
+        "SIM-0194",
+        "SIM-0195",
+        "SIM-0196",
+        "SIM-0197",
+        "SIM-0198",
+        "SIM-0199",
+        "SIM-0200",
+        "SIM-0201",
+        "SIM-0202",
+        "SIM-0203",
+        "SIM-0204",
+        "SIM-0205",
+        "SIM-0206",
+        "SIM-0207",
+        "SIM-0208",
+        "SIM-0209",
+        "SIM-0210",
+        "SIM-0211",
+        "SIM-0212",
+        "SIM-0213",
+        "SIM-0214",
+        "SIM-0215",
+        "SIM-0216",
+        "SIM-0217",
+        "SIM-0218",
+        "SIM-0219",
+        "SIM-0220",
+        "SIM-0221",
+        "SIM-0222",
+        "SIM-0223",
+        "SIM-0224",
+        "SIM-0225",
+        "SIM-0226",
+        "SIM-0227",
+        "SIM-0228",
+        "SIM-0229",
+        "SIM-0230",
+        "SIM-0231",
+        "SIM-0232",
+        "SIM-0233",
+        "SIM-0234",
+        "SIM-0235",
+        "SIM-0236",
+        "SIM-0237",
+        "SIM-0238",
+        "SIM-0239",
+        "SIM-0240"
+      ],
+      "class_counts": {
+        "ROUTINE": 35,
+        "PRIORITY": 25
+      }
+    }
+  },
+  "tree": {
+    "label": "ROUTINE",
+    "counts": {
+      "ROUTINE": 104,
+      "PRIORITY": 76
+    },
+    "feature": "pending_review_count",
+    "threshold": 2.5,
+    "left": {
+      "label": "ROUTINE",
+      "counts": {
+        "ROUTINE": 100,
+        "PRIORITY": 37
+      },
+      "feature": "coverage_rate",
+      "threshold": 0.41666666666666663,
+      "left": {
+        "label": "ROUTINE",
+        "counts": {
+          "ROUTINE": 27,
+          "PRIORITY": 26
+        },
+        "feature": "pending_review_count",
+        "threshold": 0.5,
+        "left": {
+          "label": "ROUTINE",
+          "counts": {
+            "ROUTINE": 17,
+            "PRIORITY": 2
+          },
+          "feature": "inspection_count",
+          "threshold": 2.5,
+          "left": {
+            "label": "ROUTINE",
+            "counts": {
+              "ROUTINE": 6,
+              "PRIORITY": 2
+            }
+          },
+          "right": {
+            "label": "ROUTINE",
+            "counts": {
+              "ROUTINE": 11,
+              "PRIORITY": 0
+            }
+          }
+        },
+        "right": {
+          "label": "PRIORITY",
+          "counts": {
+            "ROUTINE": 10,
+            "PRIORITY": 24
+          },
+          "feature": "anomaly_count",
+          "threshold": 0.5,
+          "left": {
+            "label": "ROUTINE",
+            "counts": {
+              "ROUTINE": 6,
+              "PRIORITY": 2
+            }
+          },
+          "right": {
+            "label": "PRIORITY",
+            "counts": {
+              "ROUTINE": 4,
+              "PRIORITY": 22
+            }
+          }
+        }
+      },
+      "right": {
+        "label": "ROUTINE",
+        "counts": {
+          "ROUTINE": 73,
+          "PRIORITY": 11
+        },
+        "feature": "pending_review_count",
+        "threshold": 1.5,
+        "left": {
+          "label": "ROUTINE",
+          "counts": {
+            "ROUTINE": 50,
+            "PRIORITY": 3
+          },
+          "feature": "pending_review_count",
+          "threshold": 0.5,
+          "left": {
+            "label": "ROUTINE",
+            "counts": {
+              "ROUTINE": 29,
+              "PRIORITY": 0
+            }
+          },
+          "right": {
+            "label": "ROUTINE",
+            "counts": {
+              "ROUTINE": 21,
+              "PRIORITY": 3
+            }
+          }
+        },
+        "right": {
+          "label": "ROUTINE",
+          "counts": {
+            "ROUTINE": 23,
+            "PRIORITY": 8
+          },
+          "feature": "coverage_rate",
+          "threshold": 0.75,
+          "left": {
+            "label": "ROUTINE",
+            "counts": {
+              "ROUTINE": 5,
+              "PRIORITY": 5
+            }
+          },
+          "right": {
+            "label": "ROUTINE",
+            "counts": {
+              "ROUTINE": 18,
+              "PRIORITY": 3
+            }
+          }
+        }
+      }
+    },
+    "right": {
+      "label": "PRIORITY",
+      "counts": {
+        "ROUTINE": 4,
+        "PRIORITY": 39
+      },
+      "feature": "coverage_rate",
+      "threshold": 0.5833333333333333,
+      "left": {
+        "label": "PRIORITY",
+        "counts": {
+          "ROUTINE": 0,
+          "PRIORITY": 30
+        }
+      },
+      "right": {
+        "label": "PRIORITY",
+        "counts": {
+          "ROUTINE": 4,
+          "PRIORITY": 9
+        },
+        "feature": "anomaly_count",
+        "threshold": 1.5,
+        "left": {
+          "label": "ROUTINE",
+          "counts": {
+            "ROUTINE": 4,
+            "PRIORITY": 2
+          }
+        },
+        "right": {
+          "label": "PRIORITY",
+          "counts": {
+            "ROUTINE": 0,
+            "PRIORITY": 7
+          }
+        }
+      }
+    }
+  },
+  "feature_ranges": {
+    "coverage_rate": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "inspection_count": {
+      "min": 0,
+      "max": 8
+    },
+    "anomaly_count": {
+      "min": 0,
+      "max": 3
+    },
+    "pending_review_count": {
+      "min": 0,
+      "max": 3
+    }
+  },
+  "metrics": {
+    "scope": "SIMULATED_HELD_OUT_ONLY",
+    "model": {
+      "accuracy": 0.7666666666666667,
+      "precision": 0.8235294117647058,
+      "recall": 0.56,
+      "f1": 0.6666666666666666,
+      "confusion_matrix": [
+        [
+          32,
+          3
+        ],
+        [
+          11,
+          14
+        ]
+      ],
+      "class_order": [
+        "ROUTINE",
+        "PRIORITY"
+      ],
+      "positive_class": "PRIORITY"
+    },
+    "majority_baseline": {
+      "accuracy": 0.5833333333333334,
+      "precision": 0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "confusion_matrix": [
+        [
+          35,
+          0
+        ],
+        [
+          25,
+          0
+        ]
+      ],
+      "class_order": [
+        "ROUTINE",
+        "PRIORITY"
+      ],
+      "positive_class": "PRIORITY"
+    }
+  },
+  "heldout_errors": [
+    {
+      "sample_id": "SIM-0183",
+      "actual": "PRIORITY",
+      "predicted": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0186",
+      "actual": "ROUTINE",
+      "predicted": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0188",
+      "actual": "PRIORITY",
+      "predicted": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0189",
+      "actual": "PRIORITY",
+      "predicted": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0192",
+      "actual": "PRIORITY",
+      "predicted": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0194",
+      "actual": "PRIORITY",
+      "predicted": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0196",
+      "actual": "PRIORITY",
+      "predicted": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0199",
+      "actual": "PRIORITY",
+      "predicted": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0211",
+      "actual": "ROUTINE",
+      "predicted": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0215",
+      "actual": "PRIORITY",
+      "predicted": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0231",
+      "actual": "PRIORITY",
+      "predicted": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0232",
+      "actual": "PRIORITY",
+      "predicted": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0233",
+      "actual": "ROUTINE",
+      "predicted": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0239",
+      "actual": "PRIORITY",
+      "predicted": "ROUTINE"
+    }
+  ],
+  "limitations": [
+    "训练数据为自建 SIMULATED 巡检历史教学样本，标签为 DERIVED_LABEL，不是真实巡检历史或人工验收结论。",
+    "留出集指标仅描述该模拟分布；未验证真实校园泛化能力，不预测设施故障、专业风险或未来失效。",
+    "输出仅供人工参考的复访工作优先级，不修改设施状态、覆盖事实、复核结论或 T1–T5 判定。",
+    "score 是叶节点中 PRIORITY 训练样本比例，未经校准，不是故障概率或置信度保证。"
+  ],
+  "artifact_sha256": "fefa110fcc3ba4173f5d806915da70f690a4374230a868a37ac87a02489190ae"
+}

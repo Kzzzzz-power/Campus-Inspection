@@ -127,7 +127,9 @@ def test_s1_is_frozen_input_with_linked_alarm_and_confirmation_not_task_results(
     assert confirmation['value_json']['historical_alarm_confirmed'] is True
     assert confirmation['value_json']['historical_observation_id'] == alarm['observation_id']
     assert datetime.fromisoformat(alarm['observed_at']) < datetime.fromisoformat(confirmation['observed_at']) <= datetime.fromisoformat(scenario['as_of'])
-    assert client.get('/api/scenarios/S2').status_code == 404
+    # Stage07 exposes the frozen scenario catalog; reading it never prepares a round.
+    assert client.get('/api/scenarios/S2').json()['scenario_id'] == 'S2'
+    assert client.get('/api/scenarios/S6').status_code == 404
     assert hashlib.sha256((root / 'test.db').read_bytes()).hexdigest() == digest
     assert get_s1(client) == scenario
 

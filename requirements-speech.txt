@@ -1,0 +1,2 @@
+# Optional local Chinese ASR; no cloud credentials required.
+vosk==0.3.45

@@ -240,7 +240,8 @@ def create_review(store, payload):
             return prior
         if value['trigger_run_id'] and not conn.execute('SELECT 1 FROM run_references WHERE run_id=?',(value['trigger_run_id'],)).fetchone():
             raise HTTPException(404,'触发运行不存在。')
-        if conn.execute("SELECT 1 FROM reviews WHERE point_id=? AND status='pending'",(value['point_id'],)).fetchone():
+        from backend.reviews import pending_exists
+        if pending_exists(conn,value['point_id']):
             raise HTTPException(409,'此点位已有待处理复核，请打开原请求继续补证。')
         now = utcnow().isoformat()
         review = {'review_id':'review-'+uuid4().hex,**value,'status':'pending','version':1,'conclusion':None,'created_at':now,'updated_at':now}

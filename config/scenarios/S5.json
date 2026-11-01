@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "scenario_id": "S5",
+  "source_type": "SIMULATED",
+  "base_scenario": "S1",
+  "description": "独立现实教学轮次，历史记录保留；仅 C03 当前状态查询失败，新确认策略显式过期旧 C03 确认。",
+  "exclude_inspection_points": [],
+  "zone_access": [
+    {
+      "zone_id": "Z1",
+      "access": "ALLOWED"
+    },
+    {
+      "zone_id": "Z2",
+      "access": "ALLOWED"
+    },
+    {
+      "zone_id": "Z3",
+      "access": "ALLOWED"
+    }
+  ],
+  "confirmation_valid_until": "2026-10-29T09:10:00+08:00",
+  "current_status_available": false
+}

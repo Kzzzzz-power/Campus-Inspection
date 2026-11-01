@@ -12,11 +12,22 @@ def initialize(conn):
     columns={r['name'] for r in conn.execute('PRAGMA table_info(reviews)')}
     for name,kind in {'task_id':'TEXT','inspection_round_id':'TEXT','facility_id':'TEXT','zone_id':'TEXT','expires_at':'TEXT','completed_at':'TEXT','close_reason':'TEXT'}.items():
         if name not in columns: conn.execute(f'ALTER TABLE reviews ADD COLUMN {name} {kind}')
+    # S5 fixtures are independent teaching rounds. Preserve point-wide uniqueness
+    # for legacy and all other reality requests; migrate indexes without touching rows.
+    conn.execute('DROP INDEX IF EXISTS one_pending_review')
+    conn.execute("CREATE UNIQUE INDEX one_pending_review ON reviews(point_id) WHERE status='pending' AND (inspection_round_id IS NULL OR inspection_round_id NOT GLOB 'S5.*')")
+    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS one_pending_teaching_review ON reviews(point_id,inspection_round_id) WHERE status='pending' AND inspection_round_id GLOB 'S5.*'")
     conn.execute('CREATE TABLE IF NOT EXISTS review_runs (review_id TEXT NOT NULL REFERENCES reviews(review_id), version INTEGER NOT NULL, request_id TEXT NOT NULL UNIQUE, payload_json TEXT NOT NULL, run_id TEXT, PRIMARY KEY(review_id,version))')
     queue_columns={r['name'] for r in conn.execute('PRAGMA table_info(review_runs)')}
     for name in ('error','last_attempt_at'):
         if name not in queue_columns:conn.execute(f'ALTER TABLE review_runs ADD COLUMN {name} TEXT')
     conn.execute('CREATE VIEW IF NOT EXISTS review_requests AS SELECT * FROM reviews')
+
+def pending_exists(conn,point,inspection_round_id=None):
+    if inspection_round_id and inspection_round_id.startswith('S5.'):
+        return conn.execute("SELECT 1 FROM reviews WHERE point_id=? AND status='pending' AND inspection_round_id=?",(point,inspection_round_id)).fetchone() is not None
+    return conn.execute("SELECT 1 FROM reviews WHERE point_id=? AND status='pending' AND (inspection_round_id IS NULL OR inspection_round_id NOT GLOB 'S5.*')",(point,)).fetchone() is not None
+
 
 def project(conn,row):
     r=dict(row)
@@ -98,7 +109,7 @@ def create(store,payload):
         else:
             trigger=runs.detail(conn,payload.get('trigger_run_id'))
             if trigger.get('legacy') or trigger.get('run_type')!='reality':raise HTTPException(422,'需选择已完成现实运行。')
-            if conn.execute("SELECT 1 FROM reviews WHERE point_id=? AND status='pending'",(point,)).fetchone():raise HTTPException(409,'点位已有待处理复核。')
+            if pending_exists(conn,point,trigger['inspection_round_id']):raise HTTPException(409,'点位已有待处理复核。')
             now=service.utcnow().isoformat();expiry=ev.stamp(payload['expires_at']) if payload.get('expires_at') else (datetime.fromisoformat(now)+timedelta(hours=DEFAULT_REVIEW_HOURS)).isoformat()
             if expiry<=now:raise HTTPException(422,'到期时间必须晚于创建时间。')
             f=ev.CATALOG[point]

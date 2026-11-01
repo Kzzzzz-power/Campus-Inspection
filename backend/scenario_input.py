@@ -12,7 +12,7 @@ CATALOG = {f['checkpoint_id']:f for f in FACILITIES}
 
 def load_scenario(scenario_id):
     if scenario_id=='S1':return load_s1()
-    if scenario_id not in ('S2','S3'):raise HTTPException(404,'该阶段尚未接入此场景。')
+    if scenario_id not in ('S2','S3','S5'):raise HTTPException(404,'该阶段尚未接入此场景。')
     definition=read_json(CONFIG/'scenarios'/(scenario_id+'.json'))
     if definition['scenario_id']!=scenario_id or definition['source_type']!='SIMULATED' or definition['base_scenario']!='S1':
         raise ValueError('Invalid standard teaching scenario')
@@ -21,6 +21,11 @@ def load_scenario(scenario_id):
     fixture['inspection_records']=[r for r in fixture['inspection_records'] if r['checkpoint_id'] not in definition['exclude_inspection_points']]
     fixture['context']['zone_access']=definition['zone_access']
     fixture['context']['planning']=definition.get('planning_context',{})
+    if scenario_id=='S5':
+        fixture['as_of']=ev.now()
+        for proof in fixture['evidence']:
+            if proof['evidence_type']=='review_confirmation':
+                proof['valid_until']=ev.stamp(definition['confirmation_valid_until'])
     return fixture
 
 
@@ -30,7 +35,8 @@ def _prepare_s1(store, payload, scenario_id='S1'):
     instance = service.request_key(payload['instance_id'])
     key = service.request_key(payload['request_id'])
     fixture = load_scenario(scenario_id)
-    digest = service.fingerprint({'instance_id':instance,'fixture':fixture})
+    fixture_hash=service.fingerprint({**fixture,'as_of':'current'} if scenario_id=='S5' else fixture)
+    digest = service.fingerprint({'instance_id':instance,'fixture_hash':fixture_hash} if scenario_id=='S5' else {'instance_id':instance,'fixture':fixture})
     rid = scenario_id + '.' + instance
     prefix = rid + '.'
     original = fixture['inspection_round']
@@ -42,8 +48,10 @@ def _prepare_s1(store, payload, scenario_id='S1'):
             return prior
         existing = conn.execute('SELECT * FROM scenario_instances WHERE instance_id=?',(instance,)).fetchone()
         if existing:
-            if existing['fixture_hash'] != service.fingerprint(fixture):
+            if existing['fixture_hash'] != fixture_hash:
                 raise HTTPException(409,'该实例绑定另一版教学输入。')
+            import json
+            response=json.loads(existing['response_json'])
             service.save_receipt(conn,key,'prepare-'+scenario_id,digest,response)
             return response
         if conn.execute('SELECT 1 FROM inspection_rounds WHERE inspection_round_id=?',(rid,)).fetchone():
@@ -100,7 +108,7 @@ def _prepare_s1(store, payload, scenario_id='S1'):
             if 'basis_evidence_ids' in value:
                 value['basis_evidence_ids']=[prefix+e for e in value['basis_evidence_ids']]
             ev.add(conn,source['evidence_type'],'SIMULATED',prefix+source['evidence_id'],source['observed_at'],value,
-                evidence_id=prefix+source['evidence_id'],status=source['status'],retrieved_at=source['retrieved_at'],
+                evidence_id=prefix+source['evidence_id'],status=source['status'],retrieved_at=source['retrieved_at'],valid_until=source.get('valid_until'),
                 inspection_round_id=rid,checkpoint_id='C03',facility_id=source['facility_id'],zone_id='Z1',
                 review_id=prefix+source['review_id'] if source['review_id'] else None,
                 inspection_id=value.get('inspection_id') if source['evidence_type']=='inspection_record' else None,
@@ -110,10 +118,13 @@ def _prepare_s1(store, payload, scenario_id='S1'):
             ev.add(conn,'zone_access','SIMULATED',prefix+access['zone_id'],fixture['as_of'],access,
                 inspection_round_id=rid,zone_id=access['zone_id'],retrieved_at=fixture['as_of'],
                 provenance={'fixture':'config/scenarios/'+scenario_id+'.json','instance_id':instance})
+        if scenario_id=='S5':
+            from .degradation import status_evidence
+            status_evidence(conn,rid,fixture['as_of'],False,instance_id=instance)
         from . import planning
         planning.inputs(conn,fixture['context'].get('planning',{}),rid,fixture['as_of'],ev.stamp(original['window_end']),prefix+'planning',{'fixture':'config/scenarios/'+scenario_id+'.json','instance_id':instance})
         ev.insert(conn,'scenario_instances',dict(instance_id=instance,inspection_round_id=rid,
-            fixture_hash=service.fingerprint(fixture),response_json=service.json_text(response)))
+            fixture_hash=fixture_hash,response_json=service.json_text(response)))
         service.save_receipt(conn,key,'prepare-'+scenario_id,digest,response)
     return response
 

@@ -1,0 +1,2908 @@
+{
+  "schema_version": 1,
+  "dataset_id": "b02-teaching-inspection-history-v1",
+  "source_type": "SIMULATED",
+  "label_source": "DERIVED_LABEL",
+  "feature_order": [
+    "coverage_rate",
+    "inspection_count",
+    "anomaly_count",
+    "pending_review_count"
+  ],
+  "class_order": [
+    "ROUTINE",
+    "PRIORITY"
+  ],
+  "provenance": {
+    "creator": "project synthetic teaching generator",
+    "seed": 601,
+    "generator": "scripts/train_inspection_model.py:generate_dataset",
+    "time_semantics": "simulated_at 为虚构顺序坐标，不是真实巡检记录时间；未读取真实库、人员或照片。",
+    "feature_generation": "6 required points; covered=randint(0,6); inspections=covered+randint(0,2); anomalies,pending=randint(0,3)",
+    "label_rule": "PRIORITY iff 2*(1-coverage_rate)+0.8*pending_review_count+0.45*anomaly_count+U(-0.7,0.7)>=2.9; otherwise ROUTINE",
+    "label_meaning": "虚构的人工复访工作优先级教学标签，非故障、非风险或未来事件标签；随机项模拟未建模的安排差异。",
+    "reuse": "GreenMate ml_pipeline.py 的固定切分、基线、摘要和限制说明方式；未使用农业数据或模型。"
+  },
+  "samples": [
+    {
+      "sample_id": "SIM-0001",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-01T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 3,
+        "anomaly_count": 0,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0002",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-01T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 4,
+        "anomaly_count": 0,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0003",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-01T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 3,
+        "anomaly_count": 2,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0004",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-01T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 4,
+        "anomaly_count": 2,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0005",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-02T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 5,
+        "anomaly_count": 1,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0006",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-02T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 6,
+        "anomaly_count": 1,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0007",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-02T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.0,
+        "inspection_count": 1,
+        "anomaly_count": 2,
+        "pending_review_count": 1
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0008",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-02T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 3,
+        "anomaly_count": 0,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0009",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-02T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.0,
+        "inspection_count": 1,
+        "anomaly_count": 2,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0010",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-02T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 4,
+        "anomaly_count": 0,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0011",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-03T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 2,
+        "anomaly_count": 3,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0012",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-03T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 2,
+        "anomaly_count": 2,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0013",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-03T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 4,
+        "anomaly_count": 2,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0014",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-03T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 2,
+        "anomaly_count": 2,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0015",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-03T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 6,
+        "anomaly_count": 3,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0016",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-03T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 1,
+        "anomaly_count": 1,
+        "pending_review_count": 1
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0017",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-04T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 8,
+        "anomaly_count": 0,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0018",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-04T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 5,
+        "anomaly_count": 1,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0019",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-04T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 5,
+        "anomaly_count": 0,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0020",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-04T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 3,
+        "anomaly_count": 1,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0021",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-04T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 7,
+        "anomaly_count": 2,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0022",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-04T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 3,
+        "anomaly_count": 1,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0023",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-05T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 4,
+        "anomaly_count": 1,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0024",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-05T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 7,
+        "anomaly_count": 1,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0025",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-05T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 4,
+        "anomaly_count": 3,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0026",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-05T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 6,
+        "anomaly_count": 0,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0027",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-05T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 3,
+        "anomaly_count": 2,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0028",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-05T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 6,
+        "anomaly_count": 2,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0029",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-06T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 6,
+        "anomaly_count": 3,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0030",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-06T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 5,
+        "anomaly_count": 0,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0031",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-06T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 8,
+        "anomaly_count": 2,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0032",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-06T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 5,
+        "anomaly_count": 2,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0033",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-06T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 4,
+        "anomaly_count": 1,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0034",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-06T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 3,
+        "anomaly_count": 0,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0035",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-07T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 3,
+        "anomaly_count": 3,
+        "pending_review_count": 1
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0036",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-07T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 5,
+        "anomaly_count": 0,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0037",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-07T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 7,
+        "anomaly_count": 3,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0038",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-07T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 7,
+        "anomaly_count": 0,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0039",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-07T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 3,
+        "anomaly_count": 0,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0040",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-07T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 2,
+        "anomaly_count": 2,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0041",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-08T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 3,
+        "anomaly_count": 1,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0042",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-08T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 6,
+        "anomaly_count": 2,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0043",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-08T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 4,
+        "anomaly_count": 3,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0044",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-08T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 5,
+        "anomaly_count": 3,
+        "pending_review_count": 1
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0045",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-08T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 7,
+        "anomaly_count": 1,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0046",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-08T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 3,
+        "anomaly_count": 2,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0047",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-09T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 8,
+        "anomaly_count": 0,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0048",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-09T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 5,
+        "anomaly_count": 3,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0049",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-09T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 1,
+        "anomaly_count": 1,
+        "pending_review_count": 1
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0050",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-09T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 3,
+        "anomaly_count": 1,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0051",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-09T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 6,
+        "anomaly_count": 1,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0052",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-09T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 4,
+        "anomaly_count": 1,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0053",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-10T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 7,
+        "anomaly_count": 0,
+        "pending_review_count": 3
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0054",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-10T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 5,
+        "anomaly_count": 1,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0055",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-10T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 3,
+        "anomaly_count": 3,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0056",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-10T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 2,
+        "anomaly_count": 1,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0057",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-10T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 3,
+        "anomaly_count": 1,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0058",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-10T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 5,
+        "anomaly_count": 1,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0059",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-11T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 1,
+        "anomaly_count": 0,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0060",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-11T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.0,
+        "inspection_count": 1,
+        "anomaly_count": 1,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0061",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-11T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 8,
+        "anomaly_count": 3,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0062",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-11T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 5,
+        "anomaly_count": 1,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0063",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-11T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 3,
+        "anomaly_count": 0,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0064",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-11T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 2,
+        "anomaly_count": 3,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0065",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-12T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 2,
+        "anomaly_count": 0,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0066",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-12T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 4,
+        "anomaly_count": 0,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0067",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-12T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 4,
+        "anomaly_count": 2,
+        "pending_review_count": 1
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0068",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-12T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 2,
+        "anomaly_count": 3,
+        "pending_review_count": 1
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0069",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-12T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 3,
+        "anomaly_count": 2,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0070",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-12T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.0,
+        "inspection_count": 1,
+        "anomaly_count": 3,
+        "pending_review_count": 0
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0071",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-13T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 4,
+        "anomaly_count": 2,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0072",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-13T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.0,
+        "inspection_count": 0,
+        "anomaly_count": 0,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0073",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-13T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 3,
+        "anomaly_count": 0,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0074",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-13T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 3,
+        "anomaly_count": 1,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0075",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-13T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 8,
+        "anomaly_count": 1,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0076",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-13T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 4,
+        "anomaly_count": 2,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0077",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-14T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 6,
+        "anomaly_count": 3,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0078",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-14T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 6,
+        "anomaly_count": 1,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0079",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-14T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 7,
+        "anomaly_count": 0,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0080",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-14T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 3,
+        "anomaly_count": 1,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0081",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-14T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.0,
+        "inspection_count": 1,
+        "anomaly_count": 0,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0082",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-14T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 4,
+        "anomaly_count": 1,
+        "pending_review_count": 3
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0083",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-15T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 5,
+        "anomaly_count": 2,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0084",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-15T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 7,
+        "anomaly_count": 3,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0085",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-15T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.0,
+        "inspection_count": 2,
+        "anomaly_count": 1,
+        "pending_review_count": 1
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0086",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-15T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.0,
+        "inspection_count": 0,
+        "anomaly_count": 1,
+        "pending_review_count": 1
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0087",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-15T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 6,
+        "anomaly_count": 2,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0088",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-15T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 1,
+        "anomaly_count": 2,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0089",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-16T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 1,
+        "anomaly_count": 1,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0090",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-16T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 4,
+        "anomaly_count": 0,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0091",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-16T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 4,
+        "anomaly_count": 2,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0092",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-16T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 5,
+        "anomaly_count": 1,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0093",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-16T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 5,
+        "anomaly_count": 3,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0094",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-16T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 2,
+        "anomaly_count": 0,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0095",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-17T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 3,
+        "anomaly_count": 2,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0096",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-17T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 6,
+        "anomaly_count": 2,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0097",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-17T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 5,
+        "anomaly_count": 1,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0098",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-17T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.0,
+        "inspection_count": 2,
+        "anomaly_count": 0,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0099",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-17T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 1,
+        "anomaly_count": 1,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0100",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-17T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.0,
+        "inspection_count": 2,
+        "anomaly_count": 3,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0101",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-18T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 7,
+        "anomaly_count": 0,
+        "pending_review_count": 3
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0102",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-18T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 4,
+        "anomaly_count": 2,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0103",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-18T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 8,
+        "anomaly_count": 2,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0104",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-18T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 3,
+        "anomaly_count": 2,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0105",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-18T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.0,
+        "inspection_count": 1,
+        "anomaly_count": 0,
+        "pending_review_count": 1
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0106",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-18T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 2,
+        "anomaly_count": 0,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0107",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-19T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 5,
+        "anomaly_count": 2,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0108",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-19T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 6,
+        "anomaly_count": 2,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0109",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-19T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 4,
+        "anomaly_count": 1,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0110",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-19T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 6,
+        "anomaly_count": 1,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0111",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-19T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 6,
+        "anomaly_count": 1,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0112",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-19T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 8,
+        "anomaly_count": 0,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0113",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-20T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 5,
+        "anomaly_count": 2,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0114",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-20T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 6,
+        "anomaly_count": 2,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0115",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-20T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 3,
+        "anomaly_count": 0,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0116",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-20T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 3,
+        "anomaly_count": 1,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0117",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-20T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 4,
+        "anomaly_count": 0,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0118",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-20T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 3,
+        "anomaly_count": 2,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0119",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-21T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 3,
+        "anomaly_count": 1,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0120",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-21T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.0,
+        "inspection_count": 0,
+        "anomaly_count": 2,
+        "pending_review_count": 1
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0121",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-21T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 4,
+        "anomaly_count": 1,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0122",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-21T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 6,
+        "anomaly_count": 3,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0123",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-21T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 3,
+        "anomaly_count": 1,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0124",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-21T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 7,
+        "anomaly_count": 0,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0125",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-22T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 3,
+        "anomaly_count": 0,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0126",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-22T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 2,
+        "anomaly_count": 1,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0127",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-22T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 2,
+        "anomaly_count": 0,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0128",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-22T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 4,
+        "anomaly_count": 2,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0129",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-22T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 8,
+        "anomaly_count": 3,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0130",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-22T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 4,
+        "anomaly_count": 2,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0131",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-23T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.0,
+        "inspection_count": 2,
+        "anomaly_count": 2,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0132",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-23T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 7,
+        "anomaly_count": 2,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0133",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-23T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 8,
+        "anomaly_count": 1,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0134",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-23T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 5,
+        "anomaly_count": 2,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0135",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-23T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 6,
+        "anomaly_count": 3,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0136",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-23T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.0,
+        "inspection_count": 1,
+        "anomaly_count": 2,
+        "pending_review_count": 1
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0137",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-24T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 6,
+        "anomaly_count": 1,
+        "pending_review_count": 3
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0138",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-24T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 6,
+        "anomaly_count": 2,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0139",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-24T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 4,
+        "anomaly_count": 3,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0140",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-24T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 6,
+        "anomaly_count": 2,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0141",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-24T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 2,
+        "anomaly_count": 1,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0142",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-24T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 8,
+        "anomaly_count": 2,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0143",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-25T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 1,
+        "anomaly_count": 3,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0144",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-25T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 4,
+        "anomaly_count": 0,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0145",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-25T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 5,
+        "anomaly_count": 3,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0146",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-25T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.0,
+        "inspection_count": 0,
+        "anomaly_count": 3,
+        "pending_review_count": 1
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0147",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-25T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 8,
+        "anomaly_count": 3,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0148",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-25T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 7,
+        "anomaly_count": 0,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0149",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-26T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 2,
+        "anomaly_count": 3,
+        "pending_review_count": 0
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0150",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-26T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 4,
+        "anomaly_count": 2,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0151",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-26T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 4,
+        "anomaly_count": 2,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0152",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-26T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 5,
+        "anomaly_count": 2,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0153",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-26T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 4,
+        "anomaly_count": 1,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0154",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-26T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 1,
+        "anomaly_count": 2,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0155",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-27T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 4,
+        "anomaly_count": 0,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0156",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-27T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 5,
+        "anomaly_count": 2,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0157",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-27T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 2,
+        "anomaly_count": 0,
+        "pending_review_count": 1
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0158",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-27T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 3,
+        "anomaly_count": 3,
+        "pending_review_count": 1
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0159",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-27T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 7,
+        "anomaly_count": 3,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0160",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-27T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 7,
+        "anomaly_count": 0,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0161",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-28T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 8,
+        "anomaly_count": 1,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0162",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-28T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 6,
+        "anomaly_count": 3,
+        "pending_review_count": 1
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0163",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-28T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 7,
+        "anomaly_count": 0,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0164",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-28T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 7,
+        "anomaly_count": 0,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0165",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-28T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.0,
+        "inspection_count": 2,
+        "anomaly_count": 1,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0166",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-28T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 8,
+        "anomaly_count": 2,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0167",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-29T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 7,
+        "anomaly_count": 2,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0168",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-29T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 3,
+        "anomaly_count": 2,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0169",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-29T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 3,
+        "anomaly_count": 0,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0170",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-29T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 7,
+        "anomaly_count": 2,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0171",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-29T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 5,
+        "anomaly_count": 3,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0172",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-29T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.0,
+        "inspection_count": 1,
+        "anomaly_count": 0,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0173",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-30T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 7,
+        "anomaly_count": 3,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0174",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-30T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 7,
+        "anomaly_count": 2,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0175",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-30T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 6,
+        "anomaly_count": 0,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0176",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-30T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 2,
+        "anomaly_count": 3,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0177",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-30T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 4,
+        "anomaly_count": 0,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0178",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-30T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 4,
+        "anomaly_count": 0,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0179",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-31T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 8,
+        "anomaly_count": 1,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0180",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-31T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.0,
+        "inspection_count": 2,
+        "anomaly_count": 2,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0181",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-31T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 4,
+        "anomaly_count": 0,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0182",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-31T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 5,
+        "anomaly_count": 1,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0183",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-31T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 6,
+        "anomaly_count": 1,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0184",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-01-31T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 6,
+        "anomaly_count": 0,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0185",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-01T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 4,
+        "anomaly_count": 3,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0186",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-01T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 3,
+        "anomaly_count": 1,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0187",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-01T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 3,
+        "anomaly_count": 0,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0188",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-01T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 8,
+        "anomaly_count": 2,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0189",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-01T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 6,
+        "anomaly_count": 1,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0190",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-01T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 2,
+        "anomaly_count": 2,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0191",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-02T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 3,
+        "anomaly_count": 0,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0192",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-02T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 2,
+        "anomaly_count": 0,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0193",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-02T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 4,
+        "anomaly_count": 2,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0194",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-02T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.0,
+        "inspection_count": 2,
+        "anomaly_count": 3,
+        "pending_review_count": 0
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0195",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-02T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 4,
+        "anomaly_count": 3,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0196",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-02T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 6,
+        "anomaly_count": 0,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0197",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-03T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 4,
+        "anomaly_count": 0,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0198",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-03T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 2,
+        "anomaly_count": 0,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0199",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-03T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 5,
+        "anomaly_count": 1,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0200",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-03T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 3,
+        "anomaly_count": 0,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0201",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-03T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 6,
+        "anomaly_count": 2,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0202",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-03T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 8,
+        "anomaly_count": 1,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0203",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-04T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 5,
+        "anomaly_count": 1,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0204",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-04T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.0,
+        "inspection_count": 0,
+        "anomaly_count": 1,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0205",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-04T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.0,
+        "inspection_count": 0,
+        "anomaly_count": 3,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0206",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-04T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.0,
+        "inspection_count": 1,
+        "anomaly_count": 0,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0207",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-04T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 1,
+        "anomaly_count": 0,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0208",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-04T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 8,
+        "anomaly_count": 1,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0209",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-05T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 1,
+        "anomaly_count": 1,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0210",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-05T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 5,
+        "anomaly_count": 0,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0211",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-05T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 3,
+        "anomaly_count": 1,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0212",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-05T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 3,
+        "anomaly_count": 3,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0213",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-05T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 1,
+        "anomaly_count": 3,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0214",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-05T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 5,
+        "anomaly_count": 3,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0215",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-06T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 3,
+        "anomaly_count": 3,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0216",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-06T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 4,
+        "anomaly_count": 3,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0217",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-06T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 4,
+        "anomaly_count": 1,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0218",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-06T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 3,
+        "anomaly_count": 1,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0219",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-06T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 2,
+        "anomaly_count": 1,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0220",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-06T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.16666666666666666,
+        "inspection_count": 3,
+        "anomaly_count": 1,
+        "pending_review_count": 1
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0221",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-07T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 7,
+        "anomaly_count": 0,
+        "pending_review_count": 2
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0222",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-07T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.0,
+        "inspection_count": 0,
+        "anomaly_count": 2,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0223",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-07T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 6,
+        "anomaly_count": 0,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0224",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-07T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.0,
+        "inspection_count": 0,
+        "anomaly_count": 0,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0225",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-07T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 5,
+        "anomaly_count": 0,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0226",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-07T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 4,
+        "anomaly_count": 2,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0227",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-08T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 2,
+        "anomaly_count": 0,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0228",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-08T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 8,
+        "anomaly_count": 1,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0229",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-08T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.8333333333333334,
+        "inspection_count": 7,
+        "anomaly_count": 3,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0230",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-08T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 4,
+        "anomaly_count": 1,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0231",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-08T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 5,
+        "anomaly_count": 1,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0232",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-08T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.0,
+        "inspection_count": 2,
+        "anomaly_count": 3,
+        "pending_review_count": 0
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0233",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-09T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 7,
+        "anomaly_count": 2,
+        "pending_review_count": 3
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0234",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-09T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 6,
+        "anomaly_count": 0,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0235",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-09T08:00:00+08:00",
+      "features": {
+        "coverage_rate": 1.0,
+        "inspection_count": 8,
+        "anomaly_count": 3,
+        "pending_review_count": 0
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0236",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-09T12:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.5,
+        "inspection_count": 5,
+        "anomaly_count": 1,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    },
+    {
+      "sample_id": "SIM-0237",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-09T16:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.0,
+        "inspection_count": 0,
+        "anomaly_count": 3,
+        "pending_review_count": 3
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0238",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-09T20:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.3333333333333333,
+        "inspection_count": 2,
+        "anomaly_count": 2,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0239",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-10T00:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 6,
+        "anomaly_count": 3,
+        "pending_review_count": 2
+      },
+      "label": "PRIORITY"
+    },
+    {
+      "sample_id": "SIM-0240",
+      "source_type": "SIMULATED",
+      "simulated_at": "2026-02-10T04:00:00+08:00",
+      "features": {
+        "coverage_rate": 0.6666666666666666,
+        "inspection_count": 4,
+        "anomaly_count": 1,
+        "pending_review_count": 1
+      },
+      "label": "ROUTINE"
+    }
+  ]
+}

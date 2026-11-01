@@ -53,8 +53,6 @@ class Store:
                     status TEXT NOT NULL, version INTEGER NOT NULL, conclusion TEXT,
                     created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
                     trigger_run_id TEXT REFERENCES runs(run_id))''',
-                '''CREATE UNIQUE INDEX IF NOT EXISTS one_pending_review
-                    ON reviews(point_id) WHERE status='pending' ''',
                 '''CREATE TABLE IF NOT EXISTS run_snapshots (
                     run_id TEXT PRIMARY KEY REFERENCES runs(run_id), snapshot_json TEXT NOT NULL)''',
                 '''CREATE TABLE IF NOT EXISTS request_receipts (
@@ -77,6 +75,10 @@ class Store:
             run_schema.initialize(conn)
             from backend import reviews
             reviews.initialize(conn)
+            from backend import analysis
+            analysis.initialize(conn)
+            from backend import photo_description
+            photo_description.initialize(conn)
             if seed_demo and fresh_database:
                 now = datetime.now(timezone.utc)
                 demo = [

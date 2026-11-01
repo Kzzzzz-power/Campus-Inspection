@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "notice": "以下片段是依据公开官方资料自撰并核对的中文摘要，不是来源逐字原文。",
+  "sources": [
+    {
+      "source_id": "cisco-c9300-installation",
+      "url": "https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9300/hardware/install/b_c9300_hig/Preparing-for-installation.html",
+      "title": "Cisco Catalyst 9300 Series Switches Hardware Installation Guide — Preparing for Installation",
+      "provider": "Cisco",
+      "section": "Installation Guidelines; Site Requirements; Temperature",
+      "reviewed_at": "2026-11-01",
+      "updated_at": "2026-05-15",
+      "scope": "Catalyst 9300 系列安装环境参考；校园设备型号未经据此核验，资料不证明现场故障，也不构成现场安全结论。"
+    },
+    {
+      "source_id": "schneider-ups-wp210",
+      "url": "https://ckm-content.se.com/ckmContent/sfc/servlet.shepherd/document/download/0698V00000YtXpGQAV",
+      "title": "Single Phase UPS Management, Maintenance, and Lifecycle — White Paper 210, Revision 0",
+      "provider": "Schneider Electric — Data Center Science Center",
+      "section": "第 2 页 Introduction；第 3 页 Batteries / Placement",
+      "reviewed_at": "2026-11-01",
+      "updated_at": null,
+      "scope": "单相 UPS 通用维护资料，并非校园具体型号维修手册；资料不证明现场故障，也不保证电池寿命、剩余续航或现场安全。"
+    }
+  ],
+  "chunks": [
+    {
+      "chunk_id": "c9300-access",
+      "source_id": "cisco-c9300-installation",
+      "section": "Installation Guidelines",
+      "text": "Catalyst 9300 的安装位置应便于读取前面板指示灯，并为端口连接和布线留出空间。",
+      "keywords": ["指示灯", "面板", "布线", "端口", "安装位置", "可视", "观察"]
+    },
+    {
+      "chunk_id": "c9300-airflow",
+      "source_id": "cisco-c9300-installation",
+      "section": "Installation Guidelines; Site Requirements; Temperature",
+      "text": "Catalyst 9300 交换机周围及通风孔的气流应保持通畅。指南要求安装环境干燥、清洁、通风良好，并定期清理场地，避免灰尘和杂物堆积。",
+      "keywords": ["通风", "气流", "灰尘", "积尘", "杂物", "清洁", "清理", "干燥", "散热", "安装环境"]
+    },
+    {
+      "chunk_id": "ups-inspection-records",
+      "source_id": "schneider-ups-wp210",
+      "section": "第 2 页 Introduction",
+      "text": "单相 UPS 即使提供自动监测和通知，仍需安排检查。维护记录应包含检查日期、维护类型、设备状态及已观察到的变化，例如电池续航缩短。",
+      "keywords": ["自动监测", "自动通知", "人工检查", "检查", "巡检", "维护", "记录", "日期", "续航记录"]
+    },
+    {
+      "chunk_id": "ups-placement",
+      "source_id": "schneider-ups-wp210",
+      "section": "第 3 页 Batteries / Placement",
+      "text": "单相 UPS 的摆放环境应避免过多灰尘、潮湿及腐蚀性气体；设备前部、侧面或后部的通风开口不应被遮挡。",
+      "keywords": ["通风", "气流", "灰尘", "积尘", "潮湿", "腐蚀", "开口", "遮挡", "摆放", "安装环境"]
+    }
+  ]
+}
