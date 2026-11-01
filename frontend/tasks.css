@@ -31,3 +31,16 @@
 .plan-card p,.comparison-card p {font-size:14px;line-height:1.65}.plan-checks {margin-top:16px;font-size:14px}.plan-checks .dependency-row {padding-left:0}
 .comparison-card code {display:block;overflow-wrap:anywhere;font-size:12px}.run-dialog .plan-grid {grid-template-columns:1fr}
 @media(max-width:768px){.plan-grid,.run-comparison{grid-template-columns:1fr}}
+.scenario-picker[hidden]{display:none}
+#whatif-dialog{width:min(880px,calc(100vw - 40px));max-height:calc(100svh - 40px)}
+#whatif-dialog .drawer-body{min-width:0;overflow-y:auto}
+#whatif-dialog .drawer-header{gap:12px}
+#whatif-dialog .drawer-header h2{margin:0}
+#whatif-dialog code,#whatif-dialog p{overflow-wrap:anywhere}
+#whatif-dialog :focus-visible{outline:3px solid #146d69;outline-offset:3px}
+#whatif-dialog button:disabled{cursor:wait;opacity:.6}
+@media(max-width:580px){#whatif-dialog{width:100%;max-width:100%;height:100svh;max-height:100svh;margin:0;border-radius:0}#whatif-dialog .drawer-body{padding:16px}#whatif-dialog .drawer-header{padding:14px}#whatif-dialog .drawer-header h2{font-size:20px}}
+
+.campus-frozen-dialog .dependency-row,.campus-frozen-dialog p,.campus-frozen-dialog code{overflow-wrap:anywhere;min-width:0}.campus-frozen-dialog pre{white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%}
+
+.campus-frozen-dialog .drawer-body button{max-width:100%;white-space:normal;overflow-wrap:anywhere;text-align:left}

@@ -83,7 +83,7 @@ class CDP {
     const data=await(await fetch(BASE+'/api/reviews/'+created.review.review_id)).json();assert.equal(data.review.status,'timeout');assert(data.review.close_reason);await key('Escape');
   });
   await check('unsupported_voice_falls_back_and_review_drawer_fits_three_widths',async()=>{
-    await cdp.eval("window.SpeechRecognition=undefined;window.webkitSpeechRecognition=undefined;");
+    await cdp.eval("Object.defineProperty(navigator.mediaDevices,'getUserMedia',{value:undefined,configurable:true});");
     await click('#task-results [data-task=T2] > button');await cdp.wait("document.querySelector('#review-create-form')");await set('#review-create-form [name=point_id]','C06');await set('#review-create-form [name=reason]','语音降级验收');await click('#review-create-form button[type=submit]');await cdp.wait("document.querySelector('#review-evidence-form')");
     assert.equal(await cdp.eval("document.querySelector('#review-asr').disabled"),true);assert(await cdp.eval("document.querySelector('#review-body').textContent.includes('请手写现场说明')"));
     for(const width of [390,768,1440]){await cdp.send('Emulation.setDeviceMetricsOverride',{width,height:1000,deviceScaleFactor:1,mobile:false});await sleep(150);assert(await cdp.eval('document.documentElement.scrollWidth<=innerWidth+1'));assert(await cdp.eval("document.querySelector('#review-body').scrollWidth<=document.querySelector('#review-body').clientWidth+1"));const shot=await cdp.send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(OUT,`stage05-review-${width}.png`),Buffer.from(shot.data,'base64'));}

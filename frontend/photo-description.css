@@ -1,0 +1,16 @@
+.photo-dialog.has-photo-ai { overflow-y: auto; }
+.has-photo-ai .photo-figure { flex: 0 0 auto; overflow: visible; }
+.has-photo-ai #photo-image { max-height: 54dvh; }
+.photo-ai { flex: 0 0 auto; margin: 0 24px 24px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.photo-ai > summary { cursor: pointer; font-weight: 650; }
+.photo-ai > p, .photo-ai .check-field, .photo-ai .form-actions { margin-top: 14px; }
+.photo-ai .check-field { align-items: flex-start; line-height: 1.6; }
+.photo-ai .form-actions { flex-wrap: wrap; justify-content: flex-start; }
+.photo-ai-output { overflow-wrap: anywhere; line-height: 1.7; }
+.photo-ai-output h3 { margin-top: 12px; }
+.photo-ai-output pre { max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; }
+.photo-ai-output ul { padding-left: 20px; }
+@media (max-width: 600px) {
+  .photo-ai { margin: 0 12px 20px; padding: 12px; }
+  .has-photo-ai #photo-image { max-height: 44dvh; }
+}

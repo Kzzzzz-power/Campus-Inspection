@@ -1,17 +1,24 @@
-import {initReviewWorkbench} from './review-workbench.js';
-import {initTaskWorkbench} from './task-workbench.js';
-import {attachRoundSelector,initEvidenceBrowser} from './evidence-browser.js';
-import {matchesPoint,facilityState,coverageState} from './model.js';
-import {createRealtimeClient,projectPoint} from './realtime.js';
-import {initMotion} from './motion.js';
-import {createFilterPickers} from './filter-pickers.js';
-import {initCampusStage} from './twin/campus-stage.js';
+import {initBoardShell} from './board-shell.js?v=20261101-pinboard-2';
+import {projectCoverage,createReadGuard} from './run-projection.js';
+import {initReviewWorkbench} from './review-workbench.js?v=20261101-photo-1';
+import {initTaskWorkbench} from './task-workbench.js?v=20261101-workbench-2';
+import {attachRoundSelector,initEvidenceBrowser} from './evidence-browser.js?v=20261101-workbench-2';
+import {matchesPoint,facilityState,coverageState} from './model.js?v=20261101-pinboard-2';
+import {createRealtimeClient,projectPoint} from './realtime.js?v=20261101-workbench-2';
+import {initMotion} from './motion.js?v=20261101-workbench-2';
+import {createFilterPickers} from './filter-pickers.js?v=20261101-workbench-2';
+import {initCampusStage} from './twin/campus-stage.js?v=20261101-pinboard-2';
+import {initCampusWorkbench} from './twin/campus-workbench.js?v=20261101-pinboard-2';
+import {initAnalysisWorkbench} from './analysis-workbench.js?v=20261101-analysis-1';
+import {initPhotoDescription} from './photo-description.js?v=20261101-photo-1';
+import {initWhatifWorkbench} from './whatif-workbench.js?v=20261101-stage07-1';
 
 const $ = id => document.getElementById(id);
 const state = {queueButtons:new Map(),runButtons:new Map(),mapButtons:new Map(),runToken:0,refreshPromise:null,detailTrigger:null,data:null, runs:[], filters:{query:'',scope:'all',required:'all',status:'all'}, cards:new Map(), groups:new Map(), refreshing:false, detail:null, detailToken:0, dirty:false, saving:false, gallery:[], photoIndex:0, runRequest:null};
+const dashboardGuard=createReadGuard();
 const motionEffects = new WeakMap(), activeEffects = new Set();
 let activeViewTransition = null, photoDirection = 0;
-let filterPickers = null, roomStage = null, taskWorkbench = null, reviewWorkbench = null;
+let filterPickers = null, roomStage = null, taskWorkbench = null, reviewWorkbench = null, campusWorkbench = null, analysisWorkbench = null, boardShell = null;
 function presentationMotionAllowed(){return !document.hidden&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&document.documentElement.dataset.feedback==='on';}
 function animateFeedback(target,frames,duration=180){
   if(!target)return;
@@ -83,7 +90,7 @@ function updateRealtime(){
   if($('realtime-status').textContent!==labels[status.connection])$('realtime-status').textContent=labels[status.connection];
   $('realtime-status').classList.toggle('is-error',status.connection==='disconnected');
   $('broker-status').textContent=broker?((status.ready?'':'上次状态：')+brokerLabels[broker.state]+(broker.reason?` · ${broker.reason}`:'')):'等待消息代理状态';
-  if(state.data){renderFacilities();renderQueue();syncRoomStage();}
+  if(state.data){renderFacilities();renderQueue();syncRoomStage();boardShell?.sync();}
   if(state.detail && $('detail-dialog').open){
     const point=displayedPoint(state.detail.point),row=$('detail-facility-status');
     if(row)row.replaceChildren(el('span',{class:'status-label'},'设施状态'),statusBadge(...facilityState(point)));
@@ -111,6 +118,7 @@ function positionToast(){
 function toast(message,isError=false) {positionToast();$('toast').textContent=message;$('toast').classList.add('visible');$('toast').classList.toggle('is-error',isError);revealFeedback($('toast'),6,180);clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),6500);}
 function syncChildren(parent,children) {children.forEach((child,i)=>{if(parent.children[i]!==child)parent.insertBefore(child,parent.children[i]||null);});for(const child of [...parent.children])if(!children.includes(child))child.remove();}
 function setFilters(values,{animate=true}={}) {
+  clearTimeout(searchTimer);
   if(Object.entries(values).every(([key,value])=>state.filters[key]===value))return;
   activeViewTransition?.skipTransition();
   const before=animate&&state.data?.points.length<=12&&presentationMotionAllowed()?captureCardPositions():null;
@@ -119,11 +127,11 @@ function setFilters(values,{animate=true}={}) {
   Object.assign(state.filters,values);
   $('search').value=state.filters.query;$('required-filter').value=state.filters.required;$('status-filter').value=state.filters.status;$('mobile-scope').value=state.filters.scope;
   filterPickers?.sync();
-  renderFacilities();renderNavSelection();roomStage?.filter(state.filters);
+  renderFacilities();renderNavSelection();roomStage?.filter(state.filters);boardShell?.sync();
   if(before)filterFeedback(before);
 }
 function resetFilters(){setFilters({query:'',scope:'all',required:'all',status:'all'});}
-function missingFilter(){setFilters({query:'',scope:'all',required:'required',status:'missing'});$('search').focus({preventScroll:true});}
+function missingFilter(){setFilters({query:'',scope:'all',required:'required',status:'missing'});boardShell?.select('coverage');$('search').focus({preventScroll:true});}
 function renderNavSelection(){for(const b of $('scope-nav').querySelectorAll('[data-scope]')){const active=b.dataset.scope===state.filters.scope;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));}}
 let navReady=false;
 function renderNavigation(points){
@@ -157,21 +165,21 @@ function renderFacilities(){
   syncChildren($('facility-groups'),groups);
 }
 function renderQueue(){
-  const points=state.data.points.map(displayedPoint);const pending=points.filter(p=>p.review?.status==='pending');const gaps=points.filter(p=>p.required&&p.covered===false);const seen=new Set([...pending,...gaps].map(p=>p.point_id));const alarms=points.filter(p=>p.latest_status==='alarm'&&!seen.has(p.point_id));
+  const points=state.data.points.map(displayedPoint);const pending=points.filter(p=>(p.review?.effective_status||p.review?.status)==='pending');const gaps=points.filter(p=>p.required&&p.covered===false);const seen=new Set([...pending,...gaps].map(p=>p.point_id));const alarms=points.filter(p=>p.latest_status==='alarm'&&!seen.has(p.point_id));
   const items=[...pending.map(p=>({p,kind:'待处理复核',tone:'warn'})),...gaps.filter(p=>!pending.includes(p)).map(p=>({p,kind:'待补现场记录',tone:'warn'})),...alarms.map(p=>({p,kind:'告警待关注',tone:'danger'}))];
   syncChildren($('pending-list'),items.length?items.map(({p,kind,tone})=>{let b=state.queueButtons.get(p.point_id);if(!b){b=button('',()=>openDetail(p.point_id),'queue-item');state.queueButtons.set(p.point_id,b);}b.replaceChildren(el('span',{class:'queue-point'},p.point_id),el('span',{},el('strong',{},p.device),el('small',{},kind)),icon('arrow'));b.dataset.tone=tone;return b;}):[el('p',{class:'empty-state'},'当前没有待补检点或待处理复核。')]);
 }
 function renderRuns(){
   syncChildren($('recent-runs'),state.runs.length?state.runs.slice(0,5).map(r=>{let b=state.runButtons.get(r.run_id);if(!b){b=button('',()=>openRun(r.run_id),'run-item');state.runButtons.set(r.run_id,b);}b.replaceChildren(el('time',{},date(r.created_at)),el('strong',{},r.summary||'覆盖判断'),el('code',{},r.run_id));return b;}):[el('p',{class:'empty-state'},'还没有运行记录。生成一次判断，保留当前覆盖结果。')]);
-  $('all-runs-btn').disabled=!state.runs.length;
+  $('all-runs-btn').disabled=!state.runs.length;boardShell?.sync();
 }
 function syncRoomStage(){roomStage?.sync();}
 function renderDashboard(){
   const d=state.data;$('covered-count').textContent=d.covered??'—';$('missing-count').textContent=d.round_state==='no_round'?'—':d.missing.length;$('missing-shortcut').disabled=d.round_state==='no_round';$('required-count').textContent=d.required_total;
-  $('window-label').textContent=d.round_state==='no_round'?'未选择轮次；覆盖尚未判断':`${d.inspection_round_id} · 固定窗口 ${date(d.window_start,true)}—${date(d.window_end,true)}${d.run_id?' · 已冻结运行':''}`;$('updated-at').textContent='刷新成功 '+date(new Date().toISOString(),true);
+  $('window-label').textContent=d.round_state==='no_round'?'未选择轮次；覆盖尚未判断':`${d.inspection_round_id} · 固定窗口 ${date(d.window_start,true)}—${date(d.window_end,true)}${d.run_id?' · 已冻结运行':''}`;
   renderNavigation(d.points);renderFacilities();renderQueue();
   const strip=$('coverage-strip');syncChildren(strip,d.points.map(p=>{let b=state.mapButtons.get(p.point_id);if(!b){b=button(p.point_id,()=>openDetail(p.point_id),'map-point');state.mapButtons.set(p.point_id,b);}b.className=`map-point ${!p.required?'is-optional':p.covered===null?'':p.covered?'is-covered':'is-missing'}`;b.setAttribute('aria-label',`${p.point_id} ${p.device}：${coverageState(p)[0]}`);return b;}));
-  syncRoomStage();
+  syncRoomStage();campusWorkbench?.sync();boardShell?.sync();
 }
 async function refresh(manual=false,afterMutation=false){
   if(state.refreshPromise){if(!afterMutation)return state.refreshPromise;await state.refreshPromise;return refresh(manual,true);}
@@ -179,15 +187,18 @@ async function refresh(manual=false,afterMutation=false){
 }
 async function performRefresh(manual=false){
   state.refreshing=true;$('refresh-btn').disabled=true;$('refresh-btn').setAttribute('aria-busy','true');
-  const [dashboard,runs]=await Promise.allSettled([api('/api/dashboard'+(taskWorkbench?.query()||'')),api('/api/runs')]);
-  if(dashboard.status==='fulfilled'){state.data=dashboard.value;renderDashboard();$('connection-status').textContent='本地服务已连接 · 每 30 秒刷新';$('connection-status').classList.remove('is-error');}
-  else{$('connection-status').textContent=`刷新失败${state.data?' · 正在显示上次数据':''}：${errorText(dashboard.reason)}`;$('connection-status').classList.add('is-error');if(!state.data)$('facility-groups').replaceChildren(el('div',{class:'error-state'},el('h3',{},'暂时无法读取巡检数据'),el('p',{},errorText(dashboard.reason)),button('重新连接',()=>refresh(true))));}
+  const query=taskWorkbench?.query()||'',ticket=dashboardGuard.capture(query);
+  const [dashboard,runs]=await Promise.allSettled([api('/api/dashboard'+query),api('/api/runs')]);
+  const current=dashboardGuard.current(ticket,taskWorkbench?.query()||'');
+  if(current&&dashboard.status==='fulfilled'){state.data=taskWorkbench?.selectedRun?projectCoverage(dashboard.value,taskWorkbench.selectedRun):dashboard.value;renderDashboard();$('updated-at').textContent='刷新成功 '+date(new Date().toISOString(),true);$('connection-status').textContent='本地服务已连接 · 每 30 秒刷新';$('connection-status').classList.remove('is-error');}
+  else if(current){$('connection-status').textContent=`刷新失败${state.data?' · 正在显示上次数据':''}：${errorText(dashboard.reason)}`;$('connection-status').classList.add('is-error');if(!state.data)$('facility-groups').replaceChildren(el('div',{class:'error-state'},el('h3',{},'暂时无法读取巡检数据'),el('p',{},errorText(dashboard.reason)),button('重新连接',()=>refresh(true))));}
   if(runs.status==='fulfilled'){state.runs=runs.value;renderRuns();}else{$('recent-runs').replaceChildren(el('p',{class:'error-state'},'运行历史加载失败。'),button('重试',()=>refresh(true)));}
   state.refreshing=false;$('refresh-btn').disabled=false;$('refresh-btn').removeAttribute('aria-busy');
-  if(manual)toast(dashboard.status==='fulfilled'?'已更新当前统计窗口与点位记录。':errorText(dashboard.reason),dashboard.status==='rejected');
+  if(manual&&current)toast(dashboard.status==='fulfilled'?'已更新当前统计窗口与点位记录。':errorText(dashboard.reason),dashboard.status==='rejected');
 }
 function overlayChanged(){positionToast();document.dispatchEvent(new CustomEvent('inspectgo:overlay',{detail:{open:!!document.querySelector('dialog[open]')}}));}
-function showDialog(dialog){filterPickers?.close();const opening=!dialog.open;if(opening)dialog.showModal();overlayChanged();if(opening)dialogFeedback(dialog);}
+const dialogTriggers=new WeakMap(),boundDialogs=new WeakSet();
+function showDialog(dialog){filterPickers?.close();const opening=!dialog.open;if(opening){dialogTriggers.set(dialog,document.activeElement);if(!boundDialogs.has(dialog)){boundDialogs.add(dialog);dialog.addEventListener('close',()=>queueMicrotask(()=>{const target=dialogTriggers.get(dialog);if(target?.isConnected&&target.getClientRects().length)target.focus({preventScroll:true});}));}dialog.showModal();}overlayChanged();if(opening)dialogFeedback(dialog);}
 function closeDetail(){if(state.saving){toast('正在保存，请等待服务端确认。');return;}if(state.dirty&&!confirm('还有未提交的内容。关闭将放弃这次填写，是否继续？'))return;$('detail-dialog').close();}
 async function openDetail(id,mode=null){
   if(state.saving){toast('正在保存，请等待确认后再切换。');return;}
@@ -254,11 +265,19 @@ function reviewForm(point){
     try{await postJSON('/api/reviews',{point_id:point.point_id,reason:reason.value,request_id:requestId,trigger_run_id:taskWorkbench?.selectedRun?.run_id||null});state.dirty=false;state.saving=false;toast('复核请求已创建，等待现场证据。');await refresh(false,true);await openDetail(point.point_id,'review');}catch(error){formMessage(message,errorText(error),true);}finally{state.saving=false;submit.disabled=false;reason.disabled=false;submit.removeAttribute('aria-busy');submit.textContent='创建复核请求';}
   });return form;
 }
-function openPhotos(photos,index){state.gallery=photos;state.photoIndex=index;renderPhoto();showDialog($('photo-dialog'));}
+function openPhotos(photos,index){state.gallery=photos;state.photoIndex=index;renderPhoto();showDialog($('photo-dialog'));photoDescription.setPhoto(photos[index]);}
 function renderPhoto(direction=0){const photo=state.gallery[state.photoIndex];if(!photo)return;photoDirection=direction;$('photo-image').setAttribute('aria-busy','true');motionEffects.get($('photo-image'))?.cancel();$('photo-image').src=photo.url;$('photo-image').alt=`${photo.point_id} 现场证据照片`;$('photo-caption').textContent=`${photo.point_id} · 现场时间 ${date(photo.inspected_at,true)} · 上传时间 ${date(photo.created_at,true)}`;$('photo-position').textContent=`${state.photoIndex+1} / ${state.gallery.length}`;$('photo-prev').disabled=state.photoIndex===0;$('photo-next').disabled=state.photoIndex===state.gallery.length-1;}
-function stepPhoto(delta){const next=state.photoIndex+delta;if(next>=0&&next<state.gallery.length){state.photoIndex=next;renderPhoto(delta);}}
+function stepPhoto(delta){const next=state.photoIndex+delta;if(next>=0&&next<state.gallery.length){state.photoIndex=next;renderPhoto(delta);photoDescription.setPhoto(state.gallery[next]);}}
 function renderRun(run){
-  if(run.schema_version===3){taskWorkbench.renderRun(run,$('run-body'));return;}
+  $('run-title').textContent='运行判断';
+  if(run.schema_version===3){
+    if(run.status!=='completed'){
+      $('run-body').replaceChildren(el('code',{class:'run-id'},run.run_id),el('p',{},'此运行尚未完成，不能作为冻结判断采用。'),button('查看分析进度',()=>{ $('run-dialog').close();analysisWorkbench.open(run); }));return;
+    }
+    taskWorkbench.renderRun(run,$('run-body'));
+    if(run.analysis&&run.run_type!=='what_if'){const section=el('section');$('run-body').append(section);analysisWorkbench.render(run,section);}
+    return;
+  }
 
   $('run-title').textContent='运行判断';const content=[el('code',{class:'run-id'},run.run_id),el('p',{},date(run.created_at,true)),el('h3',{},run.summary||'覆盖快照')];
   if(!run.snapshot)content.push(el('p',{class:'empty-state'},'这是一条历史摘要。旧版本未保存完整快照，无法补造当时的点位详情。'));
@@ -270,7 +289,9 @@ async function newRun(){const b=$('run-btn');if(b.disabled)return;b.disabled=tru
   try{const run=await postJSON('/api/runs',taskWorkbench.request());state.runRequest=null;taskWorkbench.accept(run);state.runToken++;renderRun(run);showDialog($('run-dialog'));toast('运行判断已保存。');await refresh(false,true);}catch(error){toast(errorText(error),true);}finally{taskWorkbench.busy(false);b.disabled=false;b.removeAttribute('aria-busy');}
 }
 $('refresh-btn').addEventListener('click',()=>refresh(true));$('run-btn').addEventListener('click',newRun);$('missing-shortcut').addEventListener('click',missingFilter);$('reset-filters').addEventListener('click',resetFilters);
-$('search').addEventListener('input',e=>setFilters({query:e.target.value},{animate:false}));$('mobile-scope').addEventListener('change',e=>setFilters({scope:e.target.value}));$('required-filter').addEventListener('change',e=>setFilters({required:e.target.value}));$('status-filter').addEventListener('change',e=>setFilters({status:e.target.value}));
+let searchTimer;
+$('search').addEventListener('input',e=>{clearTimeout(searchTimer);const value=e.target.value;searchTimer=setTimeout(()=>setFilters({query:value},{animate:false}),250);});
+$('search').addEventListener('search',()=>{clearTimeout(searchTimer);setFilters({query:$('search').value},{animate:false});});$('mobile-scope').addEventListener('change',e=>setFilters({scope:e.target.value}));$('required-filter').addEventListener('change',e=>setFilters({required:e.target.value}));$('status-filter').addEventListener('change',e=>setFilters({status:e.target.value}));
 const viewSwitch=document.querySelector('.view-switch');
 viewSwitch.dataset.view='grid';
 function applyView(mode){$('facility-groups').classList.toggle('list-view',mode==='list');$('view-grid').setAttribute('aria-pressed',String(mode==='grid'));$('view-list').setAttribute('aria-pressed',String(mode==='list'));}
@@ -352,14 +373,32 @@ roomStage=initCampusStage({
   getPoints:()=>state.data?.points||[], getRealtime:()=>realtime.state,
   onSelect:point=>{twinPreviousFilters??={...state.filters};setFilters({query:point.point_id,scope:'all',required:'all',status:'all'});},
   onReturn:()=>{if(twinPreviousFilters){const previous=twinPreviousFilters;twinPreviousFilters=null;setFilters(previous);}},
-  onEnter:point=>openDetail(point.point_id,'inspect')
+  onEnter:point=>openDetail(point.point_id,'inspect'),
+  onRecord:point=>openDetail(point.point_id,'inspect'),
+  onReview:async point=>{
+    const detail=await api('/api/points/'+encodeURIComponent(point.point_id));
+    const pending=detail.reviews.find(r=>(r.effective_status||r.status)==='pending');
+    if(pending)return reviewWorkbench.detail(pending.review_id);
+    if(!taskWorkbench.selectedRun){taskWorkbench.open();toast('请先生成或选择运行，再从该点位发起复核。',true);return;}
+    return reviewWorkbench.create(point,taskWorkbench.selectedRun);
+  }
 });
-taskWorkbench=initTaskWorkbench({el,button,api,postJSON,showDialog,toast,overlayChanged,onSelection:()=>refresh(false,true),onReview:(run,task)=>reviewWorkbench.create(null,run,task)});
-reviewWorkbench=initReviewWorkbench({el,button,api,postJSON,showDialog,overlayChanged,getRun:()=>taskWorkbench?.selectedRun,openRun,refresh:()=>refresh(false,true)});
+taskWorkbench=initTaskWorkbench({el,button,api,postJSON,showDialog,toast,overlayChanged,onGenerate:newRun,onChange:()=>{dashboardGuard.invalidate();state.data=projectCoverage(state.data,taskWorkbench.selectedRun);if(state.data)renderDashboard();$('connection-status').textContent=taskWorkbench.selectedRun?'当前轮次读取待确认 · 覆盖采用选定运行冻结快照，设施与复核为上次读取':'当前轮次读取待确认 · 覆盖待加载，设施与复核为上次读取';campusWorkbench?.sync();},onSelection:()=>refresh(false,true),onReview:(run,task)=>reviewWorkbench.create(null,run,task),onExistingReview:id=>reviewWorkbench.detail(id)});
+reviewWorkbench=initReviewWorkbench({el,button,api,postJSON,showDialog,overlayChanged,getRun:()=>taskWorkbench?.selectedRun,openRun,openPhotos,refresh:()=>refresh(false,true)});
 realtime.start();
 refresh();
 
 initEvidenceBrowser({showDialog,overlayChanged});
+const photoDescription=initPhotoDescription({el,button,api,postJSON});
+campusWorkbench=initCampusWorkbench({el,button,api,getRun:()=>taskWorkbench.selectedRun,getData:()=>state.data,openTasks:target=>taskWorkbench.open(target),showDialog,overlayChanged,proof:taskWorkbench.proof,openReview:id=>reviewWorkbench.detail(id)});
+initWhatifWorkbench({el,button,api,postJSON,showDialog,overlayChanged,getRun:()=>taskWorkbench.selectedRun,openTasks:()=>taskWorkbench.open(),proof:taskWorkbench.proof,
+  onSaved:()=>refresh(false,true)});
+analysisWorkbench=initAnalysisWorkbench({el,button,api,postJSON,showDialog,toast,getRun:()=>taskWorkbench.selectedRun,openRun,
+  onCompleted:async run=>{taskWorkbench.accept(run);await refresh(false,true);}});
+boardShell=initBoardShell({el,button,icon,api,
+  getData:()=>state.data,getRun:()=>taskWorkbench.selectedRun,getRuns:()=>state.runs,
+  getFilters:()=>state.filters,getPoints:()=>state.data?.points.map(displayedPoint)||[],setFilters,openDetail,openRun,openPhotos,
+  openTasks:target=>taskWorkbench.open(target),openReview:id=>reviewWorkbench.detail(id),locatePoint:id=>roomStage.focus(id),motionAllowed:presentationMotionAllowed});
 for (const dialog of document.querySelectorAll('dialog')) {
   dialog.addEventListener('keydown', event => {
     if (event.key !== 'Tab') return;

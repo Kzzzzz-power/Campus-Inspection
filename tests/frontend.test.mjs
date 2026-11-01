@@ -34,3 +34,8 @@ test('location search matches building floor and zone while preserving other fil
  assert.equal(model.matchesPoint(point,{...base,query:'实训楼',scope:'zone:Z1'}),false);
  assert.equal(model.matchesPoint(point,{...base,query:'实训楼',status:'covered'}),false);
 });
+
+test('expired or cancelled reviews do not remain in the pending point filter',()=>{
+ for(const effective_status of ['timeout','cancelled'])assert.equal(model.matchesPoint({...missing,review:{status:'pending',effective_status}},{...base,status:'pending'}),false);
+ assert.equal(model.matchesPoint({...missing,review:{status:'pending',effective_status:'completed'}},{...base,status:'completed'}),true);
+});

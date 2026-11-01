@@ -3,13 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f3f6f5">
+  <meta name="theme-color" content="#f2f5ef">
   <title>校园设施巡检与复核 · 巡检工作台</title>
-  <link rel="stylesheet" href="/static/styles.css">
-  <link rel="stylesheet" href="/static/motion.css">
-  <link rel="stylesheet" href="/static/glass.css">
-  <link rel="stylesheet" href="/static/twin/campus-stage.css">
-  <link rel="stylesheet" href="/static/tasks.css">
+  <link rel="stylesheet" href="/static/styles.css?v=20261101-workbench-2">
+  <link rel="stylesheet" href="/static/motion.css?v=20261101-workbench-2">
+  <link rel="stylesheet" href="/static/glass.css?v=20261101-workbench-2">
+  <link rel="stylesheet" href="/static/twin/campus-stage.css?v=20261101-workbench-2">
+  <link rel="stylesheet" href="/static/tasks.css?v=20261101-stage07-1">
+  <link rel="stylesheet" href="/static/analysis-workbench.css?v=20261101-analysis-1">
+  <link rel="stylesheet" href="/static/photo-description.css?v=20261101-photo-1">
+  <link rel="stylesheet" href="/static/board.css?v=20261101-pinboard-2">
 </head>
 <body>
   <div class="ambient" aria-hidden="true"><span></span><span></span><span></span></div>
@@ -28,7 +31,7 @@
   </header>
 
   <section id="campus-stage" class="campus-stage" data-mode="campus" data-layer="remote" data-renderer="loading" data-selected="" aria-labelledby="twin-scene-title">
-    <div class="twin-heading"><div><h2 id="twin-scene-title">校园设施空间总览</h2><p>从空间定位设施，从现场记录追溯每一次巡检。</p></div><div class="twin-heading-side"><b>3 个示意建筑 / 3 个区域</b><span>空间示意 · 现场覆盖与远程状态独立</span></div></div>
+    <div class="twin-heading"><div><h2 id="twin-scene-title">校园设施空间总览</h2><p>从空间定位设施，从现场记录追溯每一次巡检。</p></div><div class="twin-heading-side"><b>3 栋巡检建筑 / 2 栋配套示意</b><span>空间示意 · 现场覆盖与远程状态独立</span></div></div>
     <div class="twin-toolbar"><div class="twin-layers" role="group" aria-label="信标显示图层"><button type="button" data-twin-layer="remote" aria-pressed="true">远程状态</button><button type="button" data-twin-layer="coverage" aria-pressed="false">现场覆盖</button><button type="button" data-twin-layer="review" aria-pressed="false">复核处理</button></div><p id="twin-hud" class="twin-hud">正在读取点位与远程观察…</p></div>
     <div class="twin-stage-body"><div class="twin-viewport" aria-label="校园空间展示">
       <div class="twin-fallback" aria-hidden="true"><div class="twin-fallback-building">教学楼<span>Z1 · 二层</span></div><div class="twin-fallback-building">实验空间<span>Z2 · 实训楼一层</span></div><div class="twin-fallback-building">实训空间<span>Z3 · 实训楼二层</span></div><img class="twin-fallback-device" alt="设备概念示意"></div>
@@ -121,6 +124,6 @@
     <header class="drawer-header"><h2 id="run-title">运行判断</h2><button id="run-close" class="btn btn-ghost icon-button" type="button" aria-label="关闭运行记录"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header><div id="run-body" class="drawer-body"></div>
   </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="/static/app.js"></script>
+  <script type="module" src="/static/app.js?v=20261101-pinboard-2"></script>
 </body>
 </html>

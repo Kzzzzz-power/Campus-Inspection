@@ -11,8 +11,8 @@ export function matchesPoint(point, filters) {
     case 'covered': return point.required && point.covered;
     case 'alarm': return point.latest_status === 'alarm';
     case 'unknown': return ['unknown', 'no-record'].includes(point.latest_status);
-    case 'pending': return point.review?.status === 'pending';
-    case 'completed': return point.review?.status === 'completed';
+    case 'pending': return (point.review?.effective_status || point.review?.status) === 'pending';
+    case 'completed': return (point.review?.effective_status || point.review?.status) === 'completed';
     default: return true;
   }
 }
