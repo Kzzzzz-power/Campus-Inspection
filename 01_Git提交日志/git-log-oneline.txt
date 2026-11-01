@@ -1,3 +1,21 @@
+491e0cf 2026-11-01 feat(miniapp): 接入同源巡检复核与运行查询
+aea6c6a 2026-11-01 feat(workbench): 接通五分区看板与分析推演操作
+9a42769 2026-11-01 feat(twin): 完善校园景观材质与八点位交互
+babcbff 2026-11-01 feat(backend): 接通分析推演与现场补证辅助接口
+b743e5c 2026-10-31 feat(twin): 接入封闭校园与八点位房间三维总览
+c7da410 2026-10-31 fix(realtime): 统一三维视图的实时状态与断线降级口径
+d539318 2026-10-31 feat(reviews): 完成阶段05现场复核与补证闭环
+71203a2 2026-10-30 feat(workbench): 展示阶段04阻塞证据与方案运行对比
+dea4977 2026-10-30 feat(plans): 实现阶段04独立场景与候选方案判断
+7d42e90 2026-10-30 feat(tasks): 实现阶段03任务判断与S1冻结运行
+1f60f42 2026-10-30 feat(coverage): 建立固定轮次覆盖计算与更正记录边界
+41ed359 2026-10-30 test(stage02): 验证证据留存重启与页面失败恢复
+b293b52 2026-10-30 fix: surface round and storage tools before evidence results
+c98ea77 2026-10-30 fix: preserve saved round status and refine evidence browser
+8116fad 2026-10-30 feat: add stage02 records and evidence browser
+4619e0a 2026-10-30 fix: return storage evidence only after committed transactions
+df3f531 2026-10-30 feat: persist stage02 inspection facts and traceable evidence
+5f010d3 2026-10-30 docs(ui): 记录前端同步验证与当日对话
 1e75706 2026-10-30 fix(ui): 同步选房状态并修复桌面与触屏交互
 6130d21 2026-10-30 docs(deploy): 归档 Release 部署交接与提交索引
 5a103ba 2026-10-30 feat(deploy): 添加正式 Release 部署入口与失败回退
