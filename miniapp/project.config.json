@@ -1,0 +1,10 @@
+{
+  "appid": "touristappid",
+  "projectname": "InspectGo-native",
+  "compileType": "miniprogram",
+  "miniprogramRoot": "./",
+  "setting": {
+    "es6": true,
+    "urlCheck": true
+  }
+}

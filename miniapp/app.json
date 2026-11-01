@@ -1,0 +1,11 @@
+{
+  "pages": [
+    "pages/index/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "校园设施现场复核",
+    "navigationBarBackgroundColor": "#123a42",
+    "navigationBarTextStyle": "white"
+  },
+  "style": "v2"
+}
