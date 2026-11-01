@@ -1,5 +1,5 @@
 import {CAMPUS_BUILDINGS} from './campus-layout.js';
-const labels={zh:{summary:'场景设置 · 设计示意',building:'观察建筑',view:'相机',overall:'校园总览',front:'南立面',back:'北立面',left:'西立面',right:'东立面',roof:'屋顶',entry:'入口近景',window:'门窗近景',time:'示意光照',morning:'上午侧光',afternoon:'下午侧光',evening:'傍晚暖光',roofToggle:'揭顶查看',windowToggle:'打开示意窗',fanToggle:'风扇演示',download:'下载校园 GLB',note:'原创设计，尺寸暂估。光照、开窗和风扇仅供空间演示，不控制真实设施。'},en:{summary:'Scene settings · Concept',building:'Building',view:'Camera',overall:'Campus',front:'South elevation',back:'North elevation',left:'West elevation',right:'East elevation',roof:'Roof',entry:'Entrance',window:'Window detail',time:'Illustrative lighting',morning:'Morning',afternoon:'Afternoon',evening:'Evening',roofToggle:'Reveal roof',windowToggle:'Open concept window',fanToggle:'Fan demonstration',download:'Export campus GLB',note:'Original design, estimated dimensions. Lighting, windows and fans are visual demonstrations, never device controls.'}};
+const labels={zh:{summary:'场景设置 · 设计示意',building:'观察建筑',view:'相机',overall:'校园总览',front:'南立面',back:'北立面',left:'西立面',right:'东立面',roof:'屋顶',entry:'入口近景',window:'门窗近景',courtyard:'教学庭院',landscape:'水岸花园',comparison:'固定对照视角',time:'示意光照',morning:'上午侧光',afternoon:'下午侧光',evening:'傍晚暖光',roofToggle:'揭顶查看',windowToggle:'打开示意窗',fanToggle:'风扇演示',download:'下载校园 GLB',note:'原创设计，尺寸暂估。光照、开窗和风扇仅供空间演示，不控制真实设施。'},en:{summary:'Scene settings · Concept',building:'Building',view:'Camera',overall:'Campus',front:'South elevation',back:'North elevation',left:'West elevation',right:'East elevation',roof:'Roof',entry:'Entrance',window:'Window detail',courtyard:'Courtyard',landscape:'Water garden',comparison:'Comparison camera',time:'Illustrative lighting',morning:'Morning',afternoon:'Afternoon',evening:'Evening',roofToggle:'Reveal roof',windowToggle:'Open concept window',fanToggle:'Fan demonstration',download:'Export campus GLB',note:'Original design, estimated dimensions. Lighting, windows and fans are visual demonstrations, never device controls.'}};
 function el(tag,attrs={},text=''){const e=document.createElement(tag);for(const[k,v]of Object.entries(attrs))e.setAttribute(k,v);e.textContent=text;return e;}
 export function initDesignControls({host,getScene,fly,invalidate,modeChanged}){
  const events=new AbortController(),panel=el('details',{class:'twin-design-tools'}),summary=el('summary'),body=el('div',{class:'twin-design-body'});
@@ -9,7 +9,7 @@ export function initDesignControls({host,getScene,fly,invalidate,modeChanged}){
  const on=(node,event,fn)=>node.addEventListener(event,fn,{signal:events.signal});
  function select(id,key,options){const label=el('label'),text=el('span'),input=el('select',{id});input.append(...options.map(([value,title])=>el('option',{value},title)));label.append(text,input);body.append(label);refs[key]=text;return input;}
  const buildings=select('twin-design-building','building',CAMPUS_BUILDINGS.map(b=>[b.id,b.displayName]));
- const views=select('twin-design-view','view',['overall','front','back','left','right','roof','entry','window'].map(v=>[v,v]));
+ const views=select('twin-design-view','view',['overall','front','back','left','right','roof','entry','window','courtyard','landscape','comparison'].map(v=>[v,v]));
  const time=select('twin-design-time','time',['morning','afternoon','evening'].map(v=>[v,v]));time.value='afternoon';
  const lang=select('twin-design-language','language',[['zh','中文'],['en','English']]);refs.language.textContent='空间控件 / Language';
  function toggle(id,key){const b=el('button',{id,type:'button','aria-pressed':'false'});refs[key]=b;body.append(b);return b;}
@@ -38,6 +38,9 @@ export function initDesignControls({host,getScene,fly,invalidate,modeChanged}){
   let position,target=centre;
   if(dir[kind]){const v=dir[kind],length=kind==='left'||kind==='right'?d:w,dist=Math.max(h*1.25,length/Math.max(.7,camera.aspect)) / Math.tan(camera.fov*Math.PI/360)*.65;position=[x+v[0]*(dist+w/2),h*.5,z+v[2]*(dist+d/2)];}
   else if(kind==='roof'){position=[x,h+Math.max(w,d)*1.2,z+.01];target=[x,h,z];}
+  else if(kind==='comparison'){position=[59.922,73.465,65.812];target=[5,1.2,8];}
+  else if(kind==='courtyard'){position=[-15,8,39];target=[-12,2,22];}
+  else if(kind==='landscape'){position=[-49,7,42];target=[-40,1,28];}
   else if(kind==='entry'){position=[x+3,2.1,z+d/2+6.3];target=[x,1.8,z+d/2];}
   else{target=[x-w*.27,b.floorHeight*1.6,z+d/2];position=[target[0]+2.1,target[1]+.2,target[2]+3.5];}
   fly(position,target,850);invalidate();

@@ -95,8 +95,9 @@ function makeBuilder(pointId) {
   const roof = new THREE.Group(); roof.name = 'closed-ceiling'; group.add(roof);
   const door = new THREE.Group(); door.name = 'entrance-door'; group.add(door);
   const window = new THREE.Group(); window.name = 'operable-window'; group.add(window);
+  const portal = new THREE.Group(); portal.name = 'access-portal-door'; group.add(portal);
   const fan = new THREE.Group(); fan.name = 'illustrative-ventilation-fan'; group.add(fan);
-  const sections = { room: group, roof, door, window, fan };
+  const sections = { room: group, roof, door, window, fan, portal };
   const batches = new Map(), textures = new Map(), materials = new Set();
   let section = 'room', frame = new THREE.Matrix4(), semantic = 'architecture';
   function texture(kind) {
@@ -192,9 +193,10 @@ function makeBuilder(pointId) {
     }
     let disposed = false;
     return {
-      group, roof, door, window, fan,
+      group, roof, door, window, fan, portal,
       setWindowOpen(fraction) { window.rotation.y = THREE.MathUtils.clamp(fraction,0,1)*.85; },
-      setDoorOpen(fraction) { door.rotation.y = -THREE.MathUtils.clamp(fraction, 0, 1) * Math.PI * .48; },
+      setPortalOpen(fraction) { portal.rotation.y = THREE.MathUtils.clamp(fraction,0,1)*Math.PI*.46; },
+      setDoorOpen(fraction) { door.userData.open=fraction>.5; door.rotation.y = -THREE.MathUtils.clamp(fraction, 0, 1) * Math.PI * .48; },
       dispose() {
         if (disposed) return; disposed = true;
         group.traverse(object => { if (object.isMesh) object.geometry.dispose(); });
@@ -204,7 +206,7 @@ function makeBuilder(pointId) {
       },
     };
   }
-  return { group, roof, door, window, fan, add, box, label, node, inSection, inFrame, cable, contact, finish, surfaces };
+  return { group, roof, door, window, fan, portal, add, box, label, node, inSection, inFrame, cable, contact, finish, surfaces };
 }
 
 function exterior(b, width, depth) {
@@ -227,11 +229,15 @@ function exterior(b, width, depth) {
   }
 }
 
-function shell(b, { width, depth, height, doorX, windowSill, windowHeight, windowCentres, windowWidth }) {
+function shell(b, { width, depth, height, doorX, windowSill, windowHeight, windowCentres, windowWidth, portal=false }) {
   const left = -width / 2, right = width / 2, front = -depth / 2, back = depth / 2, doorWidth = 1.2, doorHeight = 2.25;
   b.node('complete-room-shell', [0, 0, 0]);
   b.box([width + .36, .2, depth + .36], [0, -.1, 0], 'floor');
-  b.box([width + .36, height, .18], [0, height / 2, front - .09], 'plaster');
+  if(portal){
+    for(const side of [-1,1])b.box([(width-3.5)/2,height,.18],[side*(width+3.5)/4,height/2,front-.09],'plaster');
+    b.box([3.5,height-2.85,.18],[0,(height+2.85)/2,front-.09],'plaster');
+    b.box([4,.2,2.4],[0,-.1,front-1.2],'floor');
+  }else b.box([width + .36, height, .18], [0, height / 2, front - .09], 'plaster');
   b.box([.18, height, depth], [right + .09, height / 2, 0], 'plaster');
   b.box([.18, windowSill, depth], [left - .09, windowSill / 2, 0], 'plaster');
   const top = windowSill + windowHeight;
@@ -430,8 +436,8 @@ function serverRoom(b) {
 
 // Six distinct designed interiors. Dimensions/layouts are illustrative; no equipment state lives here.
 function serviceRoom(b, pointId) {
-  const dimensions = {width:7.2,depth:8.2,height:3.4};
-  shell(b,{...dimensions,doorX:2.65,windowSill:1.1,windowHeight:1.65,windowCentres:[-2.7,0,2.7],windowWidth:1.9});
+  const dimensions = {width:pointId==='C04'?10.8:pointId==='C05'?10:9.6,depth:pointId==='C06'?12:pointId==='C05'?9:11,height:pointId==='C06'?4.2:3.8};
+  shell(b,{...dimensions,doorX:2.65,windowSill:1.1,windowHeight:1.65,windowCentres:[-3.6,-1.2,1.2,3.6],windowWidth:1.9,portal:pointId==='C05'});
   const obstacles=[];
   const obstruction=(x,z,w,d)=>obstacles.push({minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2});
   const bench=(x,z,w=2.2)=>{
@@ -456,15 +462,15 @@ function serviceRoom(b, pointId) {
   b.inSection('roof',()=>{
     b.node(pointId+'-designed-luminaires',[0,3.2,0]);
     for(const x of [-1.8,1.8])for(const z of [-2.5,.2,2.8]){
-      b.box([.61,.055,.61],[x,3.35,z],'steel');b.box([.55,.015,.55],[x,3.315,z],'light');
+      b.box([.61,.055,.61],[x,dimensions.height-.05,z],'steel');b.box([.55,.015,.55],[x,dimensions.height-.085,z],'light');
     }
   });
   if(pointId==='C02'){
     // HVAC seminar room: wall-mounted units, thermostat, meeting table, ventilation register.
-    ac(-1.85,2.72,-3.87);ac(1.55,2.72,-3.87);
+    ac(-1.85,2.72,-dimensions.depth/2+.18);ac(1.55,2.72,-dimensions.depth/2+.18);
     b.node('C02-thermostat',[3.52,1.35,1.3]);
-    b.box([.07,.19,.13],[3.53,1.35,1.3],'ceiling');b.box([.01,.08,.09],[3.487,1.38,1.3],'port');
-    grille(0,2.96,-3.93,.92,.25);
+    b.box([.07,.19,.13],[dimensions.width/2-.04,1.35,1.3],'ceiling');b.box([.01,.08,.09],[dimensions.width/2-.085,1.38,1.3],'port');
+    grille(0,3.3,-dimensions.depth/2+.08,.92,.25);
     bench(-.5,-.7,3.4);bench(-.5,.8,3.4);
     for(const x of [-1.7,-.5,.7])for(const z of [-1.38,1.48]){
       b.box([.43,.055,.43],[x,.46,z],'chair');b.box([.43,.42,.045],[x,.68,z+(z<0?-.2:.2)],'chair');
@@ -475,12 +481,12 @@ function serviceRoom(b, pointId) {
     // Network classroom: desk terminals, ceiling AP and visible cable route to the wall patch box.
     for(const x of [-1.8,1.1])for(const z of [-2.6,-.7,1.2]){bench(x,z,1.8);monitor(x,1.23,z-.2);b.box([.45,.025,.14],[x,.91,z+.19],'panel');}
     b.inSection('roof',()=>{
-      b.node('C03-wireless-access-point',[0,3.18,0]);b.add(new THREE.CylinderGeometry(.17,.17,.055,24),'ceiling',[0,3.27,0]);
-      b.box([.025,.025,3.7],[0,3.32,-1.85],'trim');
+      b.node('C03-wireless-access-point',[0,3.18,0]);b.add(new THREE.CylinderGeometry(.17,.17,.055,24),'ceiling',[0,dimensions.height-.065,0]);
+      b.box([.025,.025,dimensions.depth/2],[0,dimensions.height-.03,-dimensions.depth/4],'trim');
     });
-    b.node('C03-patch-box',[2.8,1.45,-3.97]);b.box([.46,.65,.16],[2.8,1.45,-3.97],'panel');
-    b.box([.025,1.5,.025],[2.8,2.5,-3.97],'steel');
-    for(const x of [2.65,2.75,2.85,2.95])b.box([.045,.035,.015],[x,1.3,-3.88],'port');
+    b.node('C03-patch-box',[2.8,1.45,-dimensions.depth/2+.1]);b.box([.46,.65,.16],[2.8,1.45,-dimensions.depth/2+.1],'panel');
+    b.box([.025,1.5,.025],[2.8,2.5,-dimensions.depth/2+.1],'steel');
+    for(const x of [2.65,2.75,2.85,2.95])b.box([.045,.035,.015],[x,1.3,-dimensions.depth/2+.19],'port');
   } else if(pointId==='C04'){
     // Electrical practice lab: independent main isolator cabinet, conduit, work benches and equipment.
     b.node('C04-main-power-cabinet',[-1.7,1.2,-3.75]);
@@ -494,16 +500,24 @@ function serviceRoom(b, pointId) {
     for(const z of [-1.1,1.2]){bench(-1.2,z,3.5);for(const x of [-2.35,-1.2,-.05]){b.box([.48,.37,.35],[x,1.075,z],'ceiling');b.box([.25,.14,.02],[x,1.14,z+.185],'port');}}
   } else if(pointId==='C05'){
     // Entrance vestibule: two glazed door leaves, reader, door closer and reception counter.
-    b.node('C05-access-controlled-portal',[0,1.4,-3.85]);
-    for(const x of [-1.7,0,1.7])b.box([.1,2.75,.16],[x,1.375,-3.72],'steel');
-    b.box([3.5,.1,.16],[0,2.75,-3.72],'steel');
-    for(const x of [-.85,.85]){
-      b.box([1.55,2.53,.045],[x,1.35,-3.73],'glass');b.box([1.52,.055,.09],[x,.1,-3.67],'steel');
-      b.box([.035,.62,.06],[x+(x<0?.59:-.59),1.3,-3.61],'steel');
-      b.box([.36,.07,.08],[x,2.63,-3.61],'dark');
-    }
-    b.node('C05-card-reader',[2.06,1.28,-3.74]);b.box([.15,.24,.07],[2.06,1.28,-3.74],'dark');
-    b.box([.095,.08,.013],[2.06,1.32,-3.695],'port');
+    b.node('C05-access-controlled-portal',[0,1.4,-dimensions.depth/2]);
+    for(const x of [-1.7,0,1.7])b.box([.1,2.75,.16],[x,1.375,-dimensions.depth/2],'steel');
+    b.box([3.5,.1,.16],[0,2.75,-dimensions.depth/2],'steel');
+    // Real opening in the perimeter wall; the two leaves share a visible swing pivot.
+    b.portal.position.set(-1.68,0,-dimensions.depth/2+.03);
+    b.portal.userData={interaction:'portal',open:false,conceptual:true};
+    b.inSection('portal',()=>{
+      for(const x of [.83]){
+        b.box([1.59,2.58,.055],[x,1.35,0],'glass');
+        for(const xx of [x-.8,x+.8])b.box([.055,2.65,.08],[xx,1.35,0],'steel');
+        for(const yy of [.05,2.68])b.box([1.65,.055,.08],[x,yy,0],'steel');
+        b.box([.04,.65,.08],[x+.6,1.3,.08],'steel');
+      }
+    });
+    b.box([1.59,2.58,.055],[.81,1.35,-dimensions.depth/2+.03],'glass');
+    b.box([.04,.65,.08],[.2,1.3,-dimensions.depth/2+.11],'steel');
+    b.node('C05-card-reader',[2.06,1.28,-dimensions.depth/2+.02]);b.box([.15,.24,.07],[2.06,1.28,-dimensions.depth/2+.02],'dark');
+    b.box([.095,.08,.013],[2.06,1.32,-dimensions.depth/2+.07],'port');
     b.box([1.5,1.0,.85],[-2.2,.5,.7],'wood');b.box([1.65,.05,.95],[-2.2,1.025,.7],'ceiling');monitor(-2.2,1.35,.55);
     obstruction(-2.2,.7,1.65,.95);
     b.box([2.6,.009,1.4],[0,.008,-2.6],'dark');
@@ -517,8 +531,8 @@ function serviceRoom(b, pointId) {
     b.box([2.39,1.25,.035],[-1.65,1.63,-2.79],'glass');
     b.box([2.4,.045,.07],[-1.65,1.05,-2.74],'steel');
     b.add(new THREE.CylinderGeometry(.3,.3,.65,24),'steel',[-1.65,3.08,-3.35]);
-    b.box([.8,.8,.19],[1.7,2.55,-3.97],'steel');
-    b.fan.position.set(1.7,2.55,-3.84);b.inSection('fan',()=>{
+    b.box([.8,.8,.19],[1.7,2.55,-dimensions.depth/2+.12],'steel');
+    b.fan.position.set(1.7,2.55,-dimensions.depth/2+.25);b.inSection('fan',()=>{
       b.add(new THREE.CylinderGeometry(.09,.09,.12,16),'dark',[0,0,0],[Math.PI/2,0,0]);
       for(let i=0;i<4;i++)b.box([.12,.55,.03],[0,0,0],'panel',[0,0,i*Math.PI/2+.35]);
     });
@@ -532,11 +546,45 @@ function serviceRoom(b, pointId) {
     }
     equipmentRack(b,1.9,-2.65,0,false);equipmentRack(b,1.9,-.9,0,false);
     obstruction(1.9,-2.65,.86,1.2);obstruction(1.9,-.9,.86,1.2);
-    b.node('C08-environment-sensor',[3.5,1.5,1.0]);b.box([.12,.38,.25],[3.5,1.5,1.0],'ceiling');
-    b.box([.025,.13,.16],[3.425,1.56,1.0],'port');b.box([.025,1.5,.025],[3.51,2.6,1],'trim');
+    b.node('C08-environment-sensor',[dimensions.width/2-.08,1.5,1.0]);b.box([.12,.38,.25],[dimensions.width/2-.08,1.5,1.0],'ceiling');
+    b.box([.025,.13,.16],[dimensions.width/2-.155,1.56,1.0],'port');b.box([.025,1.5,.025],[dimensions.width/2-.07,2.6,1],'trim');
     for(const z of [-2.5,-1,.5,2])b.box([1.5,.007,.035],[0,.008,z],'steel');
   }
-  return {dimensions,obstacles,hasFan:pointId==='C06',walkBounds:{minX:-3.32,maxX:3.32,minZ:-3.82,maxZ:3.82},cameraPosition:new THREE.Vector3(2.65,1.62,3.4),entryPosition:new THREE.Vector3(2.65,1.62,3.72),target:new THREE.Vector3(-.7,1.45,-2.5)};
+  // Each service space has its own perimeter equipment and a continuous circulation aisle.
+  const back=-dimensions.depth/2+.24,side=dimensions.width/2-.35;
+  b.node(pointId+'-specialist-space',[0,0,0]);
+  if(pointId==='C02'){
+    b.box([5.8,.06,2.8],[-.5,.015,-.1],'floor');
+    b.box([3.2,1.65,.08],[0,1.9,back],'board');
+    for(const x of [-2.4,0,2.4]){b.box([1.9,.32,.7],[x,dimensions.height-.3,-2.8],'ceiling');b.box([1.6,.035,.5],[x,dimensions.height-.48,-2.8],'steel');}
+    b.box([.12,.45,dimensions.depth-1],[side,dimensions.height-.45,0],'panel');
+  }else if(pointId==='C03'){
+    for(const z of [-3,-.5,2]){bench(-3.5,z,1.35);monitor(-3.5,1.23,z-.2);}
+    b.box([3.4,1.6,.08],[0,1.9,back],'board');
+    b.box([.08,.12,dimensions.depth-1],[side,2.9,0],'blue');
+    b.box([1.1,1.4,.45],[3.6,.9,back+.15],'panel');obstruction(3.6,back+.15,1.1,.5);
+  }else if(pointId==='C04'){
+    for(const z of [-3,0,2.7]){bench(3.6,z,2);b.box([1.65,.9,.15],[3.6,1.35,z-.3],'panel');for(let i=0;i<6;i++)b.box([.12,.12,.045],[2.95+i*.25,1.45,z-.2],'port');}
+    b.box([3.6,.008,1],[-1.6,.012,-2.7],'dark');
+    for(let i=0;i<9;i++)b.box([.15,.009,.75],[-3.1+i*.4,.022,-2.7],'wood',[0,.45,0]);
+    b.box([1.4,2.3,.55],[-4.3,1.15,2.4],'panel');obstruction(-4.3,2.4,1.4,.55);
+  }else if(pointId==='C05'){
+    b.box([3.1,.018,3.6],[0,.015,-2.0],'floor');
+    b.box([.12,2.5,2.3],[-3.4,1.25,-2.4],'glass');
+    b.box([.05,.9,1.3],[side,1.7,0],'panel');
+    b.box([1.7,1.2,.5],[-3.5,.6,2.7],'wood');obstruction(-3.5,2.7,1.7,.5);
+  }else if(pointId==='C06'){
+    b.box([.65,.45,6],[-1.65,3.5,-1.6],'steel');
+    for(const z of [-3.7,-1.8,.1,2]){b.box([.8,.08,.12],[-1.65,3.8,z],'dark');b.box([.035,.35,.035],[-1.98,3.9,z],'steel');}
+    for(const z of [-3.3,.3,3]){bench(3.0,z,2);b.box([.75,.48,.55],[3,1.13,z],'ceiling');b.box([.35,.15,.03],[3,1.18,z+.29],'port');}
+    b.box([1.3,2.3,.6],[-3.6,1.15,2.6],'panel');obstruction(-3.6,2.6,1.3,.6);
+  }else if(pointId==='C08'){
+    b.box([2,.008,7],[0,.015,-.5],'blue');
+    for(const z of [-3,-1,1,3])for(let i=0;i<9;i++)b.box([1.7,.009,.035],[0,.026,z+i*.055],'steel');
+    for(const x of [-3.6,3.6]){b.box([.26,.18,8],[x,2.95,-.5],'steel');b.box([.075,2.8,.075],[x,1.4,-4.4],'blue');}
+    bench(-3.3,2.2,1.8);monitor(-3.3,1.25,2);
+  }
+  return {dimensions,obstacles,hasFan:pointId==='C06',hasPortal:pointId==='C05',walkBounds:{minX:-dimensions.width/2+.28,maxX:dimensions.width/2-.28,minZ:-dimensions.depth/2+.28,maxZ:dimensions.depth/2-.28},cameraPosition:new THREE.Vector3(2.65,1.62,dimensions.depth/2-1.3),entryPosition:new THREE.Vector3(2.65,1.62,dimensions.depth/2-.38),target:new THREE.Vector3(-.7,1.45,-2.5)};
 }
 
 export function createEnclosedRoom(pointId) {

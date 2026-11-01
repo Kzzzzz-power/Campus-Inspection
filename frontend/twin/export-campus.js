@@ -8,6 +8,7 @@ export async function exportCampus(source,{editable=true}={}){
  function material(original){if(!materials.has(original)){const value=original.clone();value.envMap=null;materials.set(original,value);}return materials.get(original);}
  source.traverse(mesh=>{
   if(!mesh.isMesh)return;
+  if(mesh.isInstancedMesh){for(let i=0;i<mesh.count;i++){const matrix=new THREE.Matrix4();mesh.getMatrixAt(i,matrix);matrix.premultiply(mesh.matrixWorld);const item=new THREE.Mesh(mesh.geometry,material(mesh.material));item.matrix.copy(matrix);item.matrixAutoUpdate=false;item.name=mesh.name+'-'+i;item.userData={...mesh.userData};root.add(item);}return;}
   const components=mesh.userData.components||[{id:mesh.name,start:0,count:mesh.geometry.attributes.position.count}];
   const groups=new Map();for(const c of components){if(!groups.has(c.id))groups.set(c.id,[]);groups.get(c.id).push(c);}
   for(const[id,parts]of groups){

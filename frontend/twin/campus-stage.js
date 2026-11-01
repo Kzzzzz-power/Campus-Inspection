@@ -1,6 +1,7 @@
+import {initCampusAlerts} from './campus-alerts.js';
 import {initDesignControls} from './campus-design-controls.js';
 import {createTwinStore} from './twin-store.js';
-import {CAMPUS_LAYOUT} from './campus-layout.js';
+import {CAMPUS_LAYOUT,CAMPUS_BUILDINGS} from './campus-layout.js';
 import {facilityState,coverageState,matchesPoint} from '../model.js';
 
 const qualityNames={live:'新鲜观察',stale:'最后已知 · 已过期',missing:'暂无远程观察',disabled:'实时未启用',connecting:'正在同步'};
@@ -11,25 +12,40 @@ const palette={normal:0x167c78,alarm:0xa34532,unknown:0x6b7d89,missing:0xa46720,
 const fmt=value=>value?new Date(value).toLocaleString('zh-CN',{hour12:false}):'未提供';
 function dom(tag,attrs={},...children){const e=document.createElement(tag);for(const[k,v]of Object.entries(attrs)){if(k==='class')e.className=v;else if(k==='text')e.textContent=v;else e.setAttribute(k,v);}e.append(...children);return e;}
 function text(e,value){if(e.textContent!==value)e.textContent=value;}
-export function initCampusStage({getPoints,getRealtime,onSelect,onEnter,onReturn}){
+export function initCampusStage({getPoints,getRealtime,onSelect,onEnter,onReturn,onRecord,onReview}){
  const host=document.getElementById('campus-stage');if(!host)return{sync(){},filter(){}};
  const store=createTwinStore(),markers=new Map(),films=new Map(),events=new AbortController();
  const viewport=host.querySelector('.twin-viewport'),markerLayer=host.querySelector('.twin-markers'),filmstrip=host.querySelector('.twin-filmstrip');
  const inspector=host.querySelector('#twin-inspector'),live=host.querySelector('#twin-announcement'),enter=host.querySelector('#twin-enter'),back=host.querySelector('#twin-back'),enable=host.querySelector('#twin-enable-3d');
  const inspectorToggle=dom('button',{type:'button',class:'twin-inspector-toggle','aria-expanded':'true','aria-label':'收起点位依据'},'收起');
  inspector.querySelector('h3').append(inspectorToggle);
+ const recordPoint=dom('button',{id:'twin-record-point',type:'button',class:'btn btn-secondary'},'现场记录');
+ const reviewPoint=dom('button',{id:'twin-review-point',type:'button',class:'btn btn-secondary'},'发起复核');
+ const actionMessage=dom('p',{class:'twin-action-message',role:'status',hidden:''});
+ inspector.querySelector('dl').before(dom('div',{class:'twin-point-actions'},recordPoint,reviewPoint),actionMessage);
+ async function pointAction(control,callback){
+  const node=selectedNode();if(!node||control.disabled)return;
+  control.disabled=true;control.setAttribute('aria-busy','true');actionMessage.hidden=true;
+  try{await callback?.(node.point);}catch(error){actionMessage.textContent='读取失败：'+error.message+'。请重试。';actionMessage.hidden=false;}
+  finally{control.disabled=false;control.removeAttribute('aria-busy');}
+ }
+ recordPoint.addEventListener('click',()=>pointAction(recordPoint,onRecord));
+ reviewPoint.addEventListener('click',()=>pointAction(reviewPoint,onReview));
  inspectorToggle.addEventListener('click',()=>{const expanded=inspectorToggle.getAttribute('aria-expanded')==='true';inspectorToggle.setAttribute('aria-expanded',String(!expanded));inspectorToggle.setAttribute('aria-label',expanded?'展开点位依据':'收起点位依据');inspectorToggle.textContent=expanded?'展开':'收起';inspector.querySelector('dl').hidden=expanded;inspector.querySelector('.twin-inspector-note').hidden=expanded;});
  const leaders=document.createElementNS('http://www.w3.org/2000/svg','svg');leaders.setAttribute('class','twin-leaders');leaders.setAttribute('aria-hidden','true');markerLayer.prepend(leaders);
  const reduced=matchMedia('(prefers-reduced-motion: reduce)'),mobile=matchMedia('(max-width:767px)');
- let selected=null,layer='remote',filters={query:'',scope:'all',required:'all',status:'all'},snapshot=store.getSnapshot(),disposed=false;
+ let selected=null,focused=null,doorOpen=false,portalOpen=false,doorTweens=new Map(),layer='remote',filters={query:'',scope:'all',required:'all',status:'all'},snapshot=store.getSnapshot(),disposed=false;
  let renderer,scene,camera,controls,THREE,campus,pointScene,makePoint,beaconGroup,beacons=new Map(),frame=0,flight=null,visible=true,loading=false,overlay=false;
- let observer,resizeObserver,roomControls,savedOverview=null,sunLight,daylight,fillLight,skyLight;
+ let observer,resizeObserver,roomControls,savedOverview=null,sunLight,daylight,fillLight,skyLight,pointLight;
  const curtain=dom('div',{class:'twin-curtain','aria-hidden':'true'});viewport.append(curtain);
  const viewTools=dom('div',{class:'twin-view-tools',role:'group','aria-label':'视角控制'});
  for(const [action,title]of [['zoom-in','放大'],['zoom-out','缩小'],['reset','复位视角']])viewTools.append(dom('button',{type:'button','data-view-action':action},title));
  viewport.append(viewTools);
  const roomTools=dom('div',{class:'twin-room-tools',role:'group','aria-label':'室内移动',hidden:''});
- for(const[action,title]of [['left','左转'],['forward','前进'],['back','后退'],['right','右转']])roomTools.append(dom('button',{type:'button','data-room-action':action},title));
+ for(const[action,title]of [['left','左转'],['forward','前进'],['back','后退'],['right','右转'],['door','打开房门'],['portal','打开门禁示意门'],['exit','从门口返回校园']])roomTools.append(dom('button',{type:'button','data-room-action':action},title));
+ const roomEnter=dom('button',{id:'twin-room-enter',type:'button',class:'btn btn-primary',hidden:''},'进入房间');
+ const focusEntry=dom('div',{class:'twin-focus-entry',hidden:''},dom('span',{},'已聚焦点位'),roomEnter);viewport.append(focusEntry);
+ const alerts=initCampusAlerts({host,onFocus:focusPoint,onInspect:id=>{const node=snapshot.byId.get(id);if(node)onEnter?.(node.point);}});
  const roomHelp=dom('p',{class:'twin-camera-help'},'拖动旋转 · 滚轮缩放');viewport.append(roomTools,roomHelp);
  let overviewPosition=[46,44,63],overviewTarget=[0,0,0];
  const on=(target,type,fn)=>target.addEventListener(type,fn,{signal:events.signal});
@@ -37,6 +53,7 @@ export function initCampusStage({getPoints,getRealtime,onSelect,onEnter,onReturn
  const design=initDesignControls({host,getScene:()=>({THREE,renderer,scene,camera,controls,campus,pointScene,selected,sunLight,fillLight,skyLight,resetCampus:()=>{fitCampus();invalidate();}}),fly,invalidate,
   modeChanged:open=>{if(!pointScene?.interior)return;roomControls.setEnabled(!open&&!overlay);controls.enabled=open&&!overlay;controls.enablePan=open;controls.minDistance=open?3:.1;controls.maxDistance=open?35:12;camera.fov=open?42:61;camera.updateProjectionMatrix();syncCameraTools();}
  });
+ const disclosures=dom('div',{class:'twin-disclosures'});host.querySelector('.twin-toolbar').after(disclosures);disclosures.append(host.querySelector('.twin-design-tools'),host.querySelector('.twin-alerts'));
  const walkingRoom=()=>!!pointScene?.interior&&!design.roofOpen;
  async function upgradeEnvironment(){
   const load=++environmentLoad;try{const {loadSampleHDREnvironment}=await import('../facade-sample/lighting.js');if(disposed||load!==environmentLoad)return;const next=await loadSampleHDREnvironment(renderer,()=>!disposed&&load===environmentLoad);if(!next)return;const previous=daylight;daylight=next;scene.environment=next.texture;scene.userData.hdrRotation=next.rotation;host.dataset.environment='hdr';design.applyLight();previous?.dispose();invalidate();}
@@ -44,7 +61,7 @@ export function initCampusStage({getPoints,getRealtime,onSelect,onEnter,onReturn
  }
 
  const motion=()=>!reduced.matches&&document.documentElement.dataset.motion!=='off';
- function selectedNode(){return snapshot.byId?.get(selected)||null;}
+ function selectedNode(){return snapshot.byId?.get(selected||focused)||null;}
  function label(node){
   if(layer==='coverage')return coverageState(node.point)[0];
   if(layer==='review')return node.review?reviewNames[node.review.effective_status||node.review.status]||'复核状态未知':'尚未发起复核';
@@ -57,9 +74,11 @@ export function initCampusStage({getPoints,getRealtime,onSelect,onEnter,onReturn
   return node.quality!=='live'?'unknown':node.currentAlarm===true?'alarm':node.currentAlarm===false?'normal':'unknown';
  }
  function updateInspector(){
-  const node=selectedNode();inspector.hidden=!node;back.hidden=!node;enter.disabled=!node;host.dataset.selected=selected||'';
+  const node=selectedNode();inspector.hidden=!node;back.hidden=!node;enter.disabled=!node;host.dataset.selected=selected||focused||'';host.dataset.focused=focused||'';roomEnter.hidden=focusEntry.hidden=!focused||!!selected;
+  if(focused&&!selected){text(focusEntry.querySelector('span'),`已聚焦 ${focused} · ${node?.point.device||''}`);text(roomEnter,`进入 ${focused} 房间 →`);}
   host.querySelector('#twin-scene-title').textContent=node?`${node.pointId} · ${node.point.device}`:'校园设施空间总览';
   if(!node)return;
+  text(reviewPoint,(node.review?.effective_status||node.review?.status)==='pending'?'处理复核':'发起复核');
   const concept=host.querySelector('.twin-fallback-device');concept.src='/static/assets/campus/'+node.pointId+'.svg';concept.alt=node.point.device+'概念示意，非现场照片';
   const p=node.point,o=node.observation,rows=[['位置',`${p.building} · ${p.floor} / ${p.zone_id}`],['资产',node.facilityId],['数据质量',qualityNames[node.quality]||'状态未知'],['远程观察',o?`${availabilityNames[o.availability]} / ${conditionNames[o.condition]}${node.quality==='live'?'':'（最后已知，非当前结论）'}`:'未提供'],['观测时间',fmt(o?.observed_at)],['接收时间',fmt(node.receivedAt)],['数据来源',o?.source_type==='SIMULATED'?'SIMULATED · 教学模拟':o?.source_type==='DEVICE'?'DEVICE · 设备源':'未提供'],['现场覆盖',coverageState(p)[0]],['复核处理',node.review?(reviewNames[node.review.effective_status||node.review.status]||'复核状态未知'):'尚未发起']];
   if(node.review?.conclusion)rows.push(['复核结论',({normal:'确认正常',fault:'确认异常',unknown:'仍无法确认'})[node.review.conclusion]||'未识别结论']);
@@ -75,11 +94,11 @@ export function initCampusStage({getPoints,getRealtime,onSelect,onEnter,onReturn
    let marker=markers.get(node.pointId),film=films.get(node.pointId);
    if(!marker){
     marker=dom('button',{type:'button',class:'twin-marker','data-point-id':node.pointId,'data-twin-id':node.twinId},dom('span',{class:'twin-marker-code'},node.pointId),dom('span',{class:'twin-marker-name'},node.point.device));
-    marker.addEventListener('click',()=>select(node.pointId));markers.set(node.pointId,marker);markerLayer.append(marker);
+    marker.addEventListener('click',()=>{if(focused===node.pointId)select(node.pointId);else focusPoint(node.pointId);});markers.set(node.pointId,marker);markerLayer.append(marker);
     film=dom('button',{type:'button',class:'twin-film','data-point-id':node.pointId},dom('img',{src:`/static/assets/campus/${node.pointId}.svg`,alt:`${node.point.device}概念示意`,width:'180',height:'112'}),dom('span',{class:'twin-film-caption'},dom('b',{},node.pointId),dom('span',{},node.point.device)),dom('small',{class:'twin-film-status'}),dom('small',{class:'twin-concept'},'概念示意'));
     film.addEventListener('click',()=>select(node.pointId));films.set(node.pointId,film);filmstrip.append(film);
    }
-   for(const element of [marker,film]){element.dataset.quality=node.quality;element.dataset.alarm=node.currentAlarm===null?'unknown':String(node.currentAlarm);element.dataset.tone=tone(node);element.setAttribute('aria-pressed',String(selected===node.pointId));element.setAttribute('aria-label',`${node.pointId} ${node.point.device}，${label(node)}，${qualityNames[node.quality]}`);element.classList.toggle('is-filtered',!matchesPoint(node.projectedPoint,filters));}
+   for(const element of [marker,film]){element.dataset.quality=node.quality;element.dataset.alarm=node.currentAlarm===null?'unknown':String(node.currentAlarm);element.dataset.tone=tone(node);element.setAttribute('aria-pressed',String((selected||focused)===node.pointId));element.setAttribute('aria-label',`${node.pointId} ${node.point.device}，${label(node)}，${qualityNames[node.quality]}，${element===marker?(focused===node.pointId?'再次点击进入房间':'点击聚焦点位'):'进入房间'}`);element.classList.toggle('is-filtered',!matchesPoint(node.projectedPoint,filters));}
    text(film.querySelector('.twin-film-status'),label(node));
   }
   host.querySelector('#twin-empty').hidden=nodes.length>0;
@@ -88,15 +107,17 @@ export function initCampusStage({getPoints,getRealtime,onSelect,onEnter,onReturn
   const broker=snapshot.brokerState||'connecting',connection=snapshot.connection||'connecting';
   text(host.querySelector('#twin-quality'),`WebSocket ${connection} / Broker ${broker} · ${snapshot.transport==='http'?'HTTP 快照':snapshot.transport==='websocket'?'WebSocket 推送':'等待快照'} · ${broker==='disabled'?'实时未启用':`模拟源 ${c.simulated||0} / 设备源 ${c.device||0}`}`);
   text(host.querySelector('#twin-updated'),`快照时间 ${fmt(snapshot.asOf)}`);
-  updateInspector();syncBeacons();positionMarkers();invalidate();
+  alerts.sync(snapshot);updateInspector();syncBeacons();positionMarkers();invalidate();
  }
  function syncBeacons(){
   if(!beaconGroup)return;
-  for(const[id,mesh]of beacons)if(!snapshot.byId.has(id)){beaconGroup.remove(mesh);mesh.geometry.dispose();mesh.material.dispose();beacons.delete(id);}
+  for(const[id,mesh]of beacons)if(!snapshot.byId.has(id)){beaconGroup.remove(mesh);mesh.traverse(o=>{o.geometry?.dispose();o.material?.dispose();});beacons.delete(id);}
   for(const node of snapshot.nodes){if(!CAMPUS_LAYOUT[node.pointId])continue;let mesh=beacons.get(node.pointId);
-   if(!mesh){mesh=new THREE.Mesh(new THREE.CylinderGeometry(.105,.105,1.3,12),new THREE.MeshBasicMaterial({color:palette.unknown}));mesh.position.fromArray(CAMPUS_LAYOUT[node.pointId].position);mesh.position.y+=.65;mesh.userData={twinId:node.twinId,pointId:node.pointId,facilityId:node.facilityId,zoneId:node.zoneId};beacons.set(node.pointId,mesh);beaconGroup.add(mesh);}
-   mesh.material.color.setHex(palette[tone(node)]);mesh.visible=!selected||node.pointId===selected;
+   if(!mesh){mesh=new THREE.Mesh(new THREE.CylinderGeometry(.105,.105,1.3,12),new THREE.MeshStandardMaterial({color:palette.unknown,emissive:palette.unknown,emissiveIntensity:.6,roughness:.35}));mesh.position.fromArray(CAMPUS_LAYOUT[node.pointId].position);mesh.position.y+=.65;mesh.userData={twinId:node.twinId,pointId:node.pointId,facilityId:node.facilityId,zoneId:node.zoneId};const ring=new THREE.Mesh(new THREE.TorusGeometry(.64,.065,6,24),new THREE.MeshStandardMaterial({color:palette.unknown,emissive:palette.unknown,emissiveIntensity:.8,roughness:.3}));ring.rotation.x=Math.PI/2;ring.position.y=-.42;ring.name='alarm-ring';mesh.add(ring);beacons.set(node.pointId,mesh);beaconGroup.add(mesh);}
+   mesh.material.color.setHex(palette[tone(node)]);mesh.material.emissive.setHex(palette[tone(node)]);mesh.visible=!selected||node.pointId===selected;
+   const ring=mesh.getObjectByName('alarm-ring');const alarm=node.currentAlarm===true;ring.visible=alarm||(selected||focused)===node.pointId;ring.material.color.setHex(alarm?(node.observation?.condition==='FAULT'?0xba3f32:0xc68a20):0x398e8a);ring.material.emissive.copy(ring.material.color);mesh.userData.alarm=alarm;
   }
+  if(pointLight){const id=focused||selected,node=snapshot.byId.get(id);pointLight.visible=!!id&&!selected;if(pointLight.visible){const pos=CAMPUS_LAYOUT[id].position;const building=CAMPUS_BUILDINGS.find(b=>b.id===CAMPUS_LAYOUT[id].buildingId),dx=pos[0]-building.position[0],dz=pos[2]-building.position[2],length=Math.hypot(dx,dz)||1;pointLight.position.set(pos[0]+dx/length*2.5,pos[1]+2,pos[2]+dz/length*2.5);pointLight.color.setHex(node?.currentAlarm?0xff9c64:0xfff2d2);pointLight.intensity=65;}}
  }
  function positionMarkers(){
   const w=viewport.clientWidth,h=viewport.clientHeight;
@@ -106,7 +127,7 @@ export function initCampusStage({getPoints,getRealtime,onSelect,onEnter,onReturn
   const projected=[];
   // Batch measurements before positioning labels; avoid interleaved layout reads/writes.
   for(const[id,marker]of markers){
-   marker.hidden=!!selected;if(selected)continue;
+   marker.hidden=!!selected||!!focused&&id!==focused;if(marker.hidden)continue;
    const pos=CAMPUS_LAYOUT[id].position;
    let x,y;
    if(renderer&&camera&&host.dataset.renderer==='webgl'){
@@ -116,7 +137,7 @@ export function initCampusStage({getPoints,getRealtime,onSelect,onEnter,onReturn
   }
   projected.sort((a,b)=>a.y-b.y||a.x-b.x);
   const viewportRect=viewport.getBoundingClientRect();
-  const occupied=[...viewport.querySelectorAll('.twin-view-tools,.twin-camera-help,.twin-map-label,.twin-orientation,#twin-enable-3d')].filter(e=>!e.hidden&&e.offsetWidth>0).map(e=>{const r=e.getBoundingClientRect();return{left:r.left-viewportRect.left,right:r.right-viewportRect.left,top:r.top-viewportRect.top,bottom:r.bottom-viewportRect.top};}),segments=[];
+  const occupied=[...host.querySelectorAll('.twin-view-tools,.twin-camera-help,.twin-map-label,.twin-orientation,#twin-enable-3d,.twin-focus-entry,.twin-inspector')].filter(e=>!e.hidden&&e.offsetWidth>0).map(e=>{const r=e.getBoundingClientRect();return{left:r.left-viewportRect.left,right:r.right-viewportRect.left,top:r.top-viewportRect.top,bottom:r.bottom-viewportRect.top};}),segments=[];
   for(const p of projected){
    let chosen;
    for(const column of [0,-1,1,-2,2]){
@@ -130,6 +151,14 @@ export function initCampusStage({getPoints,getRealtime,onSelect,onEnter,onReturn
     }
     if(chosen)break;
    }
+   if(!chosen){
+    const candidates=[];
+    for(let y=p.height+10;y<=h-18;y+=p.height+10)for(let x=p.width/2+8;x<=w-p.width/2-8;x+=p.width+10){
+     const box={left:x-p.width/2,right:x+p.width/2,top:y-p.height,bottom:y};
+     if(!occupied.some(b=>box.left<b.right+6&&box.right>b.left-6&&box.top<b.bottom+6&&box.bottom>b.top-6))candidates.push({x,y,box,distance:(x-p.x)**2+(y-p.y)**2});
+    }
+    candidates.sort((a,b)=>a.distance-b.distance);chosen=candidates[0];
+   }
    chosen??={x:Math.max(p.width/2,Math.min(w-p.width/2,p.x)),y:Math.max(p.height+10,Math.min(h-18,p.y))};
    if(chosen.box)occupied.push(chosen.box);
    p.marker.style.transform=`translate3d(${chosen.x}px,${chosen.y}px,0) translate(-50%,-100%)`;
@@ -139,14 +168,21 @@ export function initCampusStage({getPoints,getRealtime,onSelect,onEnter,onReturn
   }
   if(segments.length!==leaders.childElementCount||segments.some((line,i)=>leaders.children[i]!==line))leaders.replaceChildren(...segments);
  }
+ // Resizing clears WebGL buffers. Repaint once behind dialogs without restarting animation.
+ function paintScene(){
+  renderer.info.reset();renderer.render(scene,camera);host.dataset.fanAngle=String(pointScene?.fan?.rotation.z||0);host.dataset.calls=String(renderer.info.render.calls);host.dataset.triangles=String(renderer.info.render.triangles);host.dataset.camera=camera.position.toArray().map(n=>n.toFixed(3)).join(',');positionMarkers();
+ }
  function invalidate(){if(!frame&&!disposed&&visible&&!document.hidden&&!overlay&&renderer&&host.dataset.renderer==='webgl')frame=requestAnimationFrame(render);}
  function render(now){
   frame=0;if(disposed||document.hidden||!visible||overlay||!renderer)return;
   if(flight){const current=flight,t=Math.min(1,(now-current.start)/current.duration),k=t*t*(3-2*t);camera.position.lerpVectors(current.from,current.to,k);controls.target.lerpVectors(current.targetFrom,current.targetTo,k);camera.lookAt(controls.target);if(t>=1){flight=null;host.dataset.transition='idle';current.complete?.();controls.enabled=!overlay&&!flight&&!walkingRoom();syncCameraTools();}}
   const walking=roomControls?.tick(now),decorative=design.tick(now,motion());
+  if(pointScene)for(const [kind,doorTween] of doorTweens){const t=motion()?Math.min(1,(now-doorTween.start)/420):1,k=t*t*(3-2*t);const v=doorTween.from+(doorTween.to-doorTween.from)*k;(doorTween.kind==='portal'?pointScene.setPortalOpen:pointScene.setDoorOpen)(v);renderer.shadowMap.needsUpdate=true;if(t===1)doorTweens.delete(kind);}
+  let alertMotion=false;for(const mesh of beacons.values()){const ring=mesh.getObjectByName('alarm-ring');if(!ring)continue;const active=mesh.userData.alarm&&!selected;ring.scale.setScalar(active&&motion()?1+.12*Math.sin(now*Math.PI/1000):1);if(active&&motion())alertMotion=true;}
+  host.dataset.doorOpen=String(doorOpen);host.dataset.portalOpen=String(portalOpen);
   if(!walkingRoom()&&!flight)controls.update();
-  if(!selected)host.dataset.lod=campus.updateLOD?.(camera.position.distanceTo(controls.target))||'detailed';renderer.info.reset();renderer.render(scene,camera);host.dataset.fanAngle=String(pointScene?.fan?.rotation.z||0);host.dataset.calls=String(renderer.info.render.calls);host.dataset.triangles=String(renderer.info.render.triangles);host.dataset.camera=camera.position.toArray().map(n=>n.toFixed(3)).join(',');positionMarkers();
-  if(flight||walking||decorative)invalidate();
+  if(!selected)host.dataset.lod=campus.updateLOD?.(camera.position.distanceTo(controls.target),mobile.matches)||'detailed';paintScene();
+  if(flight||walking||decorative||doorTweens.size||alertMotion)invalidate();
  }
  function fly(position,target,duration=1000,complete){
   if(!renderer){complete?.();return;}const to=new THREE.Vector3(...position),targetTo=new THREE.Vector3(...target);
@@ -156,22 +192,22 @@ export function initCampusStage({getPoints,getRealtime,onSelect,onEnter,onReturn
  }
  function fitCampus(){
   if(!campus||!renderer)return;
-  const bounds=campus.bounds||new THREE.Box3().setFromObject(campus.group),center=bounds.getCenter(new THREE.Vector3());const extent=bounds.getSize(new THREE.Vector3());center.y=.7;center.x+=extent.x*.045;center.z+=extent.z*.08;
-  const direction=new THREE.Vector3(.56,.65,1.1).normalize(),corners=[];
-  for(const x of [bounds.min.x,bounds.max.x])for(const y of [bounds.min.y,bounds.max.y])for(const z of [bounds.min.z,bounds.max.z])corners.push(new THREE.Vector3(x,y,z));
-  camera.fov=42;camera.updateProjectionMatrix();let low=20,high=180;
+  const center=new THREE.Vector3(-4,3,7),direction=new THREE.Vector3(-.72,1.05,1).normalize(),corners=[];
+  const masses=[...CAMPUS_BUILDINGS,{position:[-26,0,25],size:[6,20],floors:5,floorHeight:3.65},{position:[2,0,25],size:[6,20],floors:5,floorHeight:3.65},{position:[29,0,-35],size:[15,12],floors:8,floorHeight:3.2}];
+  for(const b of masses){const[x,,z]=b.position,[w,d]=b.size;for(const xx of [x-w/2-.6,x+w/2+.6])for(const y of [0,b.floors*b.floorHeight+1.7])for(const zz of [z-d/2-1,z+d/2+1])corners.push(new THREE.Vector3(xx,y,zz));}
+  camera.fov=42;camera.updateProjectionMatrix();let low=20,high=370;
   for(let i=0;i<20;i++){const distance=(low+high)/2;camera.position.copy(center).addScaledVector(direction,distance);camera.lookAt(center);camera.updateMatrixWorld();const projected=corners.map(c=>c.clone().project(camera));
-   if(projected.some(p=>Math.abs(p.x)>.94||Math.abs(p.y)>.88||p.z>1||p.z<0))low=distance;else high=distance;
+   if(projected.some(p=>Math.abs(p.x)>.9||Math.abs(p.y)>.88||p.z>1||p.z<0))low=distance;else high=distance;
   }
-  camera.position.copy(center).addScaledVector(direction,high*(mobile.matches?1:.92));controls.target.copy(center);camera.lookAt(center);overviewPosition=camera.position.toArray();overviewTarget=center.toArray();
+  camera.position.copy(center).addScaledVector(direction,high*.92);controls.target.copy(center);camera.lookAt(center);overviewPosition=camera.position.toArray();overviewTarget=center.toArray();
  }
- function releaseRoom(){roomControls?.leave();if(pointScene){scene.remove(pointScene.group);pointScene.dispose();pointScene=null;}}
+ function releaseRoom(){doorTweens.clear();doorOpen=false;portalOpen=false;roomControls?.leave();if(pointScene){scene.remove(pointScene.group);pointScene.dispose();pointScene=null;}}
  function syncCameraTools(){const inside=!!walkingRoom();host.dataset.interior=String(inside);roomTools.hidden=!inside||host.dataset.renderer!=='webgl';viewTools.hidden=host.dataset.renderer!=='webgl';
-  for(const e of viewTools.querySelectorAll('[data-view-action]')){e.hidden=inside&&e.dataset.viewAction!=='reset';e.disabled=!!flight;}for(const e of roomTools.querySelectorAll('button'))e.disabled=!!flight;
-  text(roomHelp,host.dataset.renderer!=='webgl'?'点击点位编号查看 · 可开启 3D':inside?'拖动观察 · 点击走道移动 · 方向键 / WASD':selected?'拖动旋转 · 滚轮缩放':'拖动旋转 · 滚轮缩放 · 点击信标进入');
+  for(const e of viewTools.querySelectorAll('[data-view-action]')){e.hidden=inside&&e.dataset.viewAction!=='reset';e.disabled=!!flight;}for(const e of roomTools.querySelectorAll('button')){e.disabled=!!flight;e.hidden=e.dataset.roomAction==='portal'&&!pointScene?.hasPortal;}text(roomTools.querySelector('[data-room-action=door]'),doorOpen?'关闭房门':'打开房门');text(roomTools.querySelector('[data-room-action=portal]'),portalOpen?'关闭门禁示意门':'打开门禁示意门');
+  text(roomHelp,host.dataset.renderer!=='webgl'?'点击点位编号查看 · 可开启 3D':inside?'拖动观察 · 点击走道移动 · 点击门扇开关':selected?'拖动旋转 · 滚轮缩放':'拖动旋转 · 滚轮缩放 · 点击信标聚焦');
  }
  function showRoom(id){
-  releaseRoom();pointScene=makePoint(id);scene.add(pointScene.group);campus.group.visible=false;beaconGroup.visible=false;
+  releaseRoom();pointScene=makePoint(id);scene.add(pointScene.group);campus.group.visible=false;beaconGroup.visible=false;if(pointLight)pointLight.visible=false;
   scene.environmentIntensity=.65;skyLight.intensity=1.0;fillLight.intensity=.65;sunLight.intensity=2.1;
   renderer.shadowMap.needsUpdate=true;Object.assign(sunLight.shadow.camera,{left:-12,right:12,top:12,bottom:-12});sunLight.shadow.camera.updateProjectionMatrix();
   design.sceneChanged();const inside=!!pointScene.interior;controls.enabled=!inside&&!overlay;controls.enablePan=false;controls.minDistance=inside ? .1 : 4;controls.maxDistance=inside ? 12 : 65;
@@ -192,19 +228,40 @@ export function initCampusStage({getPoints,getRealtime,onSelect,onEnter,onReturn
    fly(approach,[entry[0],entry[1],entry[2]-3],750,()=>{if(selected===id)showRoom(id);});
   }else showRoom(id);
  }
+ function toggleDoor(kind='door'){
+  if(!pointScene||flight)return;const portal=kind==='portal';if(portal&&!pointScene.hasPortal)return;
+  if(portal)portalOpen=!portalOpen;else doorOpen=!doorOpen;
+  const group=portal?pointScene.portal:pointScene.door,sign=portal?1:-1,angle=Math.PI*(portal?.46:.48);
+  doorTweens.set(kind,{kind,from:group.rotation.y/(sign*angle),to:(portal?portalOpen:doorOpen)?1:0,start:performance.now()});
+  syncCameraTools();text(live,'示意门已'+((portal?portalOpen:doorOpen)?'打开':'关闭')+'，不控制真实门禁。');invalidate();
+ }
+ function exitRoom(){
+  if(!pointScene||flight)return;
+  roomControls.exit(()=>{const room=pointScene;if(!room)return;doorOpen=true;room.setDoorOpen(1);renderer.shadowMap.needsUpdate=true;roomControls.setEnabled(false);const x=room.door.position.x+.6,z=room.dimensions.depth/2;
+   fly([x,1.62,z+1],[x,1.62,z+3],700,()=>returnCampus());});
+ }
+ function focusPoint(id){
+  if(!snapshot.byId.has(id)||!CAMPUS_LAYOUT[id])return;
+  const fromRoom=!!selected,overview=savedOverview;
+  if(selected){returnCampus(false);flight=null;savedOverview=overview;}
+  if(!focused&&!fromRoom&&camera)savedOverview={position:camera.position.toArray(),target:controls.target.toArray()};
+  focused=id;const pos=CAMPUS_LAYOUT[id].position;host.dataset.mode='campus';
+  if(camera){const b=campus.buildings.find(b=>b.id===CAMPUS_LAYOUT[id].buildingId);const dx=pos[0]-b.position[0],dz=pos[2]-b.position[2],length=Math.hypot(dx,dz)||1;fly([pos[0]+dx/length*18,pos[1]+10,pos[2]+dz/length*18],pos,850);}
+  publish();text(live,`已聚焦 ${id}。点击画面内的进入房间按钮，或再次点击该点位标签进入。`);
+ }
  function select(id){
   const node=snapshot.byId?.get(id);if(!node||!CAMPUS_LAYOUT[id])return;
   const fromCampus=!selected;
-  if(fromCampus&&camera)savedOverview=flight?.returning?{position:flight.to.toArray(),target:flight.targetTo.toArray()}:{position:camera.position.toArray(),target:controls.target.toArray()};
-  selected=id;host.dataset.mode='point';host.dataset.scene=CAMPUS_LAYOUT[id].sceneKind;
+  if(fromCampus&&!focused&&camera)savedOverview=flight?.returning?{position:flight.to.toArray(),target:flight.targetTo.toArray()}:{position:camera.position.toArray(),target:controls.target.toArray()};
+  focused=null;selected=id;host.dataset.mode='point';host.dataset.scene=CAMPUS_LAYOUT[id].sceneKind;
   activatePoint(id,fromCampus);onSelect?.(node.point);publish();text(live,`已选择 ${id} ${node.point.device}。可进入巡查或返回校园。`);
   back.focus({preventScroll:true});
  }
  function returnCampus(focus=true){
   const wasInside=!!pointScene;
-  const previous=selected;selected=null;flight=null;curtain.getAnimations().forEach(a=>a.cancel());host.dataset.mode='campus';host.dataset.scene='campus';
+  const previous=selected||focused;selected=null;focused=null;flight=null;curtain.getAnimations().forEach(a=>a.cancel());host.dataset.mode='campus';host.dataset.scene='campus';
   releaseRoom();
-  if(campus){scene.environmentIntensity=.45;skyLight.intensity=.85;fillLight.intensity=.35;sunLight.intensity=2.5;renderer.shadowMap.needsUpdate=true;Object.assign(sunLight.shadow.camera,{left:-48,right:48,top:42,bottom:-42});sunLight.shadow.camera.updateProjectionMatrix();campus.group.visible=true;beaconGroup.visible=true;controls.enabled=!overlay;controls.minDistance=15;controls.maxDistance=160;camera.fov=42;camera.updateProjectionMatrix();
+  if(campus){scene.environmentIntensity=.45;skyLight.intensity=.85;fillLight.intensity=.35;sunLight.intensity=2.5;renderer.shadowMap.needsUpdate=true;Object.assign(sunLight.shadow.camera,{left:-85,right:85,top:85,bottom:-85});sunLight.shadow.camera.updateProjectionMatrix();campus.group.visible=true;beaconGroup.visible=true;controls.enabled=!overlay;controls.minDistance=15;controls.maxDistance=340;camera.fov=42;camera.updateProjectionMatrix();
    const pose=savedOverview||{position:overviewPosition,target:overviewTarget};
    if(wasInside){const entry=CAMPUS_LAYOUT[previous]?.entryPosition||CAMPUS_LAYOUT[previous]?.position;if(entry){camera.position.set(entry[0],entry[1]+4,entry[2]+8);controls.target.set(entry[0],entry[1]+1,entry[2]-3);camera.lookAt(controls.target);}if(motion())curtain.animate([{opacity:1},{opacity:0}],{duration:280,easing:'ease-out'});}
    fly(pose.position,pose.target,950);if(flight)flight.returning=true;}
@@ -221,41 +278,42 @@ export function initCampusStage({getPoints,getRealtime,onSelect,onEnter,onReturn
   try{
    const [three,orbit,models,roomModule,lighting]=await Promise.all([import('../vendor/three/three.module.js'),import('../vendor/three/OrbitControls.js'),import('./campus-scenes.js'),import('./room-controls.js'),import('./architectural-lighting.js')]);
    if(disposed)return;THREE=three;makePoint=models.createPointScene;
-   renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'default'});renderer.setPixelRatio(Math.min(devicePixelRatio||1,mobile.matches?1.25:1.6));
+   renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'default'});renderer.setPixelRatio(Math.min(devicePixelRatio||1,mobile.matches?1.25:1.5));
    renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;renderer.shadowMap.enabled=!mobile.matches;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;renderer.shadowMap.needsUpdate=true;renderer.info.autoReset=false;
    renderer.domElement.id='campus-canvas';renderer.domElement.setAttribute('aria-hidden','true');viewport.prepend(renderer.domElement);
-   scene=new THREE.Scene();scene.background=new THREE.Color(0xe2ecef);scene.fog=new THREE.Fog(0xe2ecef,100,245);camera=new THREE.PerspectiveCamera(42,1,.06,300);camera.position.fromArray(overviewPosition);
+   scene=new THREE.Scene();scene.background=new THREE.Color(0xe2ecef);scene.fog=new THREE.Fog(0xe2ecef,180,450);camera=new THREE.PerspectiveCamera(42,1,.06,650);camera.position.fromArray(overviewPosition);
    daylight=lighting.createDaylightEnvironment(renderer);scene.environment=daylight.texture;scene.environmentIntensity=.45;
    skyLight=new THREE.HemisphereLight(0xe9f3ff,0xd6ddd3,.85);scene.add(skyLight);fillLight=new THREE.DirectionalLight(0xf5f7ff,.35);fillLight.position.set(18,12,-20);scene.add(fillLight);
-   const key=sunLight=new THREE.DirectionalLight(0xfff6e9,2.5);key.position.set(-35,55,30);key.castShadow=true;key.shadow.mapSize.set(mobile.matches?1024:2048,mobile.matches?1024:2048);Object.assign(key.shadow.camera,{left:-48,right:48,top:42,bottom:-42,near:1,far:150});key.shadow.bias=-.00015;key.shadow.normalBias=.008;key.shadow.camera.updateProjectionMatrix();scene.add(key);
-   controls=new orbit.OrbitControls(camera,renderer.domElement);controls.target.fromArray(overviewTarget);controls.enableDamping=false;controls.enablePan=false;controls.minDistance=15;controls.maxDistance=160;controls.minPolarAngle=.2;controls.maxPolarAngle=Math.PI*.46;
+   const key=sunLight=new THREE.DirectionalLight(0xfff6e9,2.5);key.position.set(-35,55,30);key.castShadow=true;key.shadow.mapSize.set(mobile.matches?1024:2048,mobile.matches?1024:2048);Object.assign(key.shadow.camera,{left:-85,right:85,top:85,bottom:-85,near:1,far:240});key.shadow.bias=-.00015;key.shadow.normalBias=.008;key.shadow.camera.updateProjectionMatrix();scene.add(key);pointLight=new THREE.PointLight(0xfff2d2,65,24,2);pointLight.visible=false;scene.add(pointLight);
+   controls=new orbit.OrbitControls(camera,renderer.domElement);controls.target.fromArray(overviewTarget);controls.enableDamping=false;controls.enablePan=false;controls.minDistance=15;controls.maxDistance=340;controls.minPolarAngle=.2;controls.maxPolarAngle=Math.PI*.46;
    controls.addEventListener('change',()=>{design.constrain();invalidate();});controls.addEventListener('start',()=>{flight=null;host.dataset.transition='idle';});
    const {loadCampusAsset}=await import('./campus-asset.js');campus=await loadCampusAsset();if(disposed){campus.dispose();return;}host.dataset.asset=campus.assetType;host.dataset.assetBytes=String(campus.assetBytes);scene.add(campus.group);beaconGroup=new THREE.Group();scene.add(beaconGroup);
-   roomControls=roomModule.createRoomControls({camera,canvas:renderer.domElement,viewport,invalidate,motion,announce:message=>text(live,message)});
-   const resize=()=>{if(!renderer)return;const w=viewport.clientWidth,h=viewport.clientHeight;if(!w||!h)return;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();if(!selected)fitCampus();invalidate();};
+   roomControls=roomModule.createRoomControls({camera,canvas:renderer.domElement,viewport,invalidate,motion,announce:message=>text(live,message),onDoor:toggleDoor});
+   const resize=()=>{if(!renderer)return;const w=viewport.clientWidth,h=viewport.clientHeight;if(!w||!h)return;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();if(!selected&&!focused)fitCampus();positionMarkers();host.dataset.viewportWidth=String(w);if(overlay&&visible&&!document.hidden&&host.dataset.renderer==='webgl')paintScene();else invalidate();};
    resizeObserver=new ResizeObserver(resize);resizeObserver.observe(viewport);resize();
    on(renderer.domElement,'webglcontextlost',event=>{event.preventDefault();cancelAnimationFrame(frame);frame=0;fallback('三维上下文暂不可用 · 当前为简化示意视图');enable.disabled=true;});
    on(renderer.domElement,'webglcontextrestored',()=>{daylight?.dispose();daylight=lighting.createDaylightEnvironment(renderer);scene.environment=daylight.texture;upgradeEnvironment();renderer.shadowMap.needsUpdate=true;renderer.domElement.hidden=false;host.dataset.renderer='webgl';text(host.querySelector('.twin-orientation'),'3D');enable.hidden=true;text(host.querySelector('#twin-render-message'),'空间分组示意 · 非真实平面图');if(selected)activatePoint(selected);else{releaseRoom();campus.group.visible=true;beaconGroup.visible=true;controls.enabled=!overlay;fitCampus();}syncCameraTools();invalidate();});
    host.dataset.renderer='webgl';text(host.querySelector('.twin-orientation'),'3D');enable.hidden=true;enable.disabled=false;text(host.querySelector('#twin-render-message'),'空间分组示意 · 非真实平面图');syncBeacons();design.sceneChanged();upgradeEnvironment();if(selected)activatePoint(selected);syncCameraTools();invalidate();
-  }catch(error){roomControls?.dispose();resizeObserver?.disconnect();controls?.dispose();pointScene?.dispose();campus?.dispose();daylight?.dispose();for(const mesh of beacons.values()){mesh.geometry.dispose();mesh.material.dispose();}beacons.clear();beaconGroup=null;campus=null;pointScene=null;renderer?.domElement.remove();renderer?.dispose();renderer=null;fallback('3D 加载失败 · 简化示意仍可进入巡查');console.warn('Campus 3D unavailable:',error.message);}
+  }catch(error){roomControls?.dispose();resizeObserver?.disconnect();controls?.dispose();pointScene?.dispose();campus?.dispose();daylight?.dispose();for(const mesh of beacons.values()){mesh.traverse(o=>{o.geometry?.dispose();o.material?.dispose();});}beacons.clear();beaconGroup=null;campus=null;pointScene=null;renderer?.domElement.remove();renderer?.dispose();renderer=null;fallback('3D 加载失败 · 简化示意仍可进入巡查');console.warn('Campus 3D unavailable:',error.message);}
   finally{loading=false;}
  }
  on(back,'click',()=>returnCampus());
  on(viewTools,'click',e=>{const action=e.target.closest('[data-view-action]')?.dataset.viewAction;if(!action||!camera)return;if(walkingRoom()){roomControls.action('reset');return;}flight=null;host.dataset.transition='idle';if(action==='reset'){if(selected)activatePoint(selected);else{fitCampus();savedOverview=null;}}else{const offset=camera.position.clone().sub(controls.target);offset.multiplyScalar(action==='zoom-in' ? .82 : 1.2);offset.clampLength(controls.minDistance,controls.maxDistance);camera.position.copy(controls.target).add(offset);}invalidate();});
- on(roomTools,'click',e=>{const action=e.target.closest('[data-room-action]')?.dataset.roomAction;if(action)roomControls?.action(action);});
+ on(roomTools,'click',e=>{const action=e.target.closest('[data-room-action]')?.dataset.roomAction;if(action==='door'||action==='portal')toggleDoor(action);else if(action==='exit')exitRoom();else if(action)roomControls?.action(action);});
+ on(roomEnter,'click',()=>{if(focused)select(focused);});
  on(enter,'click',()=>{const node=selectedNode();if(node)onEnter?.(node.point);});
  on(enable,'click',start3d);
  for(const b of host.querySelectorAll('[data-twin-layer]'))on(b,'click',()=>{layer=b.dataset.twinLayer;host.dataset.layer=layer;for(const other of host.querySelectorAll('[data-twin-layer]'))other.setAttribute('aria-pressed',String(other===b));text(host.querySelector('#twin-legend'),layer==='remote'?'实线：新鲜观察 · 虚线：过期 · 空心：未知 · 红褐：当前告警':layer==='coverage'?'青色：现场记录有效 · 琥珀：待补检 · 灰色：普通点':'琥珀：待复核 · 青色：已完成确认 · 灰色：未发起或已结束');publish();});
- on(document,'keydown',event=>{if(event.key==='Escape'&&selected&&!document.querySelector('dialog[open]')){event.preventDefault();returnCampus();}});
+ on(document,'keydown',event=>{if(event.key==='Escape'&&(selected||focused)&&!document.querySelector('dialog[open]')){event.preventDefault();returnCampus();}});
  on(document,'inspectgo:overlay',event=>{overlay=event.detail.open;if(controls)controls.enabled=!overlay&&!flight&&!walkingRoom();roomControls?.setEnabled(!overlay&&walkingRoom()&&host.dataset.transition!=='flying');if(overlay){cancelAnimationFrame(frame);frame=0;}else invalidate();});
  const stopMotion=()=>{invalidate();if(flight&&(!motion()||!visible||document.hidden)){camera.position.copy(flight.to);controls.target.copy(flight.targetTo);camera.lookAt(flight.targetTo);const complete=flight.complete;flight=null;host.dataset.transition='idle';complete?.();controls.enabled=!overlay&&!flight&&!walkingRoom();syncCameraTools();invalidate();}};
  on(document,'inspectgo:feedback',stopMotion);on(reduced,'change',stopMotion);
  on(document,'visibilitychange',()=>{if(document.hidden){stopMotion();cancelAnimationFrame(frame);frame=0;}else invalidate();});
  observer=new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;if(!visible){stopMotion();cancelAnimationFrame(frame);frame=0;}else invalidate();});observer.observe(viewport);
  on(window,'resize',positionMarkers);
- function dispose(){disposed=true;environmentLoad++;design.dispose();cancelAnimationFrame(frame);events.abort();observer.disconnect();resizeObserver?.disconnect();unsubscribe();roomControls?.dispose();controls?.dispose();pointScene?.dispose();campus?.dispose();daylight?.dispose();for(const mesh of beacons.values()){mesh.geometry.dispose();mesh.material.dispose();}renderer?.dispose();}
+ function dispose(){disposed=true;environmentLoad++;alerts.dispose();design.dispose();cancelAnimationFrame(frame);events.abort();observer.disconnect();resizeObserver?.disconnect();unsubscribe();roomControls?.dispose();controls?.dispose();pointScene?.dispose();campus?.dispose();daylight?.dispose();for(const mesh of beacons.values()){mesh.traverse(o=>{o.geometry?.dispose();o.material?.dispose();});}renderer?.dispose();}
  on(window,'pagehide',event=>{if(!event.persisted)dispose();else{cancelAnimationFrame(frame);frame=0;}});on(window,'pageshow',invalidate);
  const unsubscribe=store.subscribe(publish);
  if(mobile.matches)fallback('轻量空间示意 · 可开启 3D');else start3d();
- return{sync(){store.sync(getPoints(),getRealtime());},filter(next){filters={...next};publish();},dispose};
+ return{focus(id){focusPoint(id);},sync(){store.sync(getPoints(),getRealtime());},filter(next){filters={...next};publish();},dispose};
 }

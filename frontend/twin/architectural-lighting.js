@@ -1,18 +1,19 @@
 import * as THREE from '../vendor/three/three.module.js';
 
 // Deterministic botanical geometry. Appearance is illustrative, never facility state.
-export function createTreeCrown(height, seed = 1) {
+export function createTreeCrown(height, seed = 1, detail = {}) {
+  if(detail.volume)return volumeCrown(height,seed,detail);
   let state = seed >>> 0;
   const random = () => ((state = (1664525 * state + 1013904223) >>> 0) / 4294967296);
   const positions = [], colors = [], uvs = [];
   const rotation = new THREE.Quaternion(), point = new THREE.Vector3();
-  for (let cluster = 0; cluster < 27; cluster++) {
+  for (let cluster = 0; cluster < (detail.clusters || 27); cluster++) {
     const angle = cluster * 2.39996 + random() * .35;
-    const level = cluster / 26, radius = Math.sqrt(1 - level * level) * height * .28;
+    const level = cluster / ((detail.clusters || 27)-1), radius = Math.sqrt(1 - level * level) * height * .28;
     const center = new THREE.Vector3(Math.cos(angle) * radius, height * (.61 + level * .33), Math.sin(angle) * radius);
-    for (let leaf = 0; leaf < 14; leaf++) {
+    for (let leaf = 0; leaf < (detail.leaves || 11); leaf++) {
       const origin = center.clone().add(new THREE.Vector3((random() - .5) * height * .26, (random() - .5) * height * .17, (random() - .5) * height * .26));
-      const length = height * (.095 + random() * .04), width = length * (.42 + random() * .2);
+      const length = height * (.095 + random() * .04) * (detail.leafScale || 1), width = length * (.42 + random() * .2);
       rotation.setFromEuler(new THREE.Euler((random() - .5) * 2.4, random() * Math.PI * 2, (random() - .5) * 1.2));
       const vertices = [[0,0,-length/2],[-width/2,0,0],[0,length*.07,0],[width/2,0,0],[0,0,length/2]];
       const shade = new THREE.Color().setHSL(.235 + random() * .055, .28 + random() * .18, .055 + random() * .09);
@@ -55,3 +56,32 @@ export function createDaylightEnvironment(renderer) {
   return {texture:target.texture,dispose(){if(!disposed){disposed=true;target.dispose();}}};
 }
 
+
+// Hundreds of small folded leaves form a crown without a spherical shell.
+function volumeCrown(height,seed,detail){
+ let state=seed>>>0;const rand=()=>((state=(1664525*state+1013904223)>>>0)/4294967296);
+ const positions=[],colors=[],uvs=[],color=new THREE.Color(),point=new THREE.Vector3(),q=new THREE.Quaternion();
+ const phase=rand()*6.28,count=detail.shrub?76:270,clusters=detail.shrub?8:24,kind=seed%3;
+ for(let i=0;i<count;i++){
+  const cluster=i%clusters,a=cluster*2.39996+phase,level=(cluster+.5)/clusters;
+  const r=Math.sqrt(1-Math.pow(level*.94,2))*height*(detail.shrub?.36:.29);
+  const center=new THREE.Vector3(Math.cos(a)*r,height*(.55+level*(kind===1?.43:.36)),Math.sin(a)*r);
+  center.add(new THREE.Vector3((rand()-.5)*height*.22,(rand()-.5)*height*.17,(rand()-.5)*height*.22));
+  const length=height*(.045+rand()*.025)*(detail.shrub?1.1:1),width=length*(.5+rand()*.2);
+  q.setFromEuler(new THREE.Euler((rand()-.5)*2.5,rand()*6.28,(rand()-.5)*1.8));
+  color.setHSL(.225+rand()*.05,.38+rand()*.18,.045+rand()*.055);
+  for(const v of [[0,0,-length/2],[-width/2,length*.09,0],[width/2,length*.09,0],[-width/2,length*.09,0],[0,0,length/2],[width/2,length*.09,0]]){
+   point.fromArray(v).applyQuaternion(q).add(center);positions.push(point.x,point.y,point.z);colors.push(color.r,color.g,color.b);uvs.push(0,0);
+  }
+ }
+ // Small shaded inner lobes fill gaps; the leaf clusters define the outer silhouette.
+ for(let lobe=0;lobe<(detail.shrub?1:2);lobe++){
+  const core=new THREE.SphereGeometry(1,6,4).toNonIndexed(),p=core.attributes.position;
+  for(let i=0;i<p.count;i++){
+   const x=p.getX(i),y=p.getY(i),z=p.getZ(i),r=height*(detail.shrub?.25:.18)*(1+.18*Math.sin(x*8+z*5+phase));
+   positions.push(x*r+height*(lobe===0?-.05:.05),height*(.65+lobe*.13)+y*r,z*r);
+   color.setHSL(.25,.48,.045+(y+1)*.017);colors.push(color.r,color.g,color.b);uvs.push(0,0);
+  }core.dispose();
+ }
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));g.computeVertexNormals();return g;
+}

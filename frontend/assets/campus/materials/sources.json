@@ -1,0 +1,26 @@
+[
+  {
+    "name": "leafy_grass_diff_1k.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/leafy_grass/leafy_grass_diff_1k.jpg",
+    "sha256": "CFA40BC9D9417D1852DB8753A8D5917F110C40101179F63543C382E39BC05E4A",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/leafy_grass",
+    "license_url": "https://polyhaven.com/license"
+  },
+  {
+    "name": "leafy_grass_nor_gl_1k.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/leafy_grass/leafy_grass_nor_gl_1k.jpg",
+    "sha256": "832328216ADC0A7E1F70A31D5EE48C9AB7F2152D83816122736CF42AC4B2EBD6",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/leafy_grass",
+    "license_url": "https://polyhaven.com/license"
+  },
+  {
+    "name": "forest-tree-atlas.png",
+    "source": "scripts/bake-campus-tree.py; original procedural campus tree",
+    "license": "Original project asset; follows repository licensing",
+    "sha256": "cbfa4ac3ef52888c047597b7f4298bc93ac1dbd29b7c76c4be65c4a394bc1ce0",
+    "tool": "Blender 4.5.15 LTS",
+    "purpose": "Peripheral forest far LOD; not an inspection photo"
+  }
+]

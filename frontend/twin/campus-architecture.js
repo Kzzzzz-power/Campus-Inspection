@@ -1,13 +1,22 @@
 import * as THREE from '../vendor/three/three.module.js';
 import { RoundedBoxGeometry } from '../vendor/three/RoundedBoxGeometry.js';
 import { mergeGeometries } from '../vendor/three/BufferGeometryUtils.js';
+import {addGardenDetails} from './campus-garden.js';
 import { createTreeCrown } from './architectural-lighting.js';
-import { CAMPUS_BUILDINGS, CAMPUS_LAYOUT } from './campus-layout.js';
+import { CAMPUS_BUILDINGS, CAMPUS_LAYOUT, CAMPUS_BOUNDS } from './campus-layout.js';
+
+let gardenImages=null,gardenLoad;
+export async function warmCampusTextures(){
+ if(typeof Image==='undefined')return;
+ gardenLoad??=Promise.all(['leafy_grass_diff_1k.jpg','leafy_grass_nor_gl_1k.jpg','forest-tree-atlas.png'].map(name=>new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('Local landscape texture unavailable'));image.src=new URL('../assets/campus/materials/'+name,import.meta.url).href;}))).then(images=>gardenImages=images);
+ return gardenLoad;
+}
+function imageTexture(image,color=false){const t=new THREE.Texture(image);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;t.colorSpace=color?THREE.SRGBColorSpace:THREE.NoColorSpace;t.userData.mimeType=image.src.endsWith('.png')?'image/png':'image/jpeg';t.needsUpdate=true;return t;}
 
 const C = {
-  concrete: 0xd3d1c8, light: 0xe9e5d9, brick: 0xb8a48c, stone: 0xa9aaa3,
+  concrete: 0xe2e3de, light: 0xf0f0e8, brick: 0xb8a48c, stone: 0xa9aaa3,
   metal: 0x424e55, frame: 0x526068, glass: 0x667c88, glassLight: 0x7d929c,
-  roof: 0x889a96, asphalt: 0x727f83, paving: 0xd7d6c9, grass: 0x6c805c,
+  roof: 0xb4b9b5, asphalt: 0x727f83, paving: 0xd7d6c9, grass: 0x6c805c,
   leaf: 0xffffff, leafLight: 0x829a65, bark: 0x75685a, white: 0xeeeadd,
 };
 const BASE = 0.28;
@@ -26,7 +35,8 @@ function surfaceTexture(kind) {
     for (let x = 0; x < size; x++) {
       const row = Math.floor(y / 16), offset = row % 2 ? 32 : 0;
       const joint = kind === 'brick' && (y % 16 < 1 || (x + offset) % 64 < 1);
-      const value = joint ? 158 : Math.round(246 - rng() * (kind === 'asphalt' ? 20 : 8));
+      const grain=rng(),waves=Math.sin(x*.23+y*.17)*.6+Math.sin(x*.08-y*.03)*.4;
+      const value = joint ? 155 : Math.round(kind==='grass'?175+grain*55+waves*15:kind==='water'?210+waves*25+grain*15:kind==='asphalt'?205+grain*40:238+grain*15);
       const i = (y * size + x) * 4;
       data[i] = data[i + 1] = data[i + 2] = value;
       data[i + 3] = 255;
@@ -40,6 +50,13 @@ function surfaceTexture(kind) {
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.needsUpdate = true;
   return texture;
+}
+
+function normalTexture(source,strength){
+ const {data,width:size}=source.image,out=new Uint8Array(size*size*4);
+ const height=(x,y)=>data[(((y+size)%size)*size+(x+size)%size)*4]/255;
+ for(let y=0;y<size;y++)for(let x=0;x<size;x++){const v=new THREE.Vector3((height(x-1,y)-height(x+1,y))*strength,(height(x,y-1)-height(x,y+1))*strength,1).normalize(),i=(y*size+x)*4;out.set([(v.x*.5+.5)*255,(v.y*.5+.5)*255,(v.z*.5+.5)*255,255],i);}
+ const t=new THREE.DataTexture(out,size,size);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.generateMipmaps=true;t.minFilter=THREE.LinearMipmapLinearFilter;t.needsUpdate=true;return t;
 }
 
 function signageTexture() {
@@ -56,20 +73,25 @@ function signageTexture() {
 
 function createMaterials() {
   const concrete = surfaceTexture('concrete'), brick = surfaceTexture('brick'), asphalt = surfaceTexture('asphalt');
+  const grass=gardenImages?imageTexture(gardenImages[0],true):surfaceTexture('grass'),grassNormal=gardenImages?imageTexture(gardenImages[1]):null,water=surfaceTexture('water');
+  const wallNormal=normalTexture(concrete,.7),brickNormal=normalTexture(brick,1),waterNormal=normalTexture(water,2);
+  const forestAtlas=gardenImages?imageTexture(gardenImages[2],true):null;
   const sign=signageTexture();
   const common = { vertexColors: true };
   return {
-    textures: [concrete, brick, asphalt, sign].filter(Boolean),
+    textures: [concrete, brick, asphalt, grass, water, wallNormal, brickNormal, waterNormal, grassNormal, forestAtlas, sign].filter(Boolean),
     materials: {
+      forest: new THREE.MeshStandardMaterial({map:forestAtlas,color:0xffffff,roughness:1,side:THREE.DoubleSide,alphaTest:.35,alphaToCoverage:true}),
       sign: new THREE.MeshStandardMaterial({map:sign,color:sign?0xffffff:0xdce3dc,roughness:.8}),
-      concrete: new THREE.MeshStandardMaterial({ ...common, roughness: .82 }),
-      brick: new THREE.MeshStandardMaterial({ ...common, roughness: .76 }),
+      concrete: new THREE.MeshStandardMaterial({ ...common, map:concrete, normalMap:wallNormal, roughness: .82 }),
+      brick: new THREE.MeshStandardMaterial({ ...common, map:brick, normalMap:brickNormal, roughness: .76 }),
       metal: new THREE.MeshStandardMaterial({ ...common, roughness: 0.38, metalness: 0.42 }),
-      glass: new THREE.MeshPhysicalMaterial({ ...common, roughness: .045, metalness: .12, envMapIntensity: 1.05, clearcoat: 1, clearcoatRoughness: .035 }),
+      glass: new THREE.MeshPhysicalMaterial({ ...common, roughness: .22, metalness: .22, envMapIntensity: .8, clearcoat: 1, clearcoatRoughness: .12 }),
       paving: new THREE.MeshStandardMaterial({ ...common, map: concrete, roughness: 0.96 }),
       asphalt: new THREE.MeshStandardMaterial({ ...common, map: asphalt, roughness: 0.98 }),
-      vegetation: new THREE.MeshStandardMaterial({ ...common, roughness: 1 }),
-      foliage: new THREE.MeshStandardMaterial({ ...common, roughness: .94, side: THREE.DoubleSide }),
+      vegetation: new THREE.MeshStandardMaterial({ ...common, map:grass, normalMap:grassNormal,normalScale:new THREE.Vector2(.4,.4), roughness: 1 }),
+      foliage: new THREE.MeshStandardMaterial({ ...common, roughness: .92, side: THREE.DoubleSide }),
+      water: new THREE.MeshPhysicalMaterial({...common,map:water,normalMap:waterNormal,roughness:.2,metalness:.32,clearcoat:1,clearcoatRoughness:.18,envMapIntensity:1.1}),
       wood: new THREE.MeshStandardMaterial({ ...common, map: concrete, roughness: 0.96 }),
       markings: new THREE.MeshStandardMaterial({ ...common, roughness: 0.9 }),
     },
@@ -86,13 +108,13 @@ function batch(group, materials) {
     matrix.compose(new THREE.Vector3(...position), new THREE.Quaternion().setFromEuler(new THREE.Euler(...rotation)), new THREE.Vector3(1, 1, 1));
     plain.applyMatrix4(matrix);
     const points = plain.attributes.position, normals = plain.attributes.normal;
-    const rgb = new THREE.Color(color), colors = new Float32Array(points.count * 3), uv = new Float32Array(points.count * 2);
+    const rgb = new THREE.Color(color);if(material==='vegetation'&&gardenImages)rgb.lerp(new THREE.Color(0xffffff),.55).multiply(new THREE.Color(0x74b45b));const colors = new Float32Array(points.count * 3), uv = new Float32Array(points.count * 2);
     for (let i = 0; i < points.count; i++) {
       const leafColor = plain.attributes.color;
       colors.set(leafColor ? [rgb.r * leafColor.getX(i), rgb.g * leafColor.getY(i), rgb.b * leafColor.getZ(i)] : [rgb.r, rgb.g, rgb.b], i * 3);
       const nx = Math.abs(normals.getX(i)), ny = Math.abs(normals.getY(i)), nz = Math.abs(normals.getZ(i));
-      uv[i * 2] = (nx > nz ? points.getZ(i) : points.getX(i)) * (material === 'brick' ? 1.7 : 0.65);
-      uv[i * 2 + 1] = (ny > 0.7 ? points.getZ(i) : points.getY(i)) * (material === 'brick' ? 1.7 : 0.65);
+      uv[i * 2] = (nx > nz ? points.getZ(i) : points.getX(i)) * (material === 'brick' ? 1.7 : material==='vegetation'?.25:material==='water'?.35:0.65);
+      uv[i * 2 + 1] = (ny > 0.7 ? points.getZ(i) : points.getY(i)) * (material === 'brick' ? 1.7 : material==='vegetation'?.25:material==='water'?.35:0.65);
     }
     plain.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     if(material!=='sign')plain.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
@@ -108,7 +130,7 @@ function batch(group, materials) {
   }
   function rod(start, end, radius, color = C.metal, material = 'metal') {
     const a = new THREE.Vector3(...start), b = new THREE.Vector3(...end), delta = b.clone().sub(a);
-    const geometry = new THREE.CylinderGeometry(radius, radius, delta.length(), 7);
+    const geometry = new THREE.CylinderGeometry(radius, radius, delta.length(), material==='wood'?4:7);
     geometry.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), delta.normalize()));
     add(geometry, material, color, a.add(b).multiplyScalar(0.5).toArray());
   }
@@ -294,14 +316,15 @@ function roofGroup(building, materials) {
 function broadleaf(b, x, z, height, seed) {
   const rng = random(seed);
   b.cylinder(.13, height * .68, [x,height*.34,z],C.bark,'wood',[0,0,.025],.055);
-  for(let branch=0;branch<9;branch++){
+  for(let branch=0;branch<3;branch++){
     const angle=branch*2.399+seed,reach=height*(.2+rng()*.08);
     const end=[x+Math.cos(angle)*reach,height*(.61+rng()*.22),z+Math.sin(angle)*reach];
     const start=[x,height*(.32+branch*.025),z];
     b.rod(start,end,.035,C.bark,'wood');
-    for(const side of [-1,1]) b.rod(end,[end[0]+side*.35,end[1]+.4,end[2]+.25],.014,C.bark,'wood');
+
   }
-  b.add(createTreeCrown(height,seed),'foliage',0xffffff,[x,0,z]);
+  b.tag('tree-crown-'+seed,'乔木树冠 · 设计示意','tree');
+  b.add(createTreeCrown(height,seed,{volume:true}),'foliage',0xffffff,[x,0,z]);
 }
 
 function bench(b, x, z, angle = 0) {
@@ -317,83 +340,92 @@ function bench(b, x, z, angle = 0) {
 
 
 function site(b) {
-  b.box([500, 0.12, 500], [0, -0.14, 0], 0xd6ded1, 'vegetation');
-  b.box([59, 0.06, 43], [-1, -0.045, -1], C.grass, 'vegetation');
-  b.box([58, 0.055, 4.2], [-1, -0.002, 15.2], C.asphalt, 'asphalt');
-  b.box([4.2, 0.055, 35], [25.2, -0.002, -3.2], C.asphalt, 'asphalt');
-  b.box([55, 0.055, 3.8], [-1.8, -0.002, -20.9], C.asphalt, 'asphalt');
-  b.box([3.5, 0.055, 35], [-28.5, -0.002, -3.2], C.asphalt, 'asphalt');
-  b.box([27, 0.08, 11.5], [-11.3, 0.02, 6.1], C.paving, 'paving');
-  b.box([4.4, 0.08, 31.5], [0.5, 0.022, -3], C.paving, 'paving');
-  b.box([22, 0.08, 3.7], [13.1, 0.022, -5.7], C.paving, 'paving');
-  b.box([22, 0.08, 3], [13, 0.022, 12], C.paving, 'paving');
-  b.box([6.2, 0.08, 7.5], [-0.3, 0.022, 16.7], C.paving, 'paving');
-  for (let x = -24; x <= 1; x += 1.5) b.box([0.018, 0.008, 11.5], [x, 0.065, 6.1], C.stone, 'paving');
-  for (let z = 0.5; z < 12; z += 1.5) b.box([27, 0.008, 0.018], [-11.3, 0.065, z], C.stone, 'paving');
-  b.box([18,.012,.36],[-12,.072,2.35],0x9da99e,'paving');
-  b.box([18,.012,.36],[-12,.072,10.9],0x9da99e,'paving');
-  for (const x of [-27, 23]) b.box([0.16, 0.18, 33.6], [x, 0.065, -3.2], C.stone);
-  for (const z of [12.9, 17.4, -18.9]) for (const [x, width] of [[-15.2, 23], [15, 23]]) b.box([width, 0.18, 0.16], [x, 0.065, z], C.stone);
-  for (let x = -25; x <= 26; x += 4) if (Math.abs(x) >= 5) b.box([1.7, 0.008, 0.09], [x, 0.031, 15.2], C.white, 'markings');
-  for (let i = 0; i < 7; i++) b.box([0.38, 0.012, 3.8], [-2.5 + i * 0.72, 0.036, 15.2], C.white, 'markings');
-  for (const [x, z, w, d] of [[-19.7, 8.3, 7.5, 3.4], [-8.4, 8.3, 7.5, 3.4], [20, -5.5, 4, 1.6]]) {
-    b.box([w, 0.25, d], [x, 0.125, z], C.stone);
-    b.box([w - 0.3, 0.08, d - 0.3], [x, 0.29, z], 0x526247, 'vegetation');
-    for (let i = 0; i < Math.floor(w * 2); i++) {
-      const geometry = new THREE.SphereGeometry(0.35, 8, 5);
-      geometry.scale(1, 0.65, 0.8);
-      b.add(geometry, 'vegetation', i % 3 ? 0x667751 : 0x79835e, [x - w / 2 + 0.45 + i * 0.48, 0.48, z]);
-    }
-  }
-  for (const [x, z, angle] of [[-19.5, 5.9, 0], [-8.5, 5.9, 0], [-19.5, 10.6, Math.PI], [-8.5, 10.6, Math.PI], [20, -3.8, 0]]) bench(b, x, z, angle);
-  for (const [x, z] of [[-25.6, 4], [-3.1, 3], [3.1, -4.3], [23.1, 2.3], [-24, 12.2], [21, 12.2]]) {
-    b.cylinder(0.075, 4.5, [x, 2.25, z], C.metal);
-    b.box([0.95, 0.075, 0.26], [x + 0.3, 4.52, z], C.metal, 'metal');
-    b.box([0.65, 0.025, 0.19], [x + 0.36, 4.47, z], C.light, 'markings');
-  }
-  b.box([8, 0.08, 3.3], [15.7, 0.035, 19.2], C.paving, 'paving');
-  b.box([8.1, 0.12, 3.4], [15.7, 2.6, 19.2], C.frame, 'metal', [0.045, 0, 0]);
-  for (const x of [12, 19.4]) for (const z of [17.9, 20.5]) b.box([0.07, 2.55, 0.07], [x, 1.3, z], C.metal, 'metal');
-  for (let i = 0; i < 8; i++) {
-    const x = 12.6 + i * 0.9;
-    b.rod([x, 0.07, 18.9], [x, 0.72, 18.9], 0.025);
-    b.rod([x, 0.72, 18.9], [x, 0.72, 19.8], 0.025);
-    b.rod([x, 0.72, 19.8], [x, 0.07, 19.8], 0.025);
-    if (i % 3 === 0) continue;
-    for (const z of [18.75, 19.85]) {
-      b.add(new THREE.TorusGeometry(0.3, 0.025, 5, 16), 'metal', C.metal, [x + 0.15, 0.37, z], [0, Math.PI / 2, 0]);
-      b.rod([x + 0.15, 0.37, z], [x + 0.15, 0.7, 19.3], 0.018, C.frame);
-    }
-    b.rod([x + 0.15, 0.7, 19.3], [x + 0.15, 0.37, 19.1], 0.023, C.frame);
-    b.box([0.2, 0.045, 0.27], [x + 0.15, 0.85, 19.45], C.metal, 'metal');
-    b.rod([x + 0.15, 0.7, 18.85], [x + 0.15, 1.05, 18.85], 0.018);
-    b.rod([x - 0.08, 1.05, 18.85], [x + 0.38, 1.05, 18.85], 0.018);
-  }
-  for (const [x, z, w, d] of [[-30.3, -0.5, 0.22, 43], [28.7, -0.5, 0.22, 43], [-0.8, -22.2, 59, 0.22], [-17.4, 21.2, 25.5, 0.22], [17.2, 21.2, 23, 0.22]]) {
-    b.box([w, 0.48, d], [x, 0.24, z], C.stone);
-    b.box([w, 0.06, d], [x, 1.45, z], C.metal, 'metal');
-    const count = Math.floor(Math.max(w, d) / 0.55);
-    for (let i = 0; i <= count; i++) b.box([0.035, 1, 0.035], [x + (w > d ? (i / count - 0.5) * w : 0), 0.98, z + (d > w ? (i / count - 0.5) * d : 0)], C.metal, 'metal');
-  }
-  for (const x of [-5, 5.2]) b.box([0.65, 3.8, 0.8], [x, 1.9, 20.9], C.light);
-  b.sign(3,[.1,3.9,21.45],3.2);
-  b.box([10.9, 0.32, 1.05], [0.1, 3.85, 20.9], C.metal, 'metal');
-  b.box([2.8, 2.8, 2.7], [-7.6, 1.4, 19.5], C.concrete);
-  b.box([3.25, 0.18, 3.1], [-7.6, 2.89, 19.5], C.metal, 'metal');
-  b.box([2.3, 1.25, 0.06], [-7.6, 1.8, 20.89], C.glassLight, 'glass');
-  b.box([0.06, 1.25, 2.1], [-6.17, 1.8, 19.5], C.glassLight, 'glass');
-  b.box([0.07, 1.3, 0.1], [-7.6, 1.8, 20.95], C.frame, 'metal');
-  b.box([0.95, 2.1, 0.08], [-7.6, 1.05, 18.11], C.metal, 'metal');
-  b.box([0.28, 1.04, 0.28], [3.8, 0.52, 19.4], C.frame, 'metal');
-  b.box([5.4, 0.1, 0.1], [1.2, 0.98, 19.4], C.white, 'markings');
-  const trees = [
-    [-26.7, -15.1, 5.1], [-26.6, -8, 4.7], [-26.4, -0.3, 4.3],
-    [-23, -16, 4.4], [-16.5, -16, 4.7], [-10, -16, 4.4], [-4.5, -16, 4.5],
-    [3, -19, 4.7], [10, -19.2, 4.4], [20, -19.2, 5],
-    [22.8, -13, 4.6], [22.7, -4.6, 4.5], [22.6, 7.3, 4.1],
-    [-21, 8.3, 4.1], [-9.6, 8.3, 4.2], [-24.4, 19.2, 4.4], [-17, 19.1, 4.7],
-  ];
-  trees.forEach(([x, z, h], index) => broadleaf(b, x, z, h, index + 61));
+ b.tag('campus-ground','校园地形与路网','site');
+ b.box([600,.12,600],[0,-.16,0],0x63794e,'vegetation');
+ b.box([103,.1,105],[-3.5,-.05,-8.5],0x527746,'vegetation');
+ // A connected loop with internal east/west pedestrian axes.
+ for(const [x,z,w,d] of [[-3,39,99,5],[-3,-57,99,5],[-51,-9,5,96],[44,-9,5,96],[-3,-3,98,5],[11,-9,5,94]]){
+  b.box([w+.9,.11,d+.9],[x,.01,z],C.paving,'paving');b.box([w,.08,d],[x,.08,z],0x737c7e,'asphalt');
+  const horizontal=w>d;for(let u=-Math.max(w,d)/2+3;u<Math.max(w,d)/2-2;u+=5)b.box(horizontal?[2,.008,.09]:[.09,.008,2],[x+(horizontal?u:0),.125,z+(horizontal?0:u)],C.white,'markings');
+ }
+ for(const [x,z] of [[11,39],[11,-3],[-32,-3],[44,25],[-51,18]])for(let i=0;i<7;i++)b.box([.38,.015,4.6],[x-2.1+i*.7,.14,z],C.white,'markings');
+ b.box([27,.11,24],[-12,.055,25],C.paving,'paving');
+ for(let x=-24;x<1;x+=2)b.box([.018,.008,24],[x,.116,25],C.stone,'paving');
+ for(let z=14;z<37;z+=2)b.box([27,.008,.018],[-12,.116,z],C.stone,'paving');
+ for(const x of [-19,-6]){
+  b.box([7,.24,8],[x,.12,24],C.stone);b.box([6.65,.1,7.65],[x,.28,24],0x63744e,'vegetation');bench(b,x,29.2);bench(b,x,18.8,Math.PI);
+ }
+ // Athletics track: stadium outline with six lanes, not a decorative red disk.
+ const stadium=(radius,half)=>{const shape=new THREE.Shape();shape.moveTo(-half,-radius);shape.lineTo(half,-radius);shape.absarc(half,0,radius,-Math.PI/2,Math.PI/2,false);shape.lineTo(-half,radius);shape.absarc(-half,0,radius,Math.PI/2,Math.PI*1.5,false);return shape;};
+ b.tag('athletics','田径与足球场 · 比例示意','sport');
+ b.add(new THREE.ShapeGeometry(stadium(11,8),40),'paving',0xa56556,[-30,.16,-40],[-Math.PI/2,0,0]);
+ b.add(new THREE.ShapeGeometry(stadium(7.4,8),40),'vegetation',0x557753,[-30,.18,-40],[-Math.PI/2,0,0]);
+ for(let lane=0;lane<6;lane++){
+  const r=7.9+lane*.53,shape=stadium(r,8);const hole=stadium(r-.055,8);shape.holes.push(new THREE.Path(hole.getPoints(80)));b.add(new THREE.ShapeGeometry(shape,40),'markings',0xe5d7c5,[-30,.19,-40],[-Math.PI/2,0,0]);
+ }
+ for(let i=0;i<8;i++)b.box([3,.01,13],[-40.5+i*3,.201,-40],i%2?0x678d5c:0x5a8050,'vegetation');
+ for(const z of [-46.5,-33.5])b.box([24,.018,.07],[-30,.22,z],C.white,'markings');
+ for(const x of [-42,-30,-18])b.box([.07,.018,13],[x,.22,-40],C.white,'markings');
+ b.add(new THREE.TorusGeometry(2,.04,3,48),'markings',C.white,[-30,.23,-40],[-Math.PI/2,0,0]);
+ for(const x of [-42,-18]){for(const z of [-42,-38])b.rod([x,.25,z],[x,1.6,z],.045,C.white);b.rod([x,1.6,-42],[x,1.6,-38],.045,C.white);}
+ b.tag('courts','篮球场与球架','sport');
+ for(const x of [-6,4]){
+  b.box([8.6,.12,17],[x,.14,-41],0x548d9d,'paving');
+  for(const xx of [x-4,x+4])b.box([.06,.01,16],[xx,.21,-41],C.white,'markings');for(const z of [-49,-41,-33])b.box([8,.01,.06],[x,.21,z],C.white,'markings');
+  b.add(new THREE.TorusGeometry(1.2,.035,3,32),'markings',C.white,[x,.22,-41],[-Math.PI/2,0,0]);
+  for(const z of [-48.5,-33.5]){b.box([.1,2.5,.1],[x,1.4,z],C.metal,'metal');b.box([1.4,.85,.08],[x,2.6,z],C.white);b.add(new THREE.TorusGeometry(.28,.025,4,16),'metal',0xa06141,[x,2.25,z+(z<-41?.4:-.4)],[-Math.PI/2,0,0]);}
+ }
+ // Pond, perimeter paths and pavilion share a natural, non-saturated palette.
+ b.tag('landscape','水景与景观','site');
+ for(const z of [-12,26])for(const x of [20,37])bench(b,x,z);
+ for(const [x,z,w] of [[-33,2,20],[-12,34,19],[28,10,20],[28,-23,20]]){
+  b.box([w,.12,2.8],[x,2.7,z],0x67828b,'glass');
+  for(let dx=-w/2;dx<=w/2;dx+=3){b.box([.07,2.7,.07],[x+dx,1.35,z+.9],C.frame,'metal');b.box([.07,.08,2.9],[x+dx,2.76,z],C.frame,'metal');}
+  for(let dx=-w/2+.7;dx<w/2;dx+=1.2)for(const zz of [-.4,.5])b.add(new THREE.TorusGeometry(.31,.022,3,8),'metal',0x4f5e61,[x+dx,.45,z+zz],[0,Math.PI/2,0]);
+ }
+ for(const x of [-6,6])b.box([.6,3.6,.6],[x,1.8,42],C.light);b.box([13,.25,.85],[0,3.6,42],C.frame,'metal');b.sign(3,[0,3.55,42.45],4.8);
+ for(const [x,z] of [[-46,2],[-46,22],[6,24],[39,2],[39,33],[-10,-27],[18,-27]]){
+  b.cylinder(.07,5,[x,2.5,z],C.frame);b.box([1.05,.08,.3],[x+.35,5,z],C.frame,'metal');b.box([.8,.03,.22],[x+.35,4.95,z],C.light,'markings');
+ }
+ for(const [x,z] of [[-23,35],[-1,35],[36,24],[-44,-7]]){b.box([.48,.85,.45],[x,.43,z],0x586d67,'metal');}
+ for(const x of [-10,-8,-6])b.rod([x,.2,36],[x,6,36],.025,C.frame);
+ b.tag('trees','行道树与庭院树','landscape');
+ const trees=[];
+ for(let z=-52;z<=34;z+=8)trees.push([-47,z,5.4],[40,z,5.7]);
+ for(let x=-43;x<=37;x+=9)trees.push([x,-53,5.3]);
+ for(const [x,z] of [[-20,24],[-6,24],[-23,31],[-3,31],[5,-11],[5,-24],[-17,-24],[-45,-25],[18,-8],[36,-8],[19,27],[38,24],[24,33],[-43,24],[-38,13]])trees.push([x,z,4.8]);
+ for(let x=-52;x<=48;x+=10)trees.push([x,47,5.5],[x,-65,6.5]);
+ for(let z=-46;z<=28;z+=14)trees.push([-59,z,6.3],[52,z,6]);
+ // Peripheral groves fill the overview edges without adding semantic buildings or points.
+  for(let z=-58;z<=40;z+=7)trees.push([-66+(z%3),z,6.8],[60+(z%4),z,6.5]);
+  const footprints=[...CAMPUS_BUILDINGS,{position:[-26,0,25],size:[6,20]},{position:[2,0,25],size:[6,20]},{position:[29,0,-35],size:[15,12]},{position:[-5,0,-18],size:[19,12]}];
+  trees.forEach(([x,z,h],i)=>{const blocked=footprints.some(b=>Math.abs(x-b.position[0])<b.size[0]/2+.65&&Math.abs(z-b.position[2])<b.size[1]/2+.65)||((x-28)/8.1)**2+((z-25)/5.7)**2<1||((x+41)/5.4)**2+((z-28)/6.7)**2<1;if(!blocked)broadleaf(b,x,z,h*1.22,i+123);});
+ addGardenDetails(b);
+}
+
+function coveredLink(b,a,c){
+ const dx=c[0]-a[0],dz=c[1]-a[1],length=Math.hypot(dx,dz),yaw=-Math.atan2(dz,dx),x=(a[0]+c[0])/2,z=(a[1]+c[1])/2;
+ b.tag('link-'+x+'-'+z,'玻璃连廊 · 设计示意','link');
+ const part=(size,offset,color,material)=>{const v=new THREE.Vector3(...offset).applyAxisAngle(new THREE.Vector3(0,1,0),yaw);b.box(size,[x+v.x,v.y,z+v.z],color,material,[0,yaw,0]);};
+ part([length,.2,2.5],[0,4.1,0],C.light,'concrete');part([length,.15,2.6],[0,6.6,0],C.frame,'metal');
+ for(const side of [-1,1])part([length,2.2,.045],[0,5.35,side*1.2],C.glassLight,'glass');
+ for(let u=-length/2;u<=length/2;u+=2.4)for(const side of [-1,1]){part([.08,2.5,.09],[u,5.35,side*1.2],C.frame,'metal');part([.16,4,.16],[u,2,side*1.1],C.light,'concrete');}
+}
+
+function peripheralForest(group,materials){
+ const rng=random(876),poses=[],matrix=new THREE.Matrix4(),q=new THREE.Quaternion();
+ for(let x=-84;x<=80;x+=7)for(let z=-84;z<=72;z+=7){
+  if(x>-57&&x<50&&z>-63&&z<46||rng()<.24)continue;
+  const scale=.75+rng()*.65;q.setFromAxisAngle(new THREE.Vector3(0,1,0),rng()*6.28);
+  matrix.compose(new THREE.Vector3(x+(rng()-.5)*3,0,z+(rng()-.5)*3),q,new THREE.Vector3(scale,scale,scale));poses.push(matrix.clone());
+ }
+ if(typeof document!=='undefined'&&!materials.forest.map)return;
+ const cards=[];for(let i=0;i<3;i++){const g=new THREE.PlaneGeometry(10,10);g.translate(0,5,0);g.rotateY(i*Math.PI/3);cards.push(g);}
+ const geometry=mergeGeometries(cards);cards.forEach(g=>g.dispose());
+ const trees=new THREE.InstancedMesh(geometry,materials.forest,poses.length);
+ poses.sort((a,b)=>Math.sin(a.elements[12]*17+a.elements[14]*31)-Math.sin(b.elements[12]*17+b.elements[14]*31));
+ for(const [i,pose]of poses.entries())trees.setMatrixAt(i,pose);
+ trees.name='Peripheral forest · baked far LOD';trees.castShadow=false;trees.receiveShadow=false;trees.userData={conceptual:true,role:'forest',materialKind:'forest',fullCount:poses.length,basis:'原创树木 Blender 烘焙的远景 LOD；非实时设施'};group.add(trees);
 }
 
 export function createArchitecturalCampus() {
@@ -424,12 +456,19 @@ export function createArchitecturalCampus() {
     node.userData = { ...entry, pointId: id, conceptual: true };
     group.add(node);
   }
+  // Secondary campus masses carry no business points and are explicitly conceptual.
+  const wings=[{id:'teaching-west',position:[-26,0,25],size:[6,20],floors:5,floorHeight:3.65},{id:'teaching-east',position:[2,0,25],size:[6,20],floors:5,floorHeight:3.65}];
+  const support=[{id:'residence-concept',position:[29,0,-35],size:[15,12],floors:8,floorHeight:3.2},{id:'dining-concept',position:[-5,0,-18],size:[19,12],floors:2,floorHeight:4}];
+  for(const building of [...wings,...support]){buildingShell(b,building);const roof=roofGroup(building,materials);group.add(roof);roofs.set(building.id,roof);}
+  coveredLink(b,[-20,-16],[-14,-18]);coveredLink(b,[5,10],[16,-9]);coveredLink(b,[25,-15],[29,-29]);
   b.finish();
+  peripheralForest(group,materials);
+  group.userData.renderBounds=CAMPUS_BOUNDS;
   let disposed = false;
   return {
     group, anchors, roofs, buildings:CAMPUS_BUILDINGS,
     setRoofOpen(value){for(const roof of roofs.values()){roof.visible=!value;}},
-    bounds: new THREE.Box3(new THREE.Vector3(-30.7, 0, -22.5), new THREE.Vector3(29.1, 9.5, 21.5)),
+    bounds: new THREE.Box3(new THREE.Vector3(...CAMPUS_BOUNDS.min), new THREE.Vector3(...CAMPUS_BOUNDS.max)),
     target: new THREE.Vector3(-1.3, 1.9, -1.1),
     cameraPosition: new THREE.Vector3(57, 47, 67),
     dispose() {

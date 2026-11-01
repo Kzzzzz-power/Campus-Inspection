@@ -45,7 +45,7 @@ class CDP {
  async function check(name,fn){currentCheck=name;const details=await fn();report.checks.push({name,status:'passed',details});console.log('PASS '+name);}
  async function click(selector){await cdp.eval(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});if(!e)throw Error('Missing '+${JSON.stringify(selector)});e.focus({preventScroll:true});e.click();})()`);}
  async function key(key){const code=({Escape:27,Tab:9,Enter:13,ArrowUp:38,ArrowDown:40,ArrowLeft:37,ArrowRight:39})[key];await cdp.send('Input.dispatchKeyEvent',{type:'keyDown',key,code:key,windowsVirtualKeyCode:code,...(key==='Enter'?{text:'\r'}:{})});await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key,code:key,windowsVirtualKeyCode:code});}
- async function size(width,height=1200){await cdp.send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:false});await sleep(250);}
+ async function size(width,height=1200){await cdp.send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:false});await sleep(250);await cdp.wait("document.querySelector('#campus-stage')?.dataset.renderer!=='webgl'||document.querySelector('#campus-stage').dataset.viewportWidth===String(document.querySelector('.twin-viewport').clientWidth)");}
  async function shot(name){await cdp.wait("!document.querySelector('#brand-title')?.classList.contains('is-flipping')");await cdp.eval("scrollTo({top:0,behavior:'instant'})");await sleep(100);const r=await cdp.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});const file=path.join(OUT,name+'.png');fs.writeFileSync(file,Buffer.from(r.data,'base64'));return file;}
  async function canvasShot(){const clip=await cdp.eval("(()=>{const r=document.querySelector('#campus-canvas').getBoundingClientRect();return{x:r.x+scrollX,y:r.y+scrollY,width:r.width,height:r.height,scale:1};})()");return (await cdp.send('Page.captureScreenshot',{format:'png',clip,captureBeyondViewport:true})).data;}
  async function markerLayout(){
@@ -58,7 +58,7 @@ class CDP {
   return markers;
  }
  async function stage(){return cdp.eval("({...document.querySelector('#campus-stage').dataset})");}
- async function point(id,via='.twin-film'){await click(`${via}[data-point-id="${id}"]`);await cdp.wait(`document.querySelector('#campus-stage').dataset.mode==='point' && document.querySelector('#campus-stage').dataset.selected===${JSON.stringify(id)}`);await cdp.wait("document.querySelector('#campus-stage').dataset.transition!=='flying'");}
+ async function point(id,via='.twin-film'){await click(`${via}[data-point-id="${id}"]`);if(via==='.twin-marker'){await cdp.wait("document.querySelector('#campus-stage').dataset.transition!=='flying'");await click('#twin-room-enter');}await cdp.wait(`document.querySelector('#campus-stage').dataset.mode==='point' && document.querySelector('#campus-stage').dataset.selected===${JSON.stringify(id)}`);await cdp.wait("document.querySelector('#campus-stage').dataset.transition!=='flying'");}
  async function campus(){await click('#twin-back');await cdp.wait("document.querySelector('#campus-stage').dataset.mode==='campus'");await cdp.wait("document.querySelector('#campus-stage').dataset.transition!=='flying'");}
  async function navigate(){await cdp.send('Page.navigate',{url:BASE});await cdp.wait("document.querySelector('#campus-stage') && document.querySelector('#campus-stage').dataset.renderer");}
  try{
@@ -80,7 +80,7 @@ class CDP {
    assert(result.webgl&&!result.contextLost);assert.equal(result.stage.asset,'meshopt');assert(Number(result.stage.assetBytes)<20*1024*1024);assert.equal(result.stage.mode,'campus');assert.equal(result.films.length,8);assert.equal(new Set(result.films.map(p=>p.id)).size,8);
    assert(result.films.every(p=>p.width>0&&p.height>0&&p.x>=0&&p.right<=1441&&p.y>=0&&p.bottom<=1200),JSON.stringify(result.films));
    assert(result.markers.every(m=>m.alarm==='unknown'),'No initial observations must remain unknown');
-   assert(Number(result.stage.calls)>0 && Number(result.stage.calls)<=80,`Campus draw calls including shadow passes: ${result.stage.calls}`);assert(Number(result.stage.triangles)<=150000,`Rendered triangles including shadow passes: ${result.stage.triangles}`);result.markerLayout=await markerLayout();report.screenshots=[await shot('campus-1440')];return result;
+   assert(Number(result.stage.calls)>0 && Number(result.stage.calls)<=120,`Campus draw calls including shadow passes: ${result.stage.calls}`);assert(Number(result.stage.triangles)<=500000,`Rendered triangles including shadow passes: ${result.stage.triangles}`);result.markerLayout=await markerLayout();report.screenshots=[await shot('campus-1440')];return result;
   });
   let c07Scene,c01Scene;
   await check('point_selection_distinct_scene_and_return_path',async()=>{
@@ -189,11 +189,21 @@ class CDP {
   await check('editable_campus_glb_exports_named_parts_under_asset_budget',async()=>{
    await cdp.send('Browser.setDownloadBehavior',{behavior:'allow',downloadPath:OUT});await cdp.eval("document.querySelector('.twin-design-tools').open=true");await click('#twin-design-export');
    const file=path.join(OUT,'campus-design-estimated.glb');await until(()=>fs.existsSync(file),'GLB download',30000);
-   const bytes=fs.readFileSync(file);assert.equal(bytes.toString('ascii',0,4),'glTF');assert.equal(bytes.readUInt32LE(8),bytes.length);assert(bytes.length<20*1024*1024);
+   const bytes=fs.readFileSync(file);assert.equal(bytes.toString('ascii',0,4),'glTF');assert.equal(bytes.readUInt32LE(8),bytes.length);assert(bytes.length<40*1024*1024);
    const length=bytes.readUInt32LE(12),json=JSON.parse(bytes.subarray(20,20+length).toString());assert(json.nodes.some(n=>n.name?.startsWith('window_teaching')));assert(json.nodes.some(n=>n.name==='roof_laboratory'));
    await cdp.eval("document.querySelector('.twin-design-tools').open=false");return{file,bytes:bytes.length,nodes:json.nodes.length};
   });
 
+  await check('eight_distinct_rooms_operable_doors_and_exit',async()=>{
+   const results=[];
+   for(const id of ['C01','C02','C03','C04','C05','C06','C07','C08']){
+    await point(id);await click('[data-room-action="door"]');await cdp.wait("document.querySelector('#campus-stage').dataset.doorOpen==='true'");await sleep(450);
+    if(id==='C05'){await click('[data-room-action="portal"]');await cdp.wait("document.querySelector('#campus-stage').dataset.portalOpen==='true'");await sleep(450);}
+    report.screenshots.push(await shot('room-'+id));results.push({id,scene:(await stage()).scene,door:(await stage()).doorOpen});
+    await click('[data-room-action="exit"]');await cdp.wait("document.querySelector('#campus-stage').dataset.mode==='campus' && document.querySelector('#campus-stage').dataset.transition==='idle'");
+   }
+   return results;
+  });
   const pointBefore=await api('/api/points/C07');
   await check('real_mqtt_warning_87_reaches_websocket_twin_inspector_and_list',async()=>{
    sim=simStart();await until(async()=>(await current()).facilities.every(f=>f.freshness==='fresh'),'eight fresh MQTT observations');
@@ -206,6 +216,8 @@ class CDP {
    await cdp.wait("document.querySelector('#twin-quality').textContent.includes('WebSocket 推送')");const snapshot=await current();report.screenshots.push(await shot('live-warning-87'));await campus();report.screenshots.push(await shot('live-campus'));await point('C07');return{observation:item(snapshot).observation,marker:await cdp.eval(`({...document.querySelector(${JSON.stringify(marker)}).dataset})`),hud:await cdp.eval("document.querySelector('#twin-hud').innerText")};
   });
   await check('remote_changes_preserve_coverage_and_no_records_are_fabricated',async()=>{
+   await cdp.wait("!document.querySelector('.twin-alert-popup').hidden && document.querySelector('.twin-alert-popup').dataset.pointId==='C07'");
+   await click('.twin-alert-actions button:last-child');await sleep(2300);assert(await cdp.eval("document.querySelector('.twin-alert-popup').hidden"),'Same alarm timestamp refresh must not repeat popup');
    const after=await api('/api/dashboard'),detail=await api('/api/points/C07');
    assert.equal(after.covered,coverageBefore.covered);assert.deepEqual(after.missing,coverageBefore.missing);
    assert.deepEqual(after.points.map(p=>[p.point_id,p.covered]),coverageBefore.points.map(p=>[p.point_id,p.covered]));

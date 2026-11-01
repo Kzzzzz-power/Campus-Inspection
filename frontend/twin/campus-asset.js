@@ -1,13 +1,14 @@
 import * as THREE from '../vendor/three/three.module.js';
 import {GLTFLoader} from '../vendor/three/GLTFLoader.js';
 import {MeshoptDecoder} from '../vendor/three/meshopt_decoder.module.js';
-import {CAMPUS_BUILDINGS,CAMPUS_LAYOUT} from './campus-layout.js';
-import {createArchitecturalCampus} from './campus-architecture.js';
+import {CAMPUS_BUILDINGS,CAMPUS_LAYOUT,CAMPUS_BOUNDS} from './campus-layout.js';
+import {createArchitecturalCampus,warmCampusTextures} from './campus-architecture.js';
 
 function withLOD(model){
- // Keep complete leaf shapes; only alternate leaves are removed at long range.
- const foliage=[];model.group.traverse(o=>{if(o.isMesh&&o.userData.materialKind==='foliage'&&!o.geometry.index){const indices=[];for(let i=0;i<o.geometry.attributes.position.count;i+=24)for(let j=0;j<12&&i+j<o.geometry.attributes.position.count;j++)indices.push(i+j);foliage.push({mesh:o,index:new THREE.Uint32BufferAttribute(indices,1)});}});
- let far=false;model.updateLOD=distance=>{const next=far?distance>100:distance>115;if(next!==far){far=next;for(const f of foliage)f.mesh.geometry.setIndex(far?f.index:null);}return far?'distant':'detailed';};const dispose=model.dispose;model.dispose=()=>{for(const f of foliage)f.mesh.geometry.setIndex(f.index);dispose();};return model;
+ // Drop complete distant tree crowns; never perforate the volume into arbitrary triangles.
+ const foliage=[];model.group.traverse(o=>{if(o.isMesh&&o.userData.materialKind==='foliage'&&!o.geometry.index){const indices=[];let tree=0;for(const c of o.userData.components||[]){if(c.role==='tree'&&tree++%2)continue;for(let i=c.start;i<c.start+c.count;i++)indices.push(i);}foliage.push({mesh:o,index:new THREE.Uint32BufferAttribute(indices,1)});}});
+ const forests=[];model.group.traverse(o=>{if(o.isInstancedMesh&&o.userData.role==='forest')forests.push(o);});
+ let far=false;model.updateLOD=(distance,compact=false)=>{const next=compact||(far?distance>180:distance>210);if(next!==far){far=next;for(const mesh of forests)mesh.count=far?Math.ceil(mesh.userData.fullCount*.35):mesh.userData.fullCount;for(const f of foliage)f.mesh.geometry.setIndex(far?f.index:null);}return far?'distant':'detailed';};const dispose=model.dispose;model.dispose=()=>{for(const f of foliage)f.mesh.geometry.setIndex(f.index);dispose();};return model;
 }
 function release(group){
  const geometries=new Set(),materials=new Set(),textures=new Set();
@@ -22,15 +23,15 @@ export async function loadCampusAsset(){
   try{const response=await fetch('/static/assets/campus/campus-design.meshopt.glb',{signal:controller.signal});if(!response.ok)throw Error('GLB HTTP '+response.status);bytes=await response.arrayBuffer();}finally{clearTimeout(timer);}
   const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);await MeshoptDecoder.ready;
   const gltf=await loader.parseAsync(bytes,'/static/assets/campus/');group=gltf.scene;
-  const roofs=new Map(CAMPUS_BUILDINGS.map(b=>[b.id,group.getObjectByName('roof-'+b.id)]));
-  if([...roofs.values()].some(r=>!r))throw Error('Incomplete campus roof semantics');
-  group.traverse(o=>{if(!o.isMesh)return;const kind=o.userData.materialKind;o.castShadow=!['asphalt','paving','markings'].includes(kind);o.receiveShadow=true;});
+  const roofs=new Map();group.traverse(o=>{if(o.name.startsWith('roof-'))roofs.set(o.name.slice(5),o);});
+  if(CAMPUS_BUILDINGS.some(b=>!roofs.has(b.id)))throw Error('Incomplete campus roof semantics');
+  group.traverse(o=>{if(!o.isMesh)return;const kind=o.userData.materialKind;o.castShadow=!['asphalt','paving','markings','forest'].includes(kind);o.receiveShadow=true;});
   let disposed=false;
   return withLOD({group,roofs,buildings:CAMPUS_BUILDINGS,assetType:'meshopt',assetBytes:bytes.byteLength,
    anchors:new Map(Object.entries(CAMPUS_LAYOUT).map(([id,e])=>[id,new THREE.Vector3(...e.position)])),
-   bounds:new THREE.Box3(new THREE.Vector3(-30.7,0,-22.5),new THREE.Vector3(29.1,9.5,21.5)),target:new THREE.Vector3(-1.3,1.9,-1.1),cameraPosition:new THREE.Vector3(57,47,67),
+   bounds:new THREE.Box3(new THREE.Vector3(...CAMPUS_BOUNDS.min),new THREE.Vector3(...CAMPUS_BOUNDS.max)),target:new THREE.Vector3(-1.3,1.9,-1.1),cameraPosition:new THREE.Vector3(57,47,67),
    setRoofOpen(value){for(const r of roofs.values())r.visible=!value;},
    dispose(){if(!disposed){disposed=true;release(group);}}
   });
- }catch(error){if(group)release(group);console.info('Campus GLB fallback:',error.message);return withLOD({...createArchitecturalCampus(),assetType:'procedural-fallback',assetBytes:0});}
+ }catch(error){if(group)release(group);console.info('Campus GLB fallback:',error.message);await warmCampusTextures().catch(()=>{});return withLOD({...createArchitecturalCampus(),assetType:'procedural-fallback',assetBytes:0});}
 }

@@ -64,5 +64,61 @@
 .twin-design-body button[aria-pressed=true]{background:#246d62;color:white}.twin-design-body button:disabled{opacity:.45;cursor:not-allowed}.twin-design-note{width:100%;margin:0;color:#52655c;line-height:1.6}
 .twin-design-tools :focus-visible{outline:3px solid #19766d;outline-offset:2px}
 .twin-component-info{position:absolute;left:16px;bottom:80px;max-width:min(360px,calc(100% - 32px));padding:12px 36px 12px 12px;background:#f9faf6ef;border:1px solid #c4b38c;border-radius:6px;color:#263c36;z-index:6;font-size:11px;white-space:pre-line}.twin-component-info[hidden]{display:none}.twin-component-info p{margin:0;line-height:1.7}.twin-component-info button{position:absolute;right:6px;top:6px;width:26px;height:26px;border:0;background:transparent;cursor:pointer;font-size:20px}
-@media(min-width:768px){.twin-viewport{height:clamp(440px,calc(100svh - 520px),780px)}}
+@media(min-width:768px){.twin-viewport{height:clamp(440px,calc(100svh - 560px),780px)}}
 @media(max-width:767px){.twin-design-body{max-height:58svh;overflow:auto;backdrop-filter:none}.twin-design-body label{min-width:110px}.twin-design-tools summary{min-height:36px}.twin-component-info{bottom:76px;left:10px}}
+
+/* Live alerts stay usable while the decorative scene is paused. */
+.twin-alerts{margin:0 18px 8px;color:#263e44;font-size:12px}.twin-alerts summary{cursor:pointer;width:fit-content;padding:6px 0}.twin-alerts button{font:inherit;cursor:pointer;border:1px solid #b9c9cb;background:#f8fbfa;color:#253e43;border-radius:6px;padding:8px 12px}.twin-alert-list{display:grid;gap:6px;margin-top:8px}.twin-alert-list button{text-align:left}.twin-alert-popup{position:fixed;right:24px;bottom:24px;z-index:90;width:min(400px,calc(100vw - 32px));padding:20px;background:#fffcf5;color:#413222;border:1px solid #c4a77e;border-radius:12px;box-shadow:0 16px 48px #263b4933}.twin-alert-popup[hidden]{display:none}.twin-alert-popup h3{font-size:17px;margin:0 0 10px}.twin-alert-popup p{white-space:pre-line;font-size:13px;line-height:1.7}.twin-alert-note{color:#68543c}.twin-alert-actions{display:flex;gap:8px;flex-wrap:wrap}.twin-alert-actions button{cursor:pointer;padding:9px 12px;border:1px solid #9e896c;border-radius:6px;background:#fff;color:#45331d}.twin-alert-actions button:hover{background:#f1e5cf}.twin-alert-actions button:active{transform:translateY(1px)}.twin-alert-actions button:focus-visible,.twin-alerts button:focus-visible{outline:3px solid #246e82;outline-offset:3px}.twin-room-tools{flex-wrap:wrap;max-width:calc(100% - 24px)}
+@media(max-width:767px){.twin-alert-popup{right:16px;bottom:16px}.twin-room-tools button{padding:7px 9px}.twin-camera-help{max-width:65%}}
+
+.campus-stage[data-lod=distant] .twin-marker:not([aria-pressed=true]) .twin-marker-name{display:none}
+
+/* Keep the next action in the scene instead of below the viewport. */
+.twin-focus-entry{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:5;display:flex;align-items:center;gap:12px;max-width:calc(100% - 24px);padding:10px 12px;border:1px solid #c5d8d0;border-radius:10px;background:#f8fcfaed;box-shadow:0 6px 24px #17313c24;color:#21463f;font-size:12px}
+.twin-focus-entry[hidden]{display:none}.twin-focus-entry .btn{min-height:44px;white-space:nowrap}.twin-focus-entry span{max-width:200px;line-height:1.5}
+.campus-stage[data-focused]:not([data-focused=""]) .twin-camera-help{display:none}
+@media(max-width:767px){.twin-focus-entry{bottom:64px;width:calc(100% - 24px);justify-content:space-between;gap:8px;padding:8px}.twin-focus-entry span{min-width:0;font-size:11px}.twin-focus-entry .btn{flex-shrink:0;padding:8px 12px}}
+
+/* Compact controls leave the architectural scene as the primary surface. */
+.campus-stage{padding:14px 22px 18px}.twin-heading{margin-bottom:7px}.twin-heading h2{font-size:25px}.twin-heading p{margin-top:3px}.twin-toolbar{padding:5px 0}.twin-disclosures{display:flex;align-items:start;gap:18px;position:relative;margin:3px 0 9px;min-height:32px}.twin-disclosures .twin-design-tools,.twin-disclosures .twin-alerts{margin:0}.twin-disclosures .twin-design-tools{position:static}.twin-disclosures .twin-design-body{top:34px;width:min(820px,100%)}.twin-disclosures .twin-alerts[open]{padding-bottom:6px}.twin-stage-body{box-shadow:0 12px 30px #193f3720}.twin-heading-side{font-size:11px}
+@media(min-width:768px){.twin-viewport{height:clamp(420px,calc(100svh - 500px),880px)}}
+@media(max-width:767px){.campus-stage{padding:14px 12px}.twin-heading h2{font-size:22px}.twin-disclosures{gap:12px;flex-wrap:wrap}.twin-disclosures .twin-alerts{font-size:11px}.twin-disclosures .twin-design-body{top:35px}}
+
+/* Business tools belong to the same campus and the same immutable run. */
+.campus-workbench{margin:10px 0 6px;min-width:0}
+.campus-business-actions{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
+.campus-business-actions .btn{margin:0;min-height:40px;padding:8px 14px;font-size:12px;background:#f5faf8;border-color:#b8cec7;box-shadow:none}
+.campus-business-actions .btn:hover{background:#e6f0eb}
+.campus-run-context{margin:7px 0 0;color:#3e5b59;font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+.campus-task-states{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:7px 0}
+.campus-task-states[hidden]{display:none}
+.campus-task-state{cursor:pointer;font:inherit;font-size:12px;border:1px solid #b9c8c5;background:#f7faf9;color:#344c4a;border-radius:6px;padding:6px 10px;min-height:32px}
+.campus-task-state{display:grid;gap:4px;text-align:left;line-height:1.5}.campus-task-state strong{font-size:12px;font-weight:600}.campus-task-state span{font-size:11px}
+.campus-task-state[data-tone=good]{color:#09665c;border-color:#a3c8bb}
+.campus-task-state[data-tone=danger]{color:#923a2b;border-color:#ceab9e;background:#fff5ee}
+.campus-task-state[data-tone=warn]{color:#795114;background:#fff8e8}
+.campus-task-state:focus-visible{outline:3px solid #146d69;outline-offset:2px}
+.campus-task-dialog{width:min(840px,calc(100vw - 40px));max-height:calc(100svh - 40px);margin:20px 20px 20px auto}
+.campus-task-dialog .drawer-body{min-height:0}
+.campus-task-dialog .task-workbench{padding:0;border:0;background:none;box-shadow:none;margin:0}
+.campus-task-dialog .drawer-header h2{font-size:21px}
+.campus-task-footer{padding:14px 24px;border-top:1px solid #c9d6d2;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#f5faf7}
+.campus-task-footer span{font-size:12px;line-height:1.6;color:#3d5b55}
+.campus-task-footer .btn{flex-shrink:0}
+.twin-point-actions{display:flex;gap:6px;margin:10px 0;flex-wrap:wrap}
+.twin-point-actions .btn{flex:1;padding:9px 10px;min-height:40px;font-size:12px;white-space:nowrap}
+.twin-action-message{font-size:12px;line-height:1.6;color:#943c2b}
+@media(min-width:768px){.twin-viewport{height:clamp(420px,calc(100svh - 640px),880px)}}
+@media(max-width:767px){
+ .campus-business-actions{display:flex;flex-wrap:nowrap;overflow-x:auto;padding:3px;scroll-padding:3px}
+ .campus-business-actions .btn{flex:0 0 auto;min-height:44px;padding:8px 12px;font-size:12px}
+ .campus-run-context{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+ .campus-task-states{display:flex;flex-wrap:nowrap;overflow-x:auto;padding:3px}
+ .campus-task-state{min-height:40px;flex:0 0 auto}
+ .campus-task-dialog{width:100%;max-width:100%;height:100svh;max-height:100svh;margin:0;border-radius:0}
+ .campus-task-dialog .drawer-header{padding:14px}.campus-task-dialog .drawer-header h2{font-size:18px}
+ .campus-task-footer{padding:12px;gap:8px}.campus-task-footer span{font-size:11px}
+ .twin-point-actions .btn{min-height:44px}
+}
+
+.twin-alert-connection,.twin-alert-rule{max-width:70ch;font-size:12px;line-height:1.7;margin:6px 0 10px;color:#405961}.twin-alert-popup{max-height:calc(100dvh - 32px);overflow-y:auto}.twin-alert-popup p{overflow-wrap:anywhere}
