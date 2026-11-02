@@ -1,6 +1,6 @@
 import {mountVoiceInput} from './voice-input.js';
 const labels={pending:'待现场复核',completed:'材料已处理',timeout:'已超时',cancelled:'已取消'};
-export function initReviewWorkbench({el,button,api,postJSON,showDialog,overlayChanged,getRun,openRun,openPhotos,refresh}){
+export function initReviewWorkbench({el,button,api,postJSON,showDialog,overlayChanged,getRun,openRun,openPhotos,refresh,onJudgment}){
   let saving=false,dirty=false,voiceInput=null,activeId=null;
   const dialog=el('dialog',{id:'review-dialog',class:'drawer','aria-labelledby':'review-title'}),body=el('div',{class:'drawer-body',id:'review-body'});
   const close=button('关闭',()=>{if(!saving)dialog.close();},'btn btn-ghost');
@@ -42,10 +42,12 @@ export function initReviewWorkbench({el,button,api,postJSON,showDialog,overlayCh
   function speech(notes,form){voiceInput?.destroy();voiceInput=mountVoiceInput({notes,form,el,button});}
   function rerunResult(result,review){const box=el('section',{id:'review-rerun'});if(!result)return box;
     box.append(status(result.status==='completed'?'新 reality run 已保存：'+result.run_id:result.status==='failed'?'材料已保存，重新判断失败：'+result.error:'材料已保存；未关联触发运行，需选定轮次生成新判断。'));
-    box.append(el('p',{class:'field-hint'},'主工作台仍显示原选定运行的冻结结果。点击查看新运行可检查新判断；窗口后的补证不会补算旧轮次覆盖。'));if(result.run_id)box.append(button('查看新运行',()=>openRun(result.run_id),'btn btn-secondary'));
-    if(result.status==='failed')box.append(button('重试重新判断',async()=>{try{const data=await postJSON(`/api/reviews/${review.review_id}/rerun`,{version:review.version});box.replaceWith(rerunResult(data.rerun||data,review));refresh();}catch(e){box.append(status(e.message));}},'btn btn-secondary'));return box;}
+    box.append(el('p',{class:'field-hint'},'主工作台仍显示原选定运行的冻结结果；业务提醒按补证后的新判断更新。点击查看新运行可检查依据；窗口后的补证不会补算旧轮次覆盖。'));if(result.run_id)box.append(button('查看新运行',()=>openRun(result.run_id),'btn btn-secondary'));
+    if(result.status==='failed')box.append(button('重试重新判断',async()=>{try{const data=await postJSON(`/api/reviews/${review.review_id}/rerun`,{version:review.version});await onJudgment?.(review,data.rerun||data);box.replaceWith(rerunResult(data.rerun||data,review));refresh();}catch(e){box.append(status(e.message));}},'btn btn-secondary'));return box;}
   async function detail(id,result=null){if(dirty&&!confirm('切换详情将放弃当前草稿，是否继续？')){showDialog(dialog);return;}voiceInput?.destroy();activeId=id;body.replaceChildren(status('正在读取证据链…'));showDialog(dialog);
     try{const data=await api('/api/reviews/'+encodeURIComponent(id)),r=data.review;dirty=false;const effective=r.effective_status||r.status;
+      const latest=data.new_runs?.find(item=>item.version===r.version);
+      await onJudgment?.(r,result||(latest?.run_id?{status:'completed',run_id:latest.run_id}:null));
       const heading=el('section',{},el('h3',{},`${r.point_id} · ${labels[effective]}`),el('code',{},r.review_id),el('p',{},`设施 ${r.facility_id} / 区域 ${r.zone_id} / 任务 ${r.task_id||'历史请求（未记录任务）'}`),el('p',{},`原触发运行 ${r.trigger_run_id||'无'} · 轮次 ${r.inspection_round_id||'无'}`),el('p',{},`版本 ${r.version} · 截止 ${r.expires_at||'历史请求（未记录截止）'}`),el('p',{},r.reason),r.close_reason?el('p',{},'关闭原因：'+r.close_reason):null);
       const speak=button('朗读复核需求',()=>{speechSynthesis.cancel();const voice=new SpeechSynthesisUtterance(r.reason);voice.lang='zh-CN';speechSynthesis.speak(voice);},'btn btn-secondary');speak.disabled=!('speechSynthesis'in window);heading.append(speak);if(speak.disabled)heading.append(status('浏览器不支持朗读，请阅读上方复核需求。'));
       if(r.trigger_run_id)heading.append(button('查看原运行',()=>openRun(r.trigger_run_id),'btn btn-ghost'));

@@ -14,7 +14,7 @@ export function initCampusAlerts({host,onFocus,onInspect}){
  function dismiss(){const held=popup.contains(document.activeElement);q.dismiss();render();if(held)(previous?.isConnected?previous:summary).focus({preventScroll:true});}
  function ping(){if(!sound||!audio||document.hidden)return;const t=audio.currentTime,osc=audio.createOscillator(),gain=audio.createGain();osc.frequency.value=520;gain.gain.setValueAtTime(0,t);gain.gain.linearRampToValueAtTime(.035,t+.03);gain.gain.exponentialRampToValueAtTime(.001,t+.24);osc.connect(gain).connect(audio.destination);osc.start(t);osc.stop(t+.25);osc.onended=()=>{osc.disconnect();gain.disconnect();};}
  function render(){
-  const a=q.current,blocked=suspended||document.hidden||!!document.querySelector('dialog[open]');popup.hidden=!a||blocked;
+  const a=q.current,blocked=suspended||document.hidden||!!document.querySelector('dialog[open]')||document.getElementById('inspection-alert-popup')?.hidden===false;popup.hidden=!a||blocked;
   if(!a){key=null;return;}if(blocked)return;
   heading.textContent=`${a.pointId} · ${a.name} · ${names[a.kind]}`;
   body.textContent=`${a.condition} / ${a.availability}\n观测：${new Date(a.observedAt).toLocaleString('zh-CN',{hour12:false})}\n来源：${a.sourceType}${a.sourceType==='SIMULATED'?' · 教学模拟':''}\n待查看 ${q.pending} 条`;
@@ -23,7 +23,7 @@ export function initCampusAlerts({host,onFocus,onInspect}){
  }
  on(close,'click',dismiss);on(focus,'click',()=>{if(q.current){onFocus(q.current.pointId);dismiss();}});on(inspect,'click',()=>{if(q.current){const id=q.current.pointId;dismiss();onInspect(id);}});
  on(document,'keydown',e=>{if(e.key==='Escape'&&!popup.hidden&&!document.querySelector('dialog[open]')){e.preventDefault();e.stopImmediatePropagation();dismiss();}});
- on(document,'visibilitychange',render);on(document,'inspectgo:overlay',e=>{suspended=!!e.detail.open;render();});
+ on(document,'inspectgo:inspection-reminder',render);on(document,'visibilitychange',render);on(document,'inspectgo:overlay',e=>{suspended=!!e.detail.open;render();});
  on(soundButton,'click',async()=>{sound=!sound;if(sound){try{audio??=new(window.AudioContext||window.webkitAudioContext)();await audio.resume();}catch{sound=false;}}soundButton.textContent=`告警声音：${sound?'开启':'关闭'}`;soundButton.setAttribute('aria-pressed',String(sound));});
  return {sync(snapshot){
       q.sync(snapshot.nodes);const feed=alertFeedStatus(snapshot);host.dataset.alertStream=feed.ready?'ready':'unavailable';

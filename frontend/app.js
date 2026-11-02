@@ -1,6 +1,7 @@
+import {initInspectionAlerts} from './inspection-alerts.js?v=20261102-reminders-1';
 import {initBoardShell} from './board-shell.js?v=20261101-pinboard-2';
 import {projectCoverage,createReadGuard} from './run-projection.js';
-import {initReviewWorkbench} from './review-workbench.js?v=20261101-photo-1';
+import {initReviewWorkbench} from './review-workbench.js?v=20261102-reminders-1';
 import {initTaskWorkbench} from './task-workbench.js?v=20261101-workbench-2';
 import {attachRoundSelector,initEvidenceBrowser} from './evidence-browser.js?v=20261101-workbench-2';
 import {matchesPoint,facilityState,coverageState} from './model.js?v=20261101-pinboard-2';
@@ -18,7 +19,7 @@ const state = {queueButtons:new Map(),runButtons:new Map(),mapButtons:new Map(),
 const dashboardGuard=createReadGuard();
 const motionEffects = new WeakMap(), activeEffects = new Set();
 let activeViewTransition = null, photoDirection = 0;
-let filterPickers = null, roomStage = null, taskWorkbench = null, reviewWorkbench = null, campusWorkbench = null, analysisWorkbench = null, boardShell = null;
+let filterPickers = null, roomStage = null, taskWorkbench = null, reviewWorkbench = null, campusWorkbench = null, analysisWorkbench = null, boardShell = null, inspectionAlerts = null;
 function presentationMotionAllowed(){return !document.hidden&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&document.documentElement.dataset.feedback==='on';}
 function animateFeedback(target,frames,duration=180){
   if(!target)return;
@@ -179,7 +180,7 @@ function renderDashboard(){
   $('window-label').textContent=d.round_state==='no_round'?'未选择轮次；覆盖尚未判断':`${d.inspection_round_id} · 固定窗口 ${date(d.window_start,true)}—${date(d.window_end,true)}${d.run_id?' · 已冻结运行':''}`;
   renderNavigation(d.points);renderFacilities();renderQueue();
   const strip=$('coverage-strip');syncChildren(strip,d.points.map(p=>{let b=state.mapButtons.get(p.point_id);if(!b){b=button(p.point_id,()=>openDetail(p.point_id),'map-point');state.mapButtons.set(p.point_id,b);}b.className=`map-point ${!p.required?'is-optional':p.covered===null?'':p.covered?'is-covered':'is-missing'}`;b.setAttribute('aria-label',`${p.point_id} ${p.device}：${coverageState(p)[0]}`);return b;}));
-  syncRoomStage();campusWorkbench?.sync();boardShell?.sync();
+  syncRoomStage();campusWorkbench?.sync();boardShell?.sync();inspectionAlerts?.sync();
 }
 async function refresh(manual=false,afterMutation=false){
   if(state.refreshPromise){if(!afterMutation)return state.refreshPromise;await state.refreshPromise;return refresh(manual,true);}
@@ -384,7 +385,7 @@ roomStage=initCampusStage({
   }
 });
 taskWorkbench=initTaskWorkbench({el,button,api,postJSON,showDialog,toast,overlayChanged,onGenerate:newRun,onChange:()=>{dashboardGuard.invalidate();state.data=projectCoverage(state.data,taskWorkbench.selectedRun);if(state.data)renderDashboard();$('connection-status').textContent=taskWorkbench.selectedRun?'当前轮次读取待确认 · 覆盖采用选定运行冻结快照，设施与复核为上次读取':'当前轮次读取待确认 · 覆盖待加载，设施与复核为上次读取';campusWorkbench?.sync();},onSelection:()=>refresh(false,true),onReview:(run,task)=>reviewWorkbench.create(null,run,task),onExistingReview:id=>reviewWorkbench.detail(id)});
-reviewWorkbench=initReviewWorkbench({el,button,api,postJSON,showDialog,overlayChanged,getRun:()=>taskWorkbench?.selectedRun,openRun,openPhotos,refresh:()=>refresh(false,true)});
+reviewWorkbench=initReviewWorkbench({el,button,api,postJSON,showDialog,overlayChanged,getRun:()=>taskWorkbench?.selectedRun,openRun,openPhotos,refresh:()=>refresh(false,true),onJudgment:(review,result)=>inspectionAlerts?.reviewResult(review,result)});
 realtime.start();
 refresh();
 
@@ -399,6 +400,10 @@ boardShell=initBoardShell({el,button,icon,api,
   getData:()=>state.data,getRun:()=>taskWorkbench.selectedRun,getRuns:()=>state.runs,
   getFilters:()=>state.filters,getPoints:()=>state.data?.points.map(displayedPoint)||[],setFilters,openDetail,openRun,openPhotos,
   openTasks:target=>taskWorkbench.open(target),openReview:id=>reviewWorkbench.detail(id),locatePoint:id=>roomStage.focus(id),motionAllowed:presentationMotionAllowed});
+inspectionAlerts=initInspectionAlerts({el,button,api,getRun:()=>taskWorkbench.selectedRun,getData:()=>state.data,
+  openTasks:()=>taskWorkbench.open(),openDetail,openRun,openReview:id=>reviewWorkbench.detail(id),
+  createReview:(issue,run)=>reviewWorkbench.create(issue.pointId?{point_id:issue.pointId}:null,run,issue.taskId)});
+window.addEventListener('pagehide',event=>{if(!event.persisted)inspectionAlerts?.dispose();});
 for (const dialog of document.querySelectorAll('dialog')) {
   dialog.addEventListener('keydown', event => {
     if (event.key !== 'Tab') return;
