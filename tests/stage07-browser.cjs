@@ -39,14 +39,13 @@ class CDP {
   if(boards[selector]&&await cdp.eval('document.body.dataset.board')!==boards[selector]){
    await click('.board-nav [data-board="'+boards[selector]+'"]');await cdp.wait('document.body.dataset.board==='+JSON.stringify(boards[selector]));await sleep(260);
   }
-  await cdp.eval(`document.querySelector(${JSON.stringify(selector)})?.scrollIntoView({block:'center',behavior:'instant'})`);
   let previousBounds=null;
-  await until(async()=>{
-   const bounds=await cdp.eval(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});if(!e)return null;const r=e.getBoundingClientRect();return [r.x,r.y,r.width,r.height].map(n=>Math.round(n*10)/10).join(',');})()`);
-   const stable=bounds&&bounds===previousBounds;previousBounds=bounds;return stable;
-  },'stable pointer target '+selector);
-  const r=await cdp.eval(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});if(!e)throw Error('Missing '+${JSON.stringify(selector)});const r=e.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2,hit:document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest(${JSON.stringify(selector)})===e};})()`);
-  assert(r.hit,'Pointer target obstructed: '+selector);
+  const r=await until(async()=>{
+   await cdp.eval(`document.querySelector(${JSON.stringify(selector)})?.scrollIntoView({block:'center',behavior:'instant'})`);
+   const target=await cdp.eval(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});if(!e)return null;const r=e.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2,bounds:[r.x,r.y,r.width,r.height].map(n=>Math.round(n*10)/10).join(','),hit:r.width>0&&r.height>0&&document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest(${JSON.stringify(selector)})===e};})()`);
+   const ready=target?.hit&&target.bounds===previousBounds;previousBounds=target?.bounds;
+   return ready?target:null;
+  },'stable unobstructed pointer target '+selector,5000);
   await cdp.send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,x:r.x,y:r.y});
   await cdp.send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,x:r.x,y:r.y});
  }

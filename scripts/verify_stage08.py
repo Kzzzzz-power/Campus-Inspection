@@ -68,7 +68,7 @@ def main():
     env.pop('INSPECTGO_MAINTENANCE_FILE', None)
     env.pop('INSPECTGO_DB', None)
     env.pop('INSPECTGO_UPLOADS', None)
-    tests = ['tests/test_stage08_acceptance.py', 'tests/test_storage_failure_receipts.py',
+    tests = ['tests/test_stage08_acceptance.py', 'tests/test_stage08_coldstart_helpers.py', 'tests/test_storage_failure_receipts.py',
         'tests/test_stage03_runs.py::test_run_write_failure_never_reports_completed_or_consumes_request',
         'tests/test_stage06_weather.py', 'tests/test_stage06_rag.py', 'tests/test_stage06_ml.py', 'tests/test_stage06_llm.py']
     command = [sys.executable, '-B', '-m', 'pytest', '-q', '-p', 'no:cacheprovider', '--basetemp', str(output / 'pytest'),
