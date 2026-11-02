@@ -13,6 +13,7 @@ export function renderPlanning(run,target,{el,button,proof}){
   }
   target.append(el('h3',{},'候选方案可行性'),el('p',{class:'field-hint'},'可执行只表示输入条件满足，补检尚未发生。以下耗时为案例教学估计，不是实时路线计算，也不会自动派单或完成任务。'));
   if(!run.plan_results?.length){target.append(el('p',{class:'empty-state'},'此运行未提供方案执行条件。建立 S3 教学实例可查看甲、乙、丙的比较。'));return;}
+  target.append(el('p',{class:'field-hint'},'甲、乙、丙是候选方案，人员编号为 P1、P2。若要改变执行条件，在“教学条件输入”调整人员、权限和剩余时间后生成新运行；仅作假设时使用“条件推演”。'));
   const grid=el('div',{class:'plan-grid'});
   for(const plan of run.plan_results){
     const [,tone]=labels[plan.state]||labels.unknown,label=planLabel(run,plan.state);

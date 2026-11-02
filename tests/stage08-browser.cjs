@@ -34,15 +34,22 @@ class CDP {
 (async()=>{
  let cdp;const webPort=await port(),debugPort=await port(),base=`http://127.0.0.1:${webPort}`;
  async function check(name,fn){await fn();report.checks.push({name,status:'passed'});console.log('PASS '+name);}
+ async function board(id){
+  await click('.board-nav [data-board="'+id+'"]');
+  await cdp.wait('document.body.dataset.board==='+JSON.stringify(id));
+ }
  async function click(selector){
-  await cdp.eval(`document.querySelector(${JSON.stringify(selector)})?.scrollIntoView({block:'nearest',behavior:'instant'})`);
+  const destinations={'#campus-tasks-open':'tasks','#campus-plans-open':'tasks',
+   '#campus-coverage-open':'coverage','#campus-run-evidence-open':'coverage',
+   '#all-runs-btn':'evidence','#campus-whatif-open':'analysis'};
+  if(destinations[selector]&&await cdp.eval('document.body.dataset.board')!==destinations[selector])await board(destinations[selector]);
   let previousBounds=null;
-  await until(async()=>{
-   const bounds=await cdp.eval(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});if(!e)return null;const r=e.getBoundingClientRect();return [r.x,r.y,r.width,r.height].map(n=>Math.round(n*10)/10).join(',');})()`);
-   const stable=bounds&&bounds===previousBounds;previousBounds=bounds;return stable;
-  },'stable pointer target '+selector);
-  const r=await cdp.eval(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});if(!e)throw Error('Missing '+${JSON.stringify(selector)});const r=e.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2,hit:document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest(${JSON.stringify(selector)})===e};})()`);
-  assert(r.hit,'Pointer target obstructed: '+selector);
+  const r=await until(async()=>{
+   await cdp.eval(`document.querySelector(${JSON.stringify(selector)})?.scrollIntoView({block:'center',behavior:'instant'})`);
+   const target=await cdp.eval(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});if(!e)return null;const r=e.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2,bounds:[r.x,r.y,r.width,r.height].map(n=>Math.round(n*10)/10).join(','),hit:r.width>0&&r.height>0&&document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest(${JSON.stringify(selector)})===e};})()`);
+   const ready=target?.hit&&target.bounds===previousBounds;previousBounds=target?.bounds;
+   return ready?target:null;
+  },'stable unobstructed pointer target '+selector,5000);
   await cdp.send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,x:r.x,y:r.y});
   await cdp.send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,x:r.x,y:r.y});
  }
@@ -87,13 +94,29 @@ class CDP {
   let A,B;
   await check('empty_fourview_entries_focus_and_overlay',async()=>{
    for(const [entry,kind] of [['campus-coverage-open','覆盖与阻塞'],['campus-run-evidence-open','本次判断证据']]){
-    assert(await cdp.eval(`!!document.querySelector('#campus-stage #${entry}')`));await click('#'+entry);
+    assert(await cdp.eval(`!!document.querySelector('#board-coverage #${entry}')`));await click('#'+entry);
     assert.equal(await cdp.eval("document.querySelector('#campus-frozen-title').textContent"),kind);
     assert((await cdp.eval("document.querySelector('#campus-frozen-body').textContent")).includes('尚未选择'));
     await key('Tab','Tab',9);assert(await cdp.eval("document.querySelector('#campus-frozen-dialog').contains(document.activeElement)"));
     await key('Escape');assert.equal(await cdp.eval('document.activeElement.id'),entry);
    }
    A=await prepare('S1');B=await prepare('S2');await assertSource(B);
+  });
+  await check('pending_scenario_cannot_rerun_old_round_and_s5_is_independent',async()=>{
+   await click('#campus-tasks-open');const before=await api('/api/runs');
+   await set('#judgment-scenario','S5');
+   assert((await cdp.eval("document.querySelector('#judgment-scenario-hint')?.textContent||''")).includes('S2'));
+   assert((await cdp.eval("document.querySelector('#judgment-scenario-hint')?.textContent||''")).includes('S5'));
+   await click('#campus-generate-run');await cdp.wait("!document.querySelector('#campus-generate-run').disabled");
+   assert.equal(await cdp.eval("document.querySelector('#run-dialog').open"),false);
+   assert.deepEqual(await api('/api/runs'),before);await shot('pending-s5-old-s2-guard');await key('Escape');
+   const s5=await prepare('S5');
+   assert.deepEqual(s5.task_results.map(t=>t.state),['established','unknown','established','pending_verification','established']);
+   assert.deepEqual(A.task_results.map(t=>t.state),Array(5).fill('established'));
+   assert.deepEqual(await api('/api/runs/'+A.run_id),A);assert.deepEqual(await api('/api/runs/'+B.run_id),B);
+   await shot('s5-distinct-states');await adopt(B);
+   await click('#campus-tasks-open');await set('#judgment-round',A.inspection_round_id);
+   assert.equal(await cdp.eval("document.querySelector('#judgment-scenario').value"),'S1');await key('Escape');await adopt(B);
   });
   await check('teaching_zone_access_changes_both_directions_new_runs_only',async()=>{
    const frozen=await api('/api/runs/'+B.run_id);
@@ -131,6 +154,9 @@ class CDP {
   });
   await check('fourview_frozen_source_modal_keyboard_and_responsive',async()=>{
    const viewRun=await prepare('S3');
+   // A new missing/blocked instance intentionally prompts; acknowledge before testing the underlying views.
+   await cdp.wait("document.querySelector('#inspection-alert-popup')?.hidden===false");
+   await click('#inspection-alert-dismiss');await cdp.wait("document.querySelector('#inspection-alert-popup').hidden");
    for(const width of [1440,1024,440,390]){
     await cdp.send('Emulation.setDeviceMetricsOverride',{width,height:1200,deviceScaleFactor:1,mobile:false});await cdp.eval('window.scrollTo(0,0)');await sleep(150);
     assert(await cdp.eval('document.documentElement.scrollWidth<=innerWidth+1'));

@@ -25,12 +25,14 @@ function harness(){
   return {controller,change,get:id=>ids.get(id)};
 }
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
-test('S5 query stays visible and effective when only the prepare scenario changes',async()=>{
+test('S5 query draft survives a prepare-scenario mismatch, which blocks generation until reconciled',async()=>{
   const h=harness();await tick();
   await h.change('judgment-round','S5.demo');await h.change('judgment-current-status','true');
   await h.change('judgment-scenario','S3');
   assert.equal(h.get('judgment-current-status').parent.hidden,false);
   assert.equal(h.get('judgment-current-status').value,'true');
+  assert.throws(()=>h.controller.request(),/待建立的 S3.*当前轮次仍为 S5/);
+  await h.change('judgment-scenario','S5');
   assert.equal(h.controller.request().scenario_id,'S5');
   assert.equal(h.controller.request().input_overrides.current_status_available,true);
 });
@@ -40,6 +42,8 @@ test('S5 prepare selection does not reveal an irrelevant query for S3; actual ro
   await h.change('judgment-round','S3.demo');await h.change('judgment-scenario','S5');
   assert.equal(h.get('judgment-current-status').parent.hidden,true);
   assert.equal(h.get('judgment-current-status').value,'');
+  assert.throws(()=>h.controller.request(),/待建立的 S5.*当前轮次仍为 S3/);
+  await h.change('judgment-scenario','S3');
   assert.equal(h.controller.request().scenario_id,'S3');
   assert(!Object.hasOwn(h.controller.request().input_overrides,'current_status_available'));
   await h.change('judgment-round','S5.demo');assert.equal(h.get('judgment-current-status').value,'');
