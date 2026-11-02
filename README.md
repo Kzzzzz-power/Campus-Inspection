@@ -1,188 +1,262 @@
-# 校园设施巡检与复核 · InspectGo
+# 校园设施巡检与复核 · 校园分布式设施巡检工作台
 
-校园教学楼与实验实训空间的分布式设施巡检与复核工作台。本分支 `feat/campus-twin` 已包含阶段 01—05 代码及 Three.js 校园与房间。阶段 02、03 已获用户验收通过；阶段 04、05 与本轮 3D 仍待人工验收，阶段 06—08 尚未实施，不代表完整 B-B02 案例通过。
+> 用现场证据回答“哪里没巡、异常是否复核”。
 
-**唯一后续开发、运行与 Git 根目录：D:\校园设施巡检与复核。** D:\Codex\InspectGo 仅作旧备份；原资料 D:\分布式设施巡检与复核 保持只读，绝不修改。所有新增项目文件、虚拟环境、缓存、日志、照片和测试产物均放在新根目录。参见 [开发约定](AGENTS.md) 与 [目录迁移说明](docs/目录迁移说明.md)。
+![3D 校园巡检工作台](docs/screenshots/stage08/01-campus-overview.png)
 
-## 本分支新增：现场复核与 3D 校园（2026-10-31）
+截图来自隔离教学实例；建筑与室内为设计示意。
 
-阶段 05 的独立提交保存在 `feat/stage05-review-chain`，本分支接续该提交。复核工作台关联任务、点位、轮次和触发运行，保存说明、照片及人工结论；补证、超时或取消后重新判断，旧运行保持不变。`tests/test_stage05_reviews.py`、`tests/stage05-browser.cjs` 和 `tests/stage05-integration.cjs` 是检查入口。迁移检查需设置 `INSPECTGO_STAGE04_ROOT` 为阶段 04 源码路径；`INSPECTGO_PYTHON` 可指定共享虚拟环境。
+## 1. 它解决什么问题
 
-首页已用 Three.js 替换 CSS coverflow。包含三栋默认封闭建筑、校门、道路、广场、绿化、八个真实点位信标和独立房间，支持镜头进入／返回、揭顶、房间漫游及原有详情与补证操作。时间天空、开窗与风扇只改变展示，不控制真实设备。3D 状态绑定工作台点位、`/api/current` 与 `/ws/facilities`；远程状态不增加现场覆盖，过期与未知不显示为当前故障。
+| 项      | 内容                                       |
+| ------ | ---------------------------------------- |
+| 给谁用    | 校园巡检员、现场复核人员和值班老师                        |
+| 在什么场景  | 教学楼与实验实训空间巡检期间，查找缺失记录、补充现场证据、确认异常并复盘     |
+| 解决什么   | 把分散设施、当轮现场记录和复核依据连起来，查明哪些必检点未覆盖、哪些异常尚待确认 |
+| 明确不做什么 | 不替代专业诊断与真实安全验收，不自动派单、销号或控制真实设备           |
 
-校园主体是用户授权的**原创设计示意，非实景测绘**；未取证的比例、屋顶、背面和室内不声称还原真实校园。独立照片局部样板保留在 `/static/facade-sample/index.html`，不作为真实巡检证据。四立面与屋顶检查页为 `/static/campus-review/index.html`，可导出十五个视图。界面中的中英文切换仅覆盖 3D 展示控件。窄屏默认轻量入口，可选择启用 3D；低动态偏好及 WebGL／资产失败时仍可使用原有业务。
+## 2. 核心功能
 
-正常启动沿用下方 Python／FastAPI 步骤。Three.js r180、Meshopt 解码器、GLB、HDR 与许可／来源文件均已提交到 `frontend/`，运行无需临时下载 CDN 或安装 Node 构建依赖。本机独立 3D 验收实例是 `http://127.0.0.1:8016/`；在其他端口启动时，将对应页面 URL 的端口一并替换。
+| 功能            | 当前状态 | 一句话说明                                        |
+| ------------- | ---- | -------------------------------------------- |
+| 3D 校园与八点位导航   | 已实现  | 校园、封闭建筑、独立设备房间及 C01—C08 导航，进入巡查关联真实详情        |
+| 搜索与覆盖缺口       | 已实现  | 搜索编号、名称、位置并组合筛选；覆盖来自六个必检点的当轮有效现场记录           |
+| T1—T5 判断与运行历史 | 已实现  | 依赖证据计算任务四态，生成独立 run_id，保留旧运行                 |
+| 现场记录、照片与复核    | 已实现  | 保存实际文件与人工结论，支持幂等重试、版本冲突、超时与取消                |
+| 待补检提醒与补证消警 | 已实现 | 根据当轮覆盖与已完成 reality 提醒；新复核判断确认缺口消除后移除对应提醒，读取失败或逾期补证不误消警 |
+| 实时状态与告警       | 已实现  | MQTT→API→WebSocket；新有效告警弹窗，首次已有告警只入列表        |
+| 候选方案与条件推演     | 已实现  | 独立计算方案可行性，what-if 不改现实运行                     |
+| T5 分析与巡检助手    | 已实现  | 统计、Web API、RAG、ML、工具及 LLM 串行分析，AI 解释并引用结构化依据 |
+| 照片 AI 描述      | 部分实现 | 已接入辅助摘要流程，成功使用需配置支持图像的模型，不能自动形成复核结论          |
+| Web 本地语音      | 已实现  | Vosk 转写到可编辑草稿，人工核对后提交                        |
+| 微信小程序         | 部分实现 | 原生工程与 HTTP 接入已完成；AppID、平台编译、拍照及语音真机联调待完成     |
 
-仅重建模型时需要 Node（提供全局 fetch、WebSocket）、Chrome 及固定版本的构建依赖。在此分支根目录运行以下命令，下载缓存留在项目内；先启动该分支 API：
+设施共 3 区域、8 点位，必检为 C01、C02、C04、C05、C07、C08。巡检轮次采用固定 09:00—09:45 窗口。远程状态不等于现场覆盖，取证失败不等于设施故障，照片上传不等于复核通过；页面、模拟器与 LLM 不直接决定任务状态。
 
-~~~powershell
-npm install --prefix .runtime/gltf-tools --cache .runtime/npm-cache --ignore-scripts @gltf-transform/core@4.2.1 @gltf-transform/extensions@4.2.1 meshoptimizer@0.25.0
-$env:INSPECTGO_ASSET_BASE='http://127.0.0.1:8016'
-node scripts/build-campus-assets.mjs
-~~~
+## 3. 10 分钟快速复现
 
-构建脚本默认使用既有 Windows Chrome，可用 `INSPECTGO_CHROME` 指定路径；进程清理目前使用 Windows `taskkill`，尚未验证 Linux 重新导出流程。云端可直接读取已提交的 GLB。`campus-design-manifest.json` 记录源文件和两份 GLB 的 SHA-256；可编辑版与压缩版均保留。第三方源码保留原始格式与许可，不因空白提示重写上游文件。
+使用 Windows、PowerShell 7 和 Python 3.11。在项目目录打开终端，先执行第 4 节准备环境，再选择下列一条路线。第 4 节会识别当前 `.runtime/twin-worktree` 布局；平铺源码目录也可直接使用。命令使用项目相对路径，不依赖盘符。两条路线使用同一独立演示库，不能同时占用 8017 端口。这是新演示实例，不会恢复本机 8016 的既有记录；恢复已有数据须成套保留原数据库、照片与输入配置。
 
-本次提交前重新运行：后端 228 项、前端单元 45 项通过。既有本机浏览器报告为 24 项校园检查、19 项立面检查、6 项复核检查通过；本次提交整理未重跑这三套浏览器脚本。自动检查不代表人工视觉验收，也未验证全部浏览器及真实手机性能。
+### 路线 A：完整模式（依赖外部服务）
 
-## 阶段 04 验收入口（2026-10-30）
+先按第 5 节在 `.env` 中配置模型地址、名称与凭据；启用模型需将相应开关改为 true。以下命令建立教学 Broker 并加载 `.env`；运行前在第 4 节使用的同一终端执行：
 
-代码位于 `feat/stage04-feasibility` 隔离分支。新增 `config/scenarios/S2.json`、`S3.json` 和 `config/plans.json`：S2/S3 从 S1 事实模板建立独立轮次，不借用 S1 的覆盖记录、不预填任务或方案状态。S1 标准文件保持原样。
+```powershell
+$ErrorActionPreference='Stop'
+$env:INSPECTGO_PYTHON=(Resolve-Path '.venv\Scripts\python.exe').Path
+Remove-Item -LiteralPath 'Env:INSPECTGO_MAINTENANCE_FILE' -ErrorAction SilentlyContinue
+if (-not (Test-Path '.runtime\broker-venv\Scripts\python.exe')) {
+    & $env:INSPECTGO_PYTHON -B -m venv .runtime\broker-venv
+    if ($LASTEXITCODE -ne 0) { throw 'Broker 环境创建失败。' }
+}
+$env:INSPECTGO_BROKER_PYTHON=(Resolve-Path '.runtime\broker-venv\Scripts\python.exe').Path
+& $env:INSPECTGO_BROKER_PYTHON -B -m pip install -r requirements-broker-lock.txt
+if ($LASTEXITCODE -ne 0) { throw 'Broker 依赖安装失败。' }
+New-Item -ItemType Directory -Path '.runtime\contest-demo\uploads' -Force | Out-Null
+if (-not (Test-Path '.runtime\contest-demo\remote-overrides.json')) {
+    Set-Content -LiteralPath '.runtime\contest-demo\remote-overrides.json' -Value '{}' -Encoding utf8
+}
+& $env:INSPECTGO_PYTHON -B -m dotenv -f .env run -- $env:INSPECTGO_PYTHON -B scripts/start_realtime.py --port 8017 --mqtt-port 1884 --db .runtime/contest-demo/isolated.db --uploads .runtime/contest-demo/uploads --overrides .runtime/contest-demo/remote-overrides.json
+```
 
-页面选择 S2 并建立教学实例后生成判断：必检覆盖 5/6，C07 缺失、Z3 明确拒绝进入，只有 T1 受阻。选择 S3 后，方案甲 25 分钟可执行、乙 20 分钟不可执行、丙 55 分钟不可执行；T1 仍受阻。P2 权限未取证保留未知，P2 明确不可用已足以否定乙。耗时为案例总估计，不是实测路线计算。
+期望结果：终端显示 `Ready: http://127.0.0.1:8017/`。打开 [工作台](http://127.0.0.1:8017/)，可使用 3D、实时教学状态链、巡检、复核、运行和分析功能。模型能力以实际配置为准。首次空库需在“轮次与任务”建立教学实例；Ctrl+C 停止本次服务并保留记录。
 
-在运行详情点击“设为对比基准”，再把教学条件的剩余时间改为 15 分钟并生成新运行：三方案均不可执行，旧 S3 保留。页面可逐项打开条件证据，比较两份已保存运行；不自动派单、不自动补检、不改设施状态。此阶段是 reality 输入变更，不是阶段 07 的 what-if。
+### 路线 B：最小可跑模式（无密钥 / 无外网 / 依赖不可用时）
 
-新增 `POST /api/scenarios/{scenario_id}/prepare`（S1–S3）；运行支持 `input_overrides.remaining_minutes/resources/p2_z3_access`。`plan_definitions`、`plan_results`、`blockers` 分表保存，方案定义和条件冻结在运行内，完成后的运行及其子结果拒绝覆盖。旧阶段 03 运行保持原始内容及幂等响应。新访问取证失败、过期或冲突不回退为旧 DENIED；缺少方案条件仍显示“无法确认”。
+完成第 4 节依赖安装后，本路线无需密钥、Broker 或外部模型。首次安装仍需联网，或另备离线依赖包。
 
-验收命令：`python -B -m pytest tests -q -p no:cacheprovider`、`node --test tests/*.test.mjs`、`node tests/stage04-browser.cjs`、`node tests/stage04-integration.cjs`。脚本使用 `.runtime` 隔离数据库和隐藏 Chrome；`INSPECTGO_PYTHON` 指定已有环境，`INSPECTGO_STAGE03_ROOT` 指向已验收阶段 03 源码（默认相邻 `stage03-worktree`），用于验证迁移及重启后快照不变。
+```powershell
+$ErrorActionPreference='Stop'
+$env:INSPECTGO_PYTHON=(Resolve-Path '.venv\Scripts\python.exe').Path
+$env:INSPECTGO_DB=Join-Path (Get-Location).Path '.runtime\contest-demo\isolated.db'
+$env:INSPECTGO_UPLOADS=Join-Path (Get-Location).Path '.runtime\contest-demo\uploads'
+$env:INSPECTGO_MQTT_ENABLED='false'
+$env:INSPECTGO_SEED_DEMO='false'
+$env:INSPECTGO_LLM_ENABLED='false'
+$env:INSPECTGO_VLM_ENABLED='false'
+$env:TEMP=Join-Path (Get-Location).Path '.runtime\tmp'
+$env:TMP=$env:TEMP
+$env:PYTHONDONTWRITEBYTECODE='1'
+Remove-Item -LiteralPath 'Env:INSPECTGO_LLM_ENV_FILE','Env:INSPECTGO_MAINTENANCE_FILE' -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path $env:TEMP,$env:INSPECTGO_UPLOADS -Force | Out-Null
+& $env:INSPECTGO_PYTHON -B -m uvicorn backend.main:app --host 127.0.0.1 --port 8017
+```
 
-## 阶段 03 已验收功能（2026-10-30）
+期望结果：打开 [工作台](http://127.0.0.1:8017/)，看到页面及本地 3D／轻量入口，实时状态明确未启用。在“轮次与任务”建立 S1 并生成判断后，可演示搜索、现场记录、照片、复核、运行历史与条件推演。模型关闭或外部上下文失败时显示受限说明，T1—T4 不因此失败；语音模型缺失时仍可填写文字。
 
-本轮代码位于 `feat/stage03-task-runs` 隔离分支。工作台新增轮次与截止时间、显式建立 S1 教学实例、T1–T5 依赖检查、判断证据和现场补证。建立实例后点击“生成运行判断”，S1 应显示 6/6 必检覆盖及五项任务成立；展开任务可以追到证据与来源。
+## 4. 环境与依赖
 
-运行输入可排除普通点 C03（T1 仍成立）、排除必检点 C07（T1 状态未知）、同时提供 Z3 拒绝进入（T1 受阻）。每次生成新 `run_id`，原始记录和旧运行保持不变。教学实例标记 `SIMULATED`，不自动导入正式库。精确现场结果支持 NORMAL / WARNING / FAULT；发现异常仍可作为有效现场覆盖。
+| 软件         | 要求版本                              | 检查命令                        | 我实测的版本             |
+| ---------- | --------------------------------- | --------------------------- | ------------------ |
+| Python     | 使用 3.11 与项目锁文件；其他大版本未验证           | `py -3.11 --version`        | API／Broker 3.11.17 |
+| PowerShell | 7.0 起，实时脚本有版本检查                   | `$PSVersionTable.PSVersion` | 7.6.5              |
+| Chrome     | 3D 需要 WebGL2，失败时保留业务入口            | 在浏览器“关于 Chrome”查看           | 156.0.8078.74      |
+| Node       | 可选，仅自动检查／资源构建需要全局 fetch、WebSocket | `node --version`            | v24.20.0           |
 
-新接口：`POST /api/scenarios/S1/prepare`、`POST /api/evidence/manual`、`GET /api/tasks?run_id=...`；`POST /api/runs` 要求 `request_id`、`inspection_round_id`、带时区的 `as_of`。旧运行通过 `GET /api/runs/{run_id}` 继续查看。配置哈希与轮次不符时拒绝重新判断；跨轮次复核证据被拒绝。T5 目前为基础统计，耗时缺失保留 null；AI 与完整复核生命周期属于后续阶段；候选方案已在阶段 04 接入。
+基础依赖见最新源码的 `requirements-lock.txt`；Broker 依赖为 `requirements-broker-lock.txt`，语音依赖为 `requirements-speech.txt`。前端使用原生 HTML／CSS／JavaScript，本地包含 Three.js、GLB 和贴图，启动无需前端打包或临时 CDN。
 
-本轮使用 D 盘独立数据库验收。后端运行 `python -B -m pytest tests -q -p no:cacheprovider`，前端运行 `node --test tests/*.test.mjs`。浏览器验收脚本为 `tests/stage03-browser.cjs`；历史迁移脚本为 `tests/stage03-integration.cjs`，需通过 `INSPECTGO_STAGE02_ROOT` 指定已验收 Stage02（41ed359）的源码目录，默认使用相邻的 `stage02-worktree`。可用 `INSPECTGO_PYTHON` 指向既有 Python 环境，脚本全部采用隔离数据库和日志。
+在项目目录打开 PowerShell 7，整段复制执行：
 
-## 阶段 01 实时链路（2026-10-29）
-
-已接通模拟器 → 本机 MQTT Broker → FastAPI → WebSocket → 页面。卡片显示设施编号、远程状态、观测时间、来源与延迟；断线/过期保留最后值并标未知，不增加现场覆盖，也不改复核或旧运行。
-
-本机 PowerShell 7 启动完整链路：
-
-~~~powershell
-Set-Location -LiteralPath 'D:\校园设施巡检与复核'
-.\Setup-Realtime.ps1
-.\Start-Realtime.ps1
-~~~
-
-打开 http://127.0.0.1:8000/；Ctrl+C 清理本次 Broker、API 和模拟器。已有端口被占用时明确报错，可指定 `-Port 8010 -MqttPort 1884`。Broker 单独安装到 `.runtime/broker-venv`，不降级后端环境，不安装系统服务。所有日志、缓存和测试数据均留在本项目 D 盘目录。
-
-[阶段 01 说明、演练步骤与限制](docs/stages/01-设施状态链.md) · [验收证据](docs/evidence/stage01-2026-10-29/README.md)。阶段 02 已验收通过。
-
-## 设施配置基线（2026-10-29）
-
-已建立统一 `config/facilities.json` 和 `config/zones.json`，固定 3 区域、8 点位、6 必检点。既有接口和页面直接读取配置，保留旧点位 ID 并增加 `facility_id`。新增只读接口 `/api/facilities`、`/api/scenarios/S1`。
-
-S1 文件明确标注为教学输入，保留 C03／ap-2f 的历史告警、当前远程观察、现场记录和完成复核的关联证据；不自动灌入真实数据库，不预填 T1–T5 状态。阶段 03 已以明确轮次和固定 09:00–09:45（Asia/Shanghai）窗口替代新运行的滚动统计；未选择轮次时不显示虚构覆盖数。旧运行保留原始摘要及快照。完整说明、固定清单及复现命令见 [设施配置与已确认告警基线](docs/baselines/01-设施配置与已确认告警.md)。
-
-## 历史前端界面（2026-10-30，已由本分支三维舞台接替）
-
-页面主题为“校园设施巡检与复核”。已接入确认过的日间玻璃效果、完整中文翻转标题及可搜索的楼栋／楼层选择浮层；搜索、现场记录、照片、复核和运行历史沿用原有接口。使用原生 CSS / JavaScript，无需安装前端构建依赖。
-
-新增全点位选择舞台：原生 CSS 3D 卡片、进入巡查转场、点击火花和视差，移动端采用横向滚动。选点联动清单，进入巡查仍打开原有现场记录表单；舞台与清单共用实时设施状态解释，现场覆盖独立展示。该效果不等于案例要求的 Three.js 多端实现。早期截图与案例取证仍见 [3D 选房案例草稿](02_AI对话快照/01_3D选房与穿梭动效/说明.md)，不把历史截图作为当前代码回归证明。
-
-本次检查记录、实际截图与边界见 [玻璃界面验收](docs/evidence/glass-ui-2026-10-29/README.md)。本机请用 PowerShell 7 运行以下启动命令；旧 Windows PowerShell 5 无法正确解析既有启动脚本中的 UTF-8 中文。
-
-## 仅启动已有 API（不启动 Broker／模拟器）
-
-本机新目录的环境已重建并验证，可以直接运行。换电脑或缺少 .venv 时，先按下方步骤创建 Python 3.11 环境。
-
-~~~powershell
-Set-Location -LiteralPath 'D:\校园设施巡检与复核'
-Remove-Item -LiteralPath Env:INSPECTGO_DB,Env:INSPECTGO_UPLOADS,Env:INSPECTGO_SEED_DEMO -ErrorAction SilentlyContinue
-.\Start.ps1
-~~~
-
-打开 http://127.0.0.1:8000/ 。终端按 Ctrl+C 停止；端口冲突时用 .\Start.ps1 -Port 8010。不要双击 HTML，页面通过同源 HTTP 访问后端。清除上述进程环境变量是为了使用新根默认数据库与照片目录，避免继承旧实例或测试实例的路径。
-
-Start.ps1 按自身位置定位项目，将临时文件与包缓存放入 .runtime；默认数据库为 backend/inspectgo.db，照片为 backend/uploads。既有数据库采用增量迁移，不清空历史、不刷新旧模拟记录时间。迁移后的环境、启动及回归结果在迁移说明中单独记录，旧截图不替代新路径验证。
-
-## Python 3.11 环境重建
-
-旧 .venv 含旧绝对路径，不作为可移植环境直接使用。新根尚无 .venv 时，可用已安装的 Python 3.11 创建环境，不需要重新安装系统 Python：
-
-~~~powershell
-Set-Location -LiteralPath 'D:\校园设施巡检与复核'
+```powershell
+$ErrorActionPreference='Stop'
+if (Test-Path '.runtime\twin-worktree\backend\judgment.py') {
+    Set-Location -LiteralPath '.runtime\twin-worktree'
+}
+if (-not (Test-Path 'backend\judgment.py')) {
+    throw '当前目录缺少最新业务源码，请使用包含完整功能的项目源码目录。'
+}
 New-Item -ItemType Directory -Path '.runtime\tmp','.runtime\pip-cache' -Force | Out-Null
-$projectRoot = (Get-Location).Path
-$env:TEMP = Join-Path $projectRoot '.runtime\tmp'
-$env:TMP = $env:TEMP
-$env:PIP_CACHE_DIR = Join-Path $projectRoot '.runtime\pip-cache'
-$env:PYTHONDONTWRITEBYTECODE = '1'
-py -3.11 -m venv .venv
-.\.venv\Scripts\python.exe -B -m pip install -r .\requirements-lock.txt
-.\.venv\Scripts\python.exe -B -m pip check
-~~~
+$env:TEMP=Join-Path (Get-Location).Path '.runtime\tmp'
+$env:TMP=$env:TEMP
+$env:PIP_CACHE_DIR=Join-Path (Get-Location).Path '.runtime\pip-cache'
+$env:PIP_DISABLE_PIP_VERSION_CHECK='1'
+$env:PYTHONDONTWRITEBYTECODE='1'
+if (-not (Test-Path '.venv\Scripts\python.exe')) {
+    py -3.11 -m venv .venv
+    if ($LASTEXITCODE -ne 0) { throw '需要先安装可由 py -3.11 调用的 Python 3.11。' }
+}
+$env:INSPECTGO_PYTHON=(Resolve-Path '.venv\Scripts\python.exe').Path
+& $env:INSPECTGO_PYTHON -B -m pip install -r requirements-lock.txt
+if ($LASTEXITCODE -ne 0) { throw '基础依赖安装失败，请检查下载连接与终端错误。' }
+```
 
-若本机没有 py 启动器，可将其中创建环境的一行替换为本机已有 Python 3.11 解释器的明确路径。本次机器原环境使用的是：
+本地语音为可选资源，需联网下载并在源码目录运行 `./Setup-Speech.ps1`。默认模型为 Vosk 的 vosk-model-small-cn-0.22；安装脚本校验哈希并保存在项目 `.runtime`。微信需另行取得真实 AppID、合法 HTTPS 后端及语音授权。
 
-~~~powershell
-& 'C:\Users\tan13\miniconda3\envs\yolov8\python.exe' -B -m venv .venv
-~~~
+## 5. 环境变量
 
-此 C 盘路径是既有解释器的位置，不是新增项目产物目录；其他机器应替换为其实际 Python 3.11 路径。创建完成后统一使用新根 .venv 内的 python.exe，不依赖激活脚本或系统默认 Python。
+配置样例为当前源码根目录 `.env.example`。继续在完成第 4 节后的同一个终端执行：
 
-requirements-lock.txt 锁定运行与测试依赖。requirements.txt 仅列运行依赖；requirements-dev.txt 在此基础上追加测试工具。首次下载需要网络；未承诺未经干净机器实测的安装时长。
+```powershell
+if (-not (Test-Path '.env')) { Copy-Item -LiteralPath '.env.example' -Destination '.env' }
+notepad .env
+```
 
-## 已有功能与边界
+完整模式通过 dotenv 显式加载此文件，填入实际供应商配置后再启动；最小模式忽略它。模型服务凭据不能写进前端、小程序或提交 Git。
 
-- 搜索点位编号、设施名称；按楼栋、楼层、必检属性和业务状态筛选，切换网格／列表。
-- 八点位来自同一后端统计快照。必检为 C01、C02、C04、C05、C07、C08；普通点为 C03、C06。
-- 现场覆盖、设施最近记录、复核处理分别呈现。远程状态不单独算覆盖；有效现场记录不等于设施正常。
-- 查看真实详情、登记现场记录、保存实际照片、发起及处理复核。无法确认时保留待复核；确认异常不表示异常解除。
-- 保存覆盖判断与快照，查看最近 50 次运行。旧运行保留原摘要及已有快照，不补造缺失历史。
-- 原创中文标题一次 3D 翻转、桌面短拖尾、可保存的动效开关、减少动态效果支持及键盘可操作的对话框。
+| 变量名                                                              | 是否必填      | 作用                      | 不填会怎样                     |
+| ---------------------------------------------------------------- | --------- | ----------------------- | ------------------------- |
+| INSPECTGO_LLM_ENABLED                                            | 可选        | 启用模型解释，配置完整后设 true      | 默认 false，保留结构化判断与基础统计     |
+| INSPECTGO_LLM_BASE_URL                                           | 模型启用时必填   | 模型 HTTPS API 地址         | 模型解释显示配置不完整               |
+| INSPECTGO_LLM_MODEL                                              | 模型启用时必填   | 实际模型名称                  | 模型解释显示配置不完整               |
+| INSPECTGO_LLM_API_KEY                                            | 模型启用时必填   | 服务端凭据                   | 模型解释不可用，不伪造回答             |
+| INSPECTGO_VLM_ENABLED                                            | 可选        | 启用照片辅助摘要                | 默认 false，实际照片保存与人工复核仍可用   |
+| INSPECTGO_VLM_BASE_URL／INSPECTGO_VLM_MODEL／INSPECTGO_VLM_API_KEY | 图像模型启用时必填 | 支持图像的供应商、模型和凭据          | 摘要显示未配置或调用失败              |
+| INSPECTGO_VLM_REUSE_LLM                                          | 可选        | VLM 三字段全部为空时复用完整 LLM 配置 | 默认 false；部分 VLM 配置不混用共享密钥 |
+| INSPECTGO_STALE_SECONDS                                          | 可选        | 远程观察过期阈值                | 默认 10 秒，过期不判故障            |
+| INSPECTGO_ASR_MODEL_PATH                                         | 可选        | 指定本地语音模型目录              | 使用项目默认模型；缺失时提示不可用并保留文字操作  |
+| INSPECTGO_HTTP_TRUST_ENV                                         | 可选        | 模型 HTTP 使用环境代理          | 默认 false，按后端规则直连          |
 
-新运行按**轮次 + 固定 09:00–09:45 窗口**计算覆盖；未选择轮次时显示未选择。早期滚动 45 分钟快照只作为历史档案保留，不为保持截图数字重灌数据。旧种子文本可能写有“照片已上传”，但没有对应图片；只有真正保存的文件才进入照片区。
+运行脚本自动指定本轮解释器、数据目录和 MQTT 连接。路线 B 明确关闭 MQTT／LLM／VLM；不要将模型开关未开启解释成业务任务失败。
 
-现场提交需填写人员、发生时间、检查结果、说明，并确认已到现场。支持 JPG/JPEG、PNG、WebP，每张最多 10MB、每次最多 5 张，实际解码校验并限制 2500 万像素。保存失败保留表单，重试采用请求标识避免重复写入；复核使用版本检查。
+## 6. 复现实测记录
 
-当前为单机教学工作台，人员信息手工填写，不构成身份验证或权限系统。默认只监听本机；未配置手机跨设备访问、离线同步或多人审批。MQTT/WebSocket 本机教学状态链已实现；独立巡检轮次、T1—T5 基础依赖判断及 S1–S3 已实现；完整复核生命周期、条件推演、Three.js 和 AI 增强仍属后续阶段；不输出正式安全合规或专业故障诊断结论。
+**按当前依赖规模与操作步骤填写的时间预算，均为估算、未经本轮真实测试，不作为实测证明。** 估算假定已安装 Python 3.11 与 PowerShell 7、有可用网络及源码访问权限；不包含申请模型账号、微信配置、语音模型下载。最小模式仅指依赖安装后的运行不依赖外网。
 
-## 验证
+| 项    | 内容                                                         |
+| ---- | ---------------------------------------------------------- |
+| 测试人  | 本轮未实测；由 AI 按工程步骤估算，后续由参赛者核对                                |
+| 机器   | 估算参考本机：AMD Ryzen 5 9600X、系统物理内存读取 15.16 GiB、Windows 11 x64 |
+| 是否首次 | 按首次安装预算；当前电脑已安装过项目                                         |
+| 测试日期 | 未实测；估算编制日期为 2026-11-02                                     |
+| 总耗时  | 路线 A 预计 12 分 30 秒；路线 B 预计 8 分 30 秒，均非实测承诺                  |
 
-以下命令仅从新根执行。测试使用 .runtime 内的独立数据库和照片目录，不能替换为真实数据库：
+| 步骤       | 命令／操作                        | 耗时预算（A／B，未实测） | 备注                      |
+| -------- | ---------------------------- | ------------- | ----------------------- |
+| 1. 拉代码   | 获取最新源码包，在目录打开 PowerShell 7   | 1 分／1 分       | 源码传输受包大小、权限与网络影响        |
+| 2. 装依赖   | 第 4 节准备命令；A 另安装 Broker 依赖    | 8 分／5 分       | 可用下载源下的首次安装预算；下载重试会增加耗时 |
+| 3. 配环境变量 | 第 5 节复制样例，A 填写已取得的服务配置       | 1 分 30 秒／45 秒 | 不包含申请供应商账号或授权审批         |
+| 4. 初始化数据 | 在“轮次与任务”建立教学实例               | 30 秒／30 秒     | 空库自动建表，教学数据由用户显式建立      |
+| 5. 启动    | 第 3 节对应启动命令                  | 30 秒／20 秒     | 不含首次下载语音模型              |
+| 6. 打开页面  | 浏览器访问 http://127.0.0.1:8017/ | 1 分／55 秒      | 包含首次本地资源加载与简单操作         |
 
-~~~powershell
-Set-Location -LiteralPath 'D:\校园设施巡检与复核'
-New-Item -ItemType Directory -Path '.runtime\tmp' -Force | Out-Null
-$env:TEMP = Join-Path (Get-Location).Path '.runtime\tmp'
-$env:TMP = $env:TEMP
-$env:PYTHONDONTWRITEBYTECODE = '1'
-.\.venv\Scripts\python.exe -B -m pytest -q -p no:cacheprovider --basetemp .runtime\pytest-temp tests\test_api.py
-node --test tests\frontend.test.mjs
-~~~
+完整模式的估算超过 10 分钟；最小模式未实测，不能据预算宣称满足 10 分钟验收。自动集成检查与首次安装计时分别记录：已安装依赖后的隔离检查由 `scripts/verify_stage08_full.py` 执行，输出在项目 `.runtime/stage08-complete/`，不作为冷机器安装耗时证明。待补检提醒另由 `tests/inspection-alerts-browser.cjs` 验证。这些脚本随代码保存，运行数据库和浏览器产物不提交 Git。
 
-Node 使用本机已有版本。若未加入 PATH，本机可将最后一行替换为：
+2026-11-02 提交前隔离回归：阶段 08 八组检查通过；其中 Python 86 项与 25 个子用例、前端及小程序单元 105 项通过；待补检提醒另有 7 组浏览器检查通过。本机报告为 `.runtime/stage08-complete/20261102T150049-152241Z/result.json` 与 `.runtime/inspection-alerts-browser/flow-1793631636682/result.json`。检查使用已有依赖、Windows 与 Chrome，关闭付费模型调用；不证明首次安装计时、微信真机或最终人工验收通过。
 
-~~~powershell
-& 'D:\claude\node.exe' --test tests\frontend.test.mjs
-~~~
+## 7. 验收清单（跑起来该看到什么）
 
-浏览器脚本使用 Node 内置模块、全局 fetch 与 WebSocket，不需要安装前端 npm 依赖。执行 tests/browser.cjs 与 tests/browser-advanced.cjs 前，需准备 Chrome DevTools 9338 端口和 http://127.0.0.1:8001/ 隔离验收实例；脚本本身不启动它们。该实例的 INSPECTGO_DB、INSPECTGO_UPLOADS 和独立 Chrome 用户目录都必须位于新根 .runtime。不得连接真实 8000 数据库做写入验收。
+下列由实际操作者现场勾选；配图为隔离教学数据的既有记录，不冒充本次重新拍摄。阶段 02—07 已获用户验收，阶段 08 的微信平台与最终人工验收尚未完成。
 
-浏览器测试会使用 docs/evidence/B0/desktop.png 作为测试上传样本。截图与 JSON 输出在 .runtime/ui-check，属于测试产物，不是实际设施照片。历史 B0 及 UI 截图已经随目录迁入；其旧路径、时间、哈希与结论保持历史含义。**迁移后的环境、运行和回归检查已完成**，详见迁移说明。
+- [ ] 服务启动：完整模式终端显示 Ready 地址；最小模式显示 Uvicorn running 地址。终端验收截图待补充。
+- [ ] 打开首页：看到“校园设施巡检与复核”、3D 校园与五个工作区。[总览截图](docs/screenshots/stage08/01-campus-overview.png)。
+- [ ] 任务与方案：建立 S3 并生成判断，仅 T1 受阻；甲可执行、乙丙不可执行。[任务](docs/screenshots/stage08/02-s3-tasks.png)／[方案](docs/screenshots/stage08/03-plan-comparison.png)。
+- [ ] 现场补证：进入 C07 网络交换房间并打开实际巡查，提交说明与人工结论；出现新证据和新 reality，旧运行保留。[保存截图](docs/screenshots/stage08/04-review-saved.png)。
+- [ ] 条件推演：以 S3 为父运行，修改条件创建 what-if，原 reality 不变。[推演截图](docs/screenshots/stage08/05-s4-whatif-a.png)。
+- [ ] 异常／降级：建立 S5，C03 unavailable 时 T2 状态未知、T4 待验证；补证后生成新运行，不改旧结果。[原 S5](docs/screenshots/stage08/06-s5-unknown.png)／[补证新运行](docs/screenshots/stage08/07-s5-followup.png)。
+- [ ] 告警提示：完整模式的新有效远程告警可弹窗，已有告警只入列表；关闭提示不解除异常。[桌面](docs/screenshots/stage08/08-new-remote-alert.png)／[移动端](docs/screenshots/stage08/09-mobile-alert.png)。
+- [ ] 业务提醒：建立 S2 并生成判断，C07 显示“待补检／T1 受阻”；从提醒发起复核并补充窗口内有效现场记录，新判断确认缺口消除后对应提醒移除。仅上传照片、关闭提示、逾期补证或新判断读取失败不消警；旧运行仍保留。
+- [ ] 数据留下记录：在“证据与复核”和运行历史中查询本次记录，重启后仍可查看，冷启动检查入口见第 6 节，自动检查不代替最终人工与微信平台验收。
 
-选房交互回归：运行 `node tests/room-stage-browser.cjs`，脚本自动分配本机端口、启动独立 Broker/API/隐藏 Chrome，并在退出时清理自身进程。需已有 `.venv`、`.runtime/broker-venv` 和本机 Chrome；可通过 `INSPECTGO_CHROME` 指定已有 Chrome 路径。仅在 `.runtime/room-stage-fix/` 内生成测试数据库、浏览器配置和结果，验证实时告警/过期、覆盖标识、键盘、真实鼠标及触屏输入，不写正式数据库。
+## 8. 排错 FAQ
 
-## Git 与每日对话快照
+**Q：笔记本和台式机看到的页面不同。**
 
-Git 操作只在 D:\校园设施巡检与复核 执行。源码、测试、启动脚本、依赖清单与文档纳入版本管理；.gitignore 排除数据库及其日志、backend/uploads、.runtime、.venv、密钥和缓存。真实数据仍保留在本机，跨机器恢复既有业务数据时需另外成套备份数据库与照片。
+- 原因：访问的代码版本、实例或缓存不同；同一个 localhost 地址也可以指向不同电脑。
+- 解决：核对完整地址与源码版本，确认使用最新工作树，再刷新浏览器资源。
+- AI 协同：用户指出差异后，依据运行地址、分支和实际文件核对版本，没有重置数据来复原截图。
 
-历史记录：2026-10-27 用户授权首次本地提交及三张截图归档。之后用户授权推送，当前 `origin` 为 [Campus-Inspection-draft](https://github.com/Kzzzzz-power/Campus-Inspection-draft)，分支为 `main`；2026-10-30 首次交接时，仓库为私有，当时本地与远端均为 `07753b5`，该编号仅代表历史检查点；当前版本以以下命令为准。后续提交或推送按当次授权执行，使用现有 Git 身份，不回填日期。可用以下命令核对实际状态：
+**Q：语音转写提示 network，现场说明没有文字。**
 
-~~~powershell
-Set-Location -LiteralPath 'D:\校园设施巡检与复核'
-git log -1 --format=fuller
-git show --stat --oneline HEAD
-git status --short
-~~~
+- 原因：原浏览器在线识别链路未完成；此错误不能单独证明麦克风损坏。
+- 解决：Web 使用本地 Vosk；安装模型、允许麦克风并通过 HTTPS 或 localhost 打开，失败时保留草稿并使用文字。
+- AI 协同：用户选择本地中文识别，AI 接入本机后端；识别结果仍需人工核对，不直接提交证据。
 
-每日资料按 docs/ai-sessions/YYYY-MM-DD.md 归档，与当天开发提交同日保存；图片放入对应 assets/YYYY-MM-DD。已有记录不改写，缺失对话不编造。这里没有配置后台定时导出任务。
+**Q：复制 .env 后配置没有生效。**
 
-每日归档入口：[AI 对话快照索引](docs/ai-sessions/README.md)。最新已归档资料为 [2026-10-30 对话快照](docs/ai-sessions/2026-10-30.md)，属于截图式存档，不是完整会话导出。缺失的原始提问、第一版方案和纠偏证据继续标为缺失，不补造；当前竞赛案例包仍为草稿。历史 B0 文档保留当时状态，不代表当前版本已完成全部案例。
+- 原因：原启动器不会自动加载 .env。
+- 解决：完整模式使用 `python -m dotenv -f .env run` 显式加载，填好配置后重启本次服务；最小模式明确使用关闭增强的进程环境。
+- AI 协同：读取实际配置代码后修正文档，避免只复制文件却没有加载步骤。
 
-## 来源
+**Q：选了其他教学场景，为什么还看到旧的 T1 阻塞和乙丙不可执行？**
 
-业务以新的 B02 案例书及实践指南为依据；基础代码来自提供的 Day 1 骨架。GreenMate 仅为技术参考，没有导入其业务数据或模型。原始资料目录保持不变。
+- 原因：场景下拉框选择的是下一次要建立的实例，已有轮次和冻结运行不会自动改变；甲乙丙是方案名称，不是三名人员。
+- 解决：先点击“建立对应教学实例”，再生成判断。本版本显示当前轮次与待建立场景，并阻止场景不一致时误生成旧轮次。S3 中乙需 P2 可用且具备 Z3 权限；丙需足够时间与授权协同。仅比较假设时用“条件推演”，可执行不表示补检已完成。
+- AI 协同：先只读核对实际 S1／S2／S3 运行，再修正界面歧义；保留案例原定任务与方案计算规则，用隔离浏览器验证 S5 和条件推演。
 
-界面工作读取并应用 design-taste-frontend、impeccable、react-bits；最后一项只用于核查候选组件，未安装 React Bits 运行组件。
+**Q：T1 已受阻，为什么“当前远程告警”仍为 0？**
 
-- 标题为原创 CSS 3D；[公开效果参考](https://pro.reactbits.dev/docs/components/3d-letter-swap)，未复制或分发 Pro 源码。
-- 拖尾为原创 Canvas2D；[评估的官方 Ribbons 源码](https://github.com/DavidHDev/react-bits/blob/main/src/content/Animations/Ribbons/Ribbons.jsx)，未引入 React 或 WebGL 组件。
-- 页面不伪造照片、遥测图表或真实平面图；“点位覆盖示意”只表达八点位的覆盖情况。
+- 原因：待补检／任务受阻与设备远程告警是不同语义；前者不表示设施故障。
+- 解决：查看“巡检提醒”及其轮次、依据 run_id。复核后的新判断确认缺口消除才移除对应提醒；旧运行不会被覆盖，逾期记录不能补算固定窗口。
+- AI 协同：用户指出缺少业务弹窗后，AI 增加独立提醒投影，并用正常补证、逾期补证、读取失败和切换轮次测试约束消警。
+
+## 9. AI 协同说明
+
+| 项     | 内容                                                   |
+| ----- | ---------------------------------------------------- |
+| 使用的工具 | Codex；历史案例中另有 WorkBuddy 与 DeepSeek 的使用记录             |
+| 怎么用的  | 用户拆解业务与视觉要求，AI 阅读代码、提出方案、实现和定位问题，用户纠偏并验收阶段结果         |
+| 对话记录  | 已保存日常截图见 `docs/ai-sessions/`；本机竞赛案例为 Web 动效、3D 建模、待补检告警与现场补证消警三项，桌面案例本次不随 README 导入。                        |
+| 人工把关  | 覆盖、设备状态与复核分开；禁止 LLM 直接判定状态；不伪造照片、告警与结论；视觉示意和真实证据分别标明 |
+
+## 10. 目录结构
+
+当前最新源码在 `.runtime/twin-worktree`，环境准备命令会进入该目录；整理为平铺源码包后从其根目录执行即可。当前源码结构如下：
+
+```text
+项目源码/
+├── backend/                 # API、存储、证据、判断与复核
+├── frontend/                # 工作台与 Three.js
+│   ├── twin/                # 场景、镜头与交互
+│   ├── assets/              # 模型、贴图与来源
+│   └── vendor/              # 本地第三方运行库
+├── config/                  # 设施、任务、方案、S1—S5
+├── simulators/              # 教学数据与 Broker
+├── miniapp/                 # 原生微信小程序
+├── scripts/                 # 启动、安装与配置
+├── tests/                   # 规则、接口与交互检查
+├── docs/                    # 文档与对话证据
+├── .env.example             # 配置样例
+└── requirements-lock.txt    # 基础依赖锁文件
+```
+
+## 11. 已知限制
+
+| 限制                   | 影响                            | 后续打算                   |
+| -------------------- | ----------------------------- | ---------------------- |
+| 最新功能在 feat/campus-twin 分支 | 默认 main 与云端不保证包含本版功能；本次只做本地提交 | 交付前明确集成目标并固定提交版本 |
+| 时间为估算，未做本轮首次安装计时     | 不能作为 10 分钟复现实测证明              | 正式交稿前由参赛者按实际机器核对与替换    |
+| 微信工程尚未完成平台与真机联调      | Camera、上传及 ASR／TTS 的平台效果待确认   | 取得 AppID、权限和可访问后端后验收   |
+| 远程数据来自教学模拟器，校园为设计示意  | 不能当真实设备监测、实景测绘或专业安全判断         | 保留明确标注，真实接入另行取证        |
+| 模型服务与本地语音受配置、网络和噪声影响 | AI 增强可受限，编号、方言可能误识别           | 可信降级、保留文字与人工核对         |
+| 尚无多人身份认证，浏览器／设备覆盖有限  | 不适合直接公开为真实生产服务，未证明全部手机性能      | 补充访问控制和目标设备验收          |
+| 部分截图和首次复现证据缺失        | 当前材料仍不是最终竞赛验收包                | 补充终端、干净机器、S1／S2及微信真机证据 |
