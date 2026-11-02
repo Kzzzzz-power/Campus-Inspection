@@ -24,3 +24,24 @@ test('pending submit locks draft edits and voice adoption; failure retains origi
  let reject;const p={...def,data:{...JSON.parse(JSON.stringify(def.data)),review:{review_id:'r'},reviewId:'r',draft:{fields:{...fields},photos:[]},voiceText:'新识别文字'},setData(v){Object.assign(this.data,v);},alive:true,selection:1,runSequence:0,client:{submit:()=>new Promise((resolve,fail)=>{reject=fail;})},voice:{start(){throw Error('busy voice must not start');}}};
  const save=p.submit();assert(p.data.busy);p.field({currentTarget:{dataset:{field:'notes'}},detail:{value:'提交期间编辑'}});p.result({detail:{value:1}});p.conclusion({detail:{value:1}});p.onsite({detail:{value:[]}});p.now();p.acceptVoice();p.startVoice();assert.deepEqual(p.data.draft.fields,fields);reject(Error('network unavailable'));await save;assert.deepEqual(p.data.draft.fields,fields);assert.equal(p.data.busy,false);
 });
+
+
+test('voice adoption retains recognized text when draft storage fails and can retry', () => {
+ let def;const file=path.resolve(__dirname,'../miniapp/pages/index/index.js');
+ vm.runInNewContext(fs.readFileSync(file,'utf8'),{require:s=>require(path.resolve(path.dirname(file),s)),Page:d=>{def=d;},wx:{}});
+ const w=stub(()=>assert.fail('voice adoption must not submit evidence')),c=new Client(w,'http://local'),d=draft(c);
+ d.fields.notes='原有说明';c.save('r1',d);
+ const persist=w.setStorageSync;let storageBlocked=true;
+ w.setStorageSync=(key,value)=>{if(storageBlocked)throw Error('storage quota exceeded');persist(key,value);};
+ const p={...def,data:{...JSON.parse(JSON.stringify(def.data)),reviewId:'r1',draft:d,voiceText:'新识别文字'},setData(v){Object.assign(this.data,v);},alive:true,client:c};
+ p.acceptVoice();
+ assert.equal(p.data.draft.fields.notes,'原有说明');
+ assert.equal(c.draft('r1').fields.notes,'原有说明');
+ assert.match(p.data.error,/storage quota exceeded/);
+ assert.equal(p.data.voiceText,'新识别文字');
+ storageBlocked=false;p.acceptVoice();
+ assert.equal(p.data.draft.fields.notes,'原有说明\n新识别文字');
+ assert.equal(c.draft('r1').fields.notes,'原有说明\n新识别文字');
+ assert.equal(p.data.voiceText,'');
+ p.acceptVoice();assert.equal(c.draft('r1').fields.notes,'原有说明\n新识别文字');
+});
