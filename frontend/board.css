@@ -35,7 +35,8 @@ body.pinboard{--ink:#162a2e;--muted:#5f7275;--line:#d8e0d5;--paper:#fffef9;--acc
 #board-search-scope{font-size:12px;color:var(--muted);margin:8px 0}
 .board-layout{display:grid;grid-template-columns:168px minmax(0,1fr);gap:24px;padding:14px 28px 40px}
 .board-rail{min-width:0}
-.board-nav{position:sticky;top:100px;display:grid;gap:6px}
+/* Keep navigation in flow with the round button and explanatory note. */
+.board-nav{position:static;display:grid;gap:6px}
 .board-nav button{display:flex;align-items:center;gap:10px;text-align:left;border:0;background:transparent;border-radius:10px;padding:12px;color:#526766;font-weight:600}
 .board-nav button[aria-current=page]{background:#e0e9dc;color:#244e3f}
 .board-nav button:hover{background:#e8eee4}
