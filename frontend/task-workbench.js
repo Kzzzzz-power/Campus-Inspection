@@ -1,4 +1,5 @@
 import {renderPlanning,renderComparison} from './planning-view.js';
+import {evidenceLinks,pagedItems} from './paged-evidence.js';
 import {allRounds} from './evidence-browser.js';
 import {renderAssumptions} from './whatif-workbench.js';
 const $=id=>document.getElementById(id);
@@ -133,10 +134,10 @@ export function initTaskWorkbench({el,button,api,postJSON,showDialog,toast,onSel
       details.append(el('summary',{},el('strong',{},task.task_id+' · '+task.name),el('span',{class:'status-badge is-'+tone},label)),el('p',{},task.reason));
       if(run.scenario_id==='S5'&&task.task_id==='T2'){
         details.append(el('p',{class:'field-hint'},'C03 当前证据与历史确认分别判断；旧确认过期不能作为本次人工确认，当前查询成功也不能代替现场复核。'));
-        for(const evidence of run.evidence.filter(p=>p.checkpoint_id==='C03'&&['current_status','review_confirmation'].includes(p.evidence_type)))details.append(el('p',{class:'field-hint'},`${evidence.evidence_type==='current_status'?'当前状态查询':'人工确认'}：${evidence.status} · 有效截至 ${evidence.valid_until||'未提供'} · ${evidence.evidence_id}`));
+        details.append(pagedItems(run.evidence.filter(p=>p.checkpoint_id==='C03'&&['current_status','review_confirmation'].includes(p.evidence_type)),evidence=>el('p',{class:'field-hint'},`${evidence.evidence_type==='current_status'?'当前状态查询':'人工确认'}：${evidence.status} · 有效截至 ${evidence.valid_until||'未提供'} · ${evidence.evidence_id}`),{el,button,label:'C03 查询与确认'}));
       }
       for(const dep of task.checks){const row=el('section',{class:'dependency-row'},el('h4',{},`${dep.dependency_id} · ${depStates[dep.status]}`),el('p',{},dep.reason));
-        row.append(el('div',{class:'evidence-links'},...dep.evidence_refs.map(id=>button(id,()=>proof(run,id),'btn btn-ghost btn-small'))));details.append(row);}
+        row.append(evidenceLinks(run,dep.evidence_refs,{el,button,proof}));details.append(row);}
       if(run.run_type==='what_if')details.append(el('p',{class:'field-hint'},'父现实任务状态；假设条件不表示任务已恢复，推演不能发起现场复核。'));
       else {
         const reviews=run.input_snapshot.review_snapshot||[];
