@@ -69,14 +69,8 @@ def round_facts(conn,rid,cutoff):
     if round_value['config_hash']!=CONFIG_HASH:
         raise HTTPException(409,'当前设施配置与该轮次不一致；请选择相同配置或创建新轮次。已有运行仍可查阅。')
     records=[dict(r) for r in conn.execute('SELECT * FROM inspection_records WHERE inspection_round_id=?',(rid,))]
-    proofs=[ev.decode(r) for r in conn.execute('''SELECT * FROM evidence WHERE
-        (inspection_round_id=? OR (inspection_round_id IS NULL AND evidence_type IN ('facility_status','remote_status','historical_observation')))
-        AND observed_at<=? ORDER BY observed_at,evidence_id''',(rid,cutoff))]
-    proofs=[p for p in proofs if p['evidence_type'] not in ('configuration','coverage_check','anomaly_list','sqlite_write',
-        'history_query','aggregation','review_channel','basic_statistics')
-        # Enrichment remains independently queryable, outside core judgment facts.
-        and p['source_type'] not in ('MODEL_OUTPUT','LLM_OUTPUT','RAG','TOOL_OUTPUT','WEB_API')
-        and not p['provenance_json'].get('run_id')]
+    from .run_facts import select_evidence
+    proofs=select_evidence(conn,rid,cutoff)
     reviews=[dict(r) for r in conn.execute('''SELECT DISTINCT r.* FROM reviews r
         LEFT JOIN evidence e ON e.review_id=r.review_id LEFT JOIN runs run ON run.run_id=r.trigger_run_id
         WHERE (e.inspection_round_id=? OR run.inspection_round_id=? OR r.inspection_round_id=?) AND r.created_at<=?''',(rid,rid,rid,cutoff))]
